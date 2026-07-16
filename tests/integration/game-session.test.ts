@@ -27,6 +27,8 @@ type SaveOverrides = {
   readonly quests?: QuestState;
   readonly defeatedBosses?: readonly string[];
   readonly flags?: Readonly<Record<string, boolean>>;
+  readonly quickSlots?: SaveGameV1['quickSlots'];
+  readonly settings?: SaveGameV1['settings'];
 };
 
 const inventoryWeight = (stacks: SaveGameV1['inventory']['stacks']): number =>
@@ -74,10 +76,22 @@ const sessionSave = (overrides: SaveOverrides = {}): SaveGameV1 => {
       flags: overrides.flags ?? {},
       worldTimeMs: 0,
     },
-    quickSlots: [null, null, null, null, null, null, null, null],
-    settings: { music: 0.7, ambient: 0.5, effects: 0.8, muted: false, scale: 2 },
+    quickSlots: overrides.quickSlots ?? [null, null, null, null, null, null, null, null],
+    settings: overrides.settings ?? {
+      music: 0.7,
+      ambient: 0.5,
+      effects: 0.8,
+      muted: false,
+      scale: 2,
+    },
   });
 };
+
+const claimedQuestState = (questId: string): QuestState => ({
+  ...createQuestState(),
+  completed: [questId],
+  claimedRewards: [questId],
+});
 
 describe('GameSession player actions', () => {
   it('rejects NPC interaction from another map or beyond one tile without changing quests', () => {
@@ -261,6 +275,7 @@ describe('GameSession player actions', () => {
         y: 2,
         stacks: [{ itemId: 'wooden-arrow', quantity: 2 }],
         equipment: { weapon: 'bow' },
+        quests: claimedQuestState('elf-guidance'),
       }),
       monsters: [
         monsterAt(
@@ -315,6 +330,7 @@ describe('GameSession player actions', () => {
         x: 2,
         y: 2,
         stacks: [{ itemId: 'wooden-arrow', quantity: 1 }],
+        quests: claimedQuestState('elf-guidance'),
       }),
       monsters: [monsterAt({ x: 3, y: 2 }, { id: 'equipment-target', alertRadius: 0 })],
     });
@@ -334,6 +350,7 @@ describe('GameSession player actions', () => {
         x: 2,
         y: 2,
         equipment: { weapon: 'bow' },
+        quests: claimedQuestState('elf-guidance'),
       }),
       monsters: [monsterAt({ x: 3, y: 2 }, { id: 'reagent-target', alertRadius: 0 })],
     });
@@ -354,11 +371,17 @@ describe('GameSession player actions', () => {
     });
     expect(
       wrongClass.perform({ type: 'cast', abilityId: 'fire-arrow', targetId: 'class-target' }),
-    ).toMatchObject({ ok: false, reason: 'class' });
+    ).toMatchObject({ ok: false, reason: 'ability-locked' });
 
     const lowLevel = new GameSession({
       content,
-      save: sessionSave({ classId: 'wizard', mapId: 'north-field', x: 2, y: 2 }),
+      save: sessionSave({
+        classId: 'wizard',
+        mapId: 'north-field',
+        x: 2,
+        y: 2,
+        quests: claimedQuestState('wizard-guidance'),
+      }),
       monsters: [monsterAt({ x: 3, y: 2 }, { id: 'level-target', alertRadius: 0 })],
     });
     expect(
@@ -374,6 +397,7 @@ describe('GameSession player actions', () => {
         mapId: 'north-field',
         x: 2,
         y: 2,
+        quests: claimedQuestState('wizard-guidance'),
       }),
       monsters: [monsterAt({ x: 3, y: 2 }, { id: 'mp-target', alertRadius: 0 })],
     });
@@ -383,7 +407,14 @@ describe('GameSession player actions', () => {
 
     const far = new GameSession({
       content,
-      save: sessionSave({ classId: 'wizard', level: 4, mapId: 'north-field', x: 2, y: 2 }),
+      save: sessionSave({
+        classId: 'wizard',
+        level: 4,
+        mapId: 'north-field',
+        x: 2,
+        y: 2,
+        quests: claimedQuestState('wizard-guidance'),
+      }),
       monsters: [monsterAt({ x: 12, y: 2 }, { id: 'far-target', alertRadius: 0 })],
     });
     expect(
@@ -401,6 +432,7 @@ describe('GameSession player actions', () => {
         mapId: 'talking-island-dungeon-2',
         x: 50,
         y: 50,
+        quests: claimedQuestState('wizard-guidance'),
       }),
       monsters: [
         monsterAt(
@@ -425,6 +457,91 @@ describe('GameSession player actions', () => {
     ).toMatchObject({ ok: true });
     expect(session.snapshot.world.flags.baphometDefeated).toBe(true);
     expect(session.snapshot.world.defeatedBosses).toContain('baphomet');
+  });
+
+  it('keeps quest reward abilities locked until their class quest reward is claimed', () => {
+    const elf = new GameSession({
+      content,
+      save: sessionSave({
+        classId: 'elf',
+        mapId: 'north-field',
+        x: 2,
+        y: 2,
+        stacks: [{ itemId: 'wooden-arrow', quantity: 1 }],
+        equipment: { weapon: 'bow' },
+      }),
+      monsters: [monsterAt({ x: 3, y: 2 }, { id: 'locked-elf-target', alertRadius: 0 })],
+    });
+    const wizard = new GameSession({
+      content,
+      save: sessionSave({ classId: 'wizard', level: 4, mapId: 'north-field', x: 2, y: 2 }),
+      monsters: [monsterAt({ x: 3, y: 2 }, { id: 'locked-wizard-target', alertRadius: 0 })],
+    });
+
+    expect(elf.snapshot.unlockedAbilityIds).not.toContain('rapid-shot');
+    expect(
+      elf.perform({ type: 'cast', abilityId: 'rapid-shot', targetId: 'locked-elf-target' }),
+    ).toMatchObject({ ok: false, reason: 'ability-locked' });
+    expect(wizard.snapshot.unlockedAbilityIds).not.toContain('fire-arrow');
+    expect(
+      wizard.perform({ type: 'cast', abilityId: 'fire-arrow', targetId: 'locked-wizard-target' }),
+    ).toMatchObject({ ok: false, reason: 'ability-locked' });
+  });
+
+  it('enforces self, ally, enemy, and area target contracts without player-id bypass', () => {
+    const knight = new GameSession({
+      content,
+      save: sessionSave({
+        level: 4,
+        mapId: 'north-field',
+        x: 2,
+        y: 2,
+        quests: claimedQuestState('knight-guidance'),
+      }),
+      monsters: [monsterAt({ x: 3, y: 2 }, { id: 'knight-target', alertRadius: 0 })],
+    });
+    expect(
+      knight.perform({ type: 'cast', abilityId: 'guarded-stance', targetId: 'knight-target' }),
+    ).toMatchObject({ ok: false, reason: 'invalid-target' });
+    expect(
+      knight.perform({
+        type: 'cast',
+        abilityId: 'power-strike',
+        targetId: knight.snapshot.character.id,
+      }),
+    ).toMatchObject({ ok: false, reason: 'invalid-target' });
+
+    const healer = new GameSession({
+      content,
+      save: sessionSave({ classId: 'wizard', level: 4, mapId: 'north-field', x: 2, y: 2 }),
+      monsters: [monsterAt({ x: 3, y: 2 }, { id: 'heal-target', alertRadius: 0 })],
+    });
+    expect(
+      healer.perform({ type: 'cast', abilityId: 'lesser-heal', targetId: 'heal-target' }),
+    ).toMatchObject({ ok: false, reason: 'invalid-target' });
+    expect(
+      healer.perform({
+        type: 'cast',
+        abilityId: 'lesser-heal',
+        targetId: healer.snapshot.character.id,
+      }),
+    ).toMatchObject({ ok: true });
+
+    const areaCaster = new GameSession({
+      content,
+      save: sessionSave({ classId: 'wizard', level: 12, mapId: 'north-field', x: 2, y: 2 }),
+      monsters: [monsterAt({ x: 3, y: 2 }, { id: 'area-target', alertRadius: 0 })],
+    });
+    expect(
+      areaCaster.perform({
+        type: 'cast',
+        abilityId: 'frozen-cloud',
+        targetId: areaCaster.snapshot.character.id,
+      }),
+    ).toMatchObject({ ok: false, reason: 'invalid-target' });
+    expect(
+      areaCaster.perform({ type: 'cast', abilityId: 'frozen-cloud', targetId: 'area-target' }),
+    ).toMatchObject({ ok: true });
   });
 
   it('reports and claims the ending only beside Gunther after every formal objective', () => {
@@ -548,5 +665,159 @@ describe('GameSession player actions', () => {
     expect(serialized.quests).toEqual(session.snapshot.quests);
     expect(serialized.world).toEqual(session.snapshot.world);
     expect(validateSaveV1(serialized)).toEqual(serialized);
+  });
+
+  it('assigns only owned items or unlocked abilities to valid quick slots and serializes them', () => {
+    const session = new GameSession({
+      content,
+      save: sessionSave({
+        stacks: [{ itemId: 'red-potion', quantity: 1 }],
+        quests: claimedQuestState('knight-guidance'),
+      }),
+    });
+
+    expect(
+      session.perform({
+        type: 'assign-quick-slot',
+        contentId: 'red-potion',
+        slot: 0,
+      }),
+    ).toMatchObject({ ok: true });
+    expect(
+      session.perform({
+        type: 'assign-quick-slot',
+        contentId: 'guarded-stance',
+        slot: 1,
+      }),
+    ).toMatchObject({ ok: true });
+    expect(
+      session.perform({
+        type: 'assign-quick-slot',
+        contentId: 'orange-potion',
+        slot: 2,
+      }),
+    ).toMatchObject({ ok: false, reason: 'content-not-owned' });
+    expect(
+      session.perform({
+        type: 'assign-quick-slot',
+        contentId: 'fire-arrow',
+        slot: 3,
+      }),
+    ).toMatchObject({ ok: false, reason: 'content-not-owned' });
+    expect(
+      session.perform({ type: 'assign-quick-slot', contentId: 'red-potion', slot: 8 }),
+    ).toMatchObject({ ok: false, reason: 'invalid-quick-slot' });
+    expect(session.snapshot.quickSlots.slice(0, 4)).toEqual([
+      'red-potion',
+      'guarded-stance',
+      null,
+      null,
+    ]);
+    expect(session.serialize('2026-07-17T09:00:00.000Z').quickSlots).toEqual(
+      session.snapshot.quickSlots,
+    );
+  });
+
+  it('validates settings, mutates session meta, and serializes the current values', () => {
+    const session = new GameSession({ content, save: sessionSave() });
+    const settings = {
+      music: 0.2,
+      ambient: 0.3,
+      effects: 0.4,
+      muted: true,
+      scale: 3 as const,
+    };
+
+    expect(session.perform({ type: 'update-settings', settings })).toMatchObject({ ok: true });
+    expect(session.snapshot.settings).toEqual(settings);
+    expect(session.serialize('2026-07-17T09:05:00.000Z').settings).toEqual(settings);
+    expect(
+      session.perform({ type: 'update-settings', settings: { ...settings, music: 1.1 } }),
+    ).toMatchObject({ ok: false, reason: 'settings-invalid' });
+    expect(session.snapshot.settings).toEqual(settings);
+  });
+
+  it('applies local warehouse deposit and withdrawal through authoritative inventory actions', () => {
+    const session = new GameSession({
+      content,
+      save: sessionSave({
+        x: 31,
+        y: 38,
+        stacks: [{ itemId: 'red-potion', quantity: 2 }],
+      }),
+    });
+
+    expect(
+      session.perform({
+        type: 'warehouse-deposit',
+        npcId: 'dorin',
+        itemId: 'red-potion',
+        quantity: 1,
+      }),
+    ).toMatchObject({ ok: true });
+    expect(session.snapshot.inventory.stacks).toContainEqual({
+      itemId: 'red-potion',
+      quantity: 1,
+    });
+    expect(
+      session.perform({
+        type: 'warehouse-withdraw',
+        npcId: 'dorin',
+        itemId: 'red-potion',
+        quantity: 1,
+      }),
+    ).toMatchObject({ ok: true });
+    expect(session.snapshot.inventory.stacks).toContainEqual({
+      itemId: 'red-potion',
+      quantity: 2,
+    });
+    expect(
+      session.perform({
+        type: 'warehouse-deposit',
+        npcId: 'dorin',
+        itemId: 'red-potion',
+        quantity: 3,
+      }),
+    ).toMatchObject({ ok: false, reason: 'missing-item' });
+  });
+
+  it('keeps warehouse failures atomic when the keeper is remote or has the wrong role', () => {
+    const session = new GameSession({
+      content,
+      save: sessionSave({ stacks: [{ itemId: 'red-potion', quantity: 2 }] }),
+    });
+    const before = session.snapshot.inventory;
+
+    expect(
+      session.perform({
+        type: 'warehouse-deposit',
+        npcId: 'dorin',
+        itemId: 'red-potion',
+        quantity: 1,
+      }),
+    ).toMatchObject({ ok: false, reason: 'npc-out-of-range' });
+    expect(
+      session.perform({
+        type: 'warehouse-withdraw',
+        npcId: 'village-elder-jered',
+        itemId: 'red-potion',
+        quantity: 1,
+      }),
+    ).toMatchObject({ ok: false, reason: 'not-a-warehouse' });
+    expect(session.snapshot.inventory).toEqual(before);
+  });
+
+  it('preserves the WorldScene pause contract while GameSession owns simulation', () => {
+    const session = new GameSession({ content, save: sessionSave() });
+    const start = session.snapshot.player;
+    session.dispatch({ type: 'move', x: start.x + 1, y: start.y });
+
+    session.setPaused(true);
+    session.update(50);
+    expect(session.snapshot.player).toEqual(start);
+
+    session.setPaused(false);
+    session.update(50);
+    expect(session.snapshot.player.x).toBe(start.x + 1);
   });
 });

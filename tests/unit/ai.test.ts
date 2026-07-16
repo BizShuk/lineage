@@ -204,7 +204,8 @@ describe('monster spawning and respawning', () => {
   } as MapDefinition;
 
   it('spawns the content-defined count with stable unique IDs and timers', () => {
-    const monsters = spawnMonsters(map, [goblin]);
+    const spawnGrid = openGrid(12, 12);
+    const monsters = spawnMonsters(map, [goblin], spawnGrid);
 
     expect(monsters).toHaveLength(2);
     expect(monsters.map(({ id }) => id)).toEqual([
@@ -220,6 +221,48 @@ describe('monster spawning and respawning', () => {
       homeY: 6,
       respawnDelayMs: 20_000,
     });
+    expect(monsters.map(({ x, y }) => ({ x, y }))).toEqual([
+      { x: 4, y: 6 },
+      { x: 4, y: 5 },
+    ]);
+  });
+
+  it('forms deterministic non-overlapping groups on walkable tiles', () => {
+    const crowdedMap = {
+      id: 'north-field',
+      spawns: [
+        { monsterId: 'goblin', x: 2, y: 2, count: 2, respawnSeconds: 20 },
+        { monsterId: 'goblin', x: 2, y: 2, count: 2, respawnSeconds: 20 },
+      ],
+    } as MapDefinition;
+    const spawnGrid = TileGrid.fromRows([
+      '.....',
+      '..#..',
+      '.....',
+      '.....',
+      '.....',
+    ]);
+
+    const first = spawnMonsters(crowdedMap, [goblin], spawnGrid);
+    const second = spawnMonsters(crowdedMap, [goblin], spawnGrid);
+    const positions = first.map(({ x, y }) => `${String(x)},${String(y)}`);
+
+    expect(first).toEqual(second);
+    expect(first).toHaveLength(4);
+    expect(new Set(positions)).toHaveLength(4);
+    expect(first.every((monster) => spawnGrid.isWalkable(monster))).toBe(true);
+    expect(first.every(({ x, y }) => Math.max(Math.abs(x - 2), Math.abs(y - 2)) <= 1)).toBe(
+      true,
+    );
+  });
+
+  it('returns a deterministic short formation when the grid has too few free tiles', () => {
+    const blockedGrid = TileGrid.fromRows(['.#', '##']);
+
+    const monsters = spawnMonsters(map, [goblin], blockedGrid);
+
+    expect(monsters).toHaveLength(1);
+    expect(monsters[0]).toMatchObject({ x: 0, y: 0, homeX: 0, homeY: 0 });
   });
 
   it('respawns a normal monster only when its timer is due', () => {

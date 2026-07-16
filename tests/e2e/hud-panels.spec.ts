@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const enterWorld = async (page: Page): Promise<void> => {
-  await page.goto('/?e2e=1');
+const enterWorld = async (page: Page, shopActions = false): Promise<void> => {
+  await page.goto(`/?e2e=1${shopActions ? '&shopActions=1' : ''}`);
   await page.getByRole('button', { name: '開始新遊戲' }).click();
   await page.getByLabel('角色名稱').fill('介面測試');
   await page.getByRole('radio', { name: '騎士' }).check();
@@ -46,8 +46,7 @@ test('shows live HUD values and preserves S movement beside panel shortcuts', as
 
   await page.keyboard.press('Shift+KeyS');
   await expect(page.getByTestId('spells-panel')).toBeVisible();
-  await page.getByTestId('spell-quick-guarded-stance').click();
-  await expect(page.getByTestId('hud-quick-slots')).toContainText('防禦姿態');
+  await expect(page.getByTestId('spell-guarded-stance')).toBeDisabled();
   await page.keyboard.press('Escape');
 
   await page.keyboard.press('KeyC');
@@ -55,22 +54,27 @@ test('shows live HUD values and preserves S movement beside panel shortcuts', as
   await page.keyboard.press('Escape');
   await page.keyboard.press('KeyQ');
   await expect(page.getByTestId('quests-panel')).toBeVisible();
+  await page.getByTestId('quest-scarecrow-training').click();
+  await expect(page.getByTestId('quests-status')).toHaveText('請先靠近相關 NPC');
   await page.keyboard.press('Escape');
   await page.keyboard.press('KeyM');
   await expect(page.getByTestId('map-panel')).toContainText('說話之島村');
+  await page.locator('canvas').focus();
+  await page.keyboard.press('F5');
+  await expect(page.getByTestId('hud-quick-slots')).toContainText('紅色藥水 ×2');
 });
 
 test('uses production transactional panels for commerce, storage, dialogue, and settings', async ({
   page,
 }) => {
-  await enterWorld(page);
+  await enterWorld(page, true);
 
   await page.getByTestId('open-shop').click();
   await expect(page.getByTestId('shop-adena')).toContainText('500');
   await page.getByTestId('shop-buy-helmet').click();
   await expect(page.getByTestId('shop-adena')).toContainText('350');
   await page.getByTestId('shop-sell-red-potion').click();
-  await expect(page.getByTestId('shop-adena')).toContainText('370');
+  await expect(page.getByTestId('shop-adena')).toContainText('362');
   await page.keyboard.press('Escape');
 
   await page.keyboard.press('KeyI');
@@ -81,6 +85,14 @@ test('uses production transactional panels for commerce, storage, dialogue, and 
   await expect(page.getByTestId('hud-stats')).toContainText('防禦 5');
   await page.keyboard.press('Escape');
 
+  await page.locator('canvas').focus();
+  for (const code of [...Array<string>(10).fill('KeyD'), ...Array<string>(6).fill('KeyS')]) {
+    await page.keyboard.press(code);
+    await page.getByTestId('simulation-step').click();
+  }
+  await expect(page.getByTestId('player-state')).toHaveAttribute('data-x', '31');
+  await expect(page.getByTestId('player-state')).toHaveAttribute('data-y', '38');
+
   await page.getByTestId('open-warehouse').click();
   await expect(page.getByTestId('warehouse-panel')).toContainText('紅色藥水 / 身上 2／倉庫 0');
   await page.getByTestId('warehouse-deposit-red-potion').click();
@@ -89,8 +101,7 @@ test('uses production transactional panels for commerce, storage, dialogue, and 
   await expect(page.getByTestId('warehouse-panel')).toContainText('紅色藥水 / 身上 2／倉庫 0');
   await page.keyboard.press('Escape');
 
-  await page.locator('canvas').focus();
-  await page.keyboard.press('KeyE');
+  await page.getByTestId('open-dialogue').click();
   await expect(page.getByTestId('dialogue-panel')).toContainText('歡迎來到說話之島。');
   await page.getByTestId('dialogue-choice-continue').click();
   await expect(page.getByTestId('dialogue-panel')).toContainText('先到村莊補給，再前往訓練場。');

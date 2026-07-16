@@ -209,6 +209,76 @@ describe('WorldController', () => {
     });
   });
 
+  it('keeps one deterministic drop stream long enough to collect field-supplies hides', () => {
+    const save = completeSave({ slot: 1 });
+    const character = { ...createCharacter('掉落測試', 'wizard'), level: 4 };
+    const legalHideSpawns = content.maps
+      .filter(({ id }) => id === 'north-field' || id === 'coast')
+      .flatMap((map) =>
+        map.spawns.flatMap((spawn, spawnIndex) =>
+          ['orc', 'kobold', 'spider'].includes(spawn.monsterId)
+            ? Array.from({ length: spawn.count }, (_, index) =>
+                monsterAt(
+                  { x: 3, y: 2 },
+                  {
+                    id: `${map.id}-${String(spawnIndex)}-${spawn.monsterId}-${String(index)}`,
+                    monsterId: spawn.monsterId,
+                    mapId: 'north-field',
+                    hp: 1,
+                    maxHP: 1,
+                    alertRadius: 0,
+                    patrolRadius: 0,
+                  },
+                ),
+              )
+            : [],
+        ),
+      );
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        character,
+        inventory: {
+          ...save.inventory,
+          weightLimit: deriveStats(character).weightLimit,
+        },
+        world: {
+          player: { mapId: 'north-field', x: 2, y: 2 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([['north-field', grid]]),
+      monsters: legalHideSpawns,
+      seed: 20_260_717,
+    });
+
+    let defeated = 0;
+    for (const monster of legalHideSpawns) {
+      const hideQuantity =
+        controller.snapshot.inventory.stacks.find(({ itemId }) => itemId === 'animal-hide')
+          ?.quantity ?? 0;
+      if (hideQuantity >= 4) break;
+
+      const cast = controller.cast('fire-arrow', monster.id);
+      expect(cast.ok, cast.ok ? undefined : cast.reason).toBe(true);
+      defeated += 1;
+      const hide = controller.snapshot.groundLoot.find(
+        ({ itemId }) => itemId === 'animal-hide',
+      );
+      if (hide !== undefined) controller.dispatch({ type: 'interact', targetId: hide.id });
+      for (let tick = 0; tick < 4; tick += 1) controller.update(250);
+    }
+
+    expect(
+      controller.snapshot.inventory.stacks.find(({ itemId }) => itemId === 'animal-hide')
+        ?.quantity ?? 0,
+    ).toBeGreaterThanOrEqual(4);
+    expect(defeated).toBeLessThanOrEqual(legalHideSpawns.length);
+  });
+
   it('consumes one arrow after a successful bow hit but not after a miss', () => {
     const hit = createBowController(7, 2);
     hit.dispatch({ type: 'attack', targetId: 'arrow-target' });

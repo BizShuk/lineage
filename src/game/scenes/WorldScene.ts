@@ -5,23 +5,13 @@ import type { AudioDirector } from '../../audio/AudioDirector';
 import type { GameContent } from '../../content/catalog';
 import {
   addItem,
-  buyItem,
-  equipItem,
   removeItem,
-  sellItem,
-  useItem,
-  type EquipmentState,
   type InventoryFailureReason,
   type InventoryState,
   type ItemDefinition,
 } from '../../core/inventory';
 import { experienceFloorForLevel } from '../../core/progression';
-import {
-  chooseDialogue,
-  startQuest,
-  type DialogueNode,
-  type QuestCatalog,
-} from '../../core/quests';
+import { chooseDialogue, type DialogueNode } from '../../core/quests';
 import { deriveStats } from '../../core/stats';
 import { AutosaveCoordinator, type AutosaveReason } from '../../storage/AutosaveCoordinator';
 import type { SaveRepository } from '../../storage/SaveRepository';
@@ -37,13 +27,19 @@ import { CONTENT_REGISTRY_KEY, SAVE_REPOSITORY_REGISTRY_KEY } from './BootScene'
 import { ensureAudioDirector } from './MenuScene';
 import { CombatPresenter } from '../systems/CombatPresenter';
 import { EntityRenderer, TILE_SIZE } from '../systems/EntityRenderer';
+import {
+  GameSession,
+  type GameSessionSnapshot,
+  type PlayerAction,
+  type PlayerActionFailureReason,
+} from '../systems/GameSession';
 import { MapPresenter, type MapAsset } from '../systems/MapPresenter';
 import {
   InputController,
   type PlayerCommand,
   type PointerTarget,
 } from '../systems/InputController';
-import { WorldController, type WorldSnapshot } from '../systems/WorldController';
+import type { WorldSnapshot } from '../systems/WorldController';
 
 const mapAssetNames: Readonly<Record<string, string>> = {
   'talking-island-village': 'village',
@@ -84,6 +80,71 @@ const inventoryFailureText: Readonly<Record<InventoryFailureReason, string>> = {
   'invalid-quantity': '數量或操作無效',
 };
 
+const playerActionFailureText = (reason: PlayerActionFailureReason): string => {
+  switch (reason) {
+    case 'overweight':
+    case 'missing-item':
+    case 'wrong-class':
+    case 'quest-item':
+    case 'insufficient-adena':
+    case 'invalid-quantity':
+      return inventoryFailureText[reason];
+    case 'npc-not-found':
+    case 'npc-out-of-range':
+      return '請先靠近相關 NPC';
+    case 'quest-not-found':
+      return '找不到此任務';
+    case 'quest-not-offered':
+      return '目前 NPC 不提供此任務';
+    case 'quest-unavailable':
+      return '尚未符合任務前置條件';
+    case 'not-completed':
+      return '任務尚未完成';
+    case 'reward-unavailable':
+      return '任務獎勵目前無法領取';
+    case 'inventory-full':
+      return '物品欄空間或負重不足';
+    case 'item-not-sold':
+      return '商店沒有販售此物品';
+    case 'not-a-merchant':
+      return '目前 NPC 不提供交易';
+    case 'not-a-warehouse':
+      return '目前 NPC 不提供倉庫服務';
+    case 'ability-not-found':
+      return '找不到此技能';
+    case 'ability-locked':
+      return '尚未學會此技能';
+    case 'target-not-found':
+      return '目前沒有可用的施法目標';
+    case 'invalid-target':
+      return '這個技能不能對該目標使用';
+    case 'required-equipment':
+      return '目前裝備不符合技能需求';
+    case 'class':
+      return '目前職業無法施放';
+    case 'level':
+      return '等級不足';
+    case 'mp':
+      return '魔力不足';
+    case 'range':
+      return '施法目標距離過遠';
+    case 'cooldown':
+      return '技能尚在冷卻中';
+    case 'required-item':
+      return '缺少施法所需物品';
+    case 'content-not-owned':
+      return '尚未持有或解鎖此內容';
+    case 'invalid-quick-slot':
+      return '快捷列位置無效';
+    case 'settings-invalid':
+      return '設定值超出範圍';
+    default: {
+      const exhaustive: never = reason;
+      return exhaustive;
+    }
+  }
+};
+
 const domainItem = (content: GameContent, itemId: string): ItemDefinition => {
   const item = content.item(itemId);
   return {
@@ -109,12 +170,6 @@ const experiencePercent = (level: number, experience: number): number => {
   return Math.floor(((experience - floor) / Math.max(1, ceiling - floor)) * 100);
 };
 
-const equipmentAC = (content: GameContent, equipment: EquipmentState): number =>
-  Object.values(equipment).reduce(
-    (total, itemId) => total + (content.item(itemId).acModifier ?? 0),
-    0,
-  );
-
 const createE2EUiSave = (save: SaveGameV1, content: GameContent): SaveGameV1 => {
   const stacks = save.inventory.stacks.map((stack) =>
     stack.itemId === 'red-potion' ? { ...stack, quantity: 3 } : stack,
@@ -123,11 +178,16 @@ const createE2EUiSave = (save: SaveGameV1, content: GameContent): SaveGameV1 => 
     (weight, stack) => weight + content.item(stack.itemId).weight * stack.quantity,
     0,
   );
+  const isShopActionFixture =
+    new URLSearchParams(window.location.search).get('shopActions') === '1';
   return sealSaveV1({
     ...save,
     checksum: '',
     inventory: { ...save.inventory, stacks, adena: 500, carriedWeight },
     character: { ...save.character, carriedWeight },
+    ...(isShopActionFixture
+      ? { world: { ...save.world, player: { mapId: 'talking-island-village', x: 21, y: 32 } } }
+      : {}),
   });
 };
 
@@ -175,7 +235,7 @@ const createE2EMonster = (save: SaveGameV1, content: GameContent): MonsterState 
 
 export class WorldScene extends Phaser.Scene {
   readonly #inputController = new InputController();
-  #controller: WorldController | null = null;
+  #session: GameSession | null = null;
   #renderer: EntityRenderer | null = null;
   #mapPresenter: MapPresenter | null = null;
   readonly #mapAssets = new Map<string, MapAsset>();
@@ -192,6 +252,7 @@ export class WorldScene extends Phaser.Scene {
     weightLimit: Number.MAX_SAFE_INTEGER,
   };
   #dialogueNodeId = 'welcome';
+  #activeNpcId: string | null = null;
   #lastFeedback = '';
   #manualE2E = false;
   #audioDirector: AudioDirector | null = null;
@@ -236,7 +297,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    if (this.#controller === null || this.#manualE2E) return;
+    if (this.#session === null || this.#manualE2E) return;
     this.#advanceWorld(delta);
   }
 
@@ -263,7 +324,7 @@ export class WorldScene extends Phaser.Scene {
     if (!this.scene.isActive()) return;
 
     const monsters = this.#manualE2E ? [createE2EMonster(save, content)] : undefined;
-    this.#controller = new WorldController({
+    this.#session = new GameSession({
       content,
       save,
       grids,
@@ -299,14 +360,14 @@ export class WorldScene extends Phaser.Scene {
   };
 
   #createWorldUi(): void {
-    if (this.#root === null || this.#controller === null) return;
+    if (this.#root === null || this.#session === null) return;
     this.#worldUi = new WorldUi(document, this.#root, {
       inventory: {
         activateItem: (itemId) => this.#activateInventoryItem(itemId),
         assignQuickSlot: (itemId, slot) => this.#assignItemQuickSlot(itemId, slot),
       },
       spells: {
-        activateSpell: () => panelFailure('請在遊戲世界中選擇施法目標'),
+        activateSpell: (spellId) => this.#activateSpell(spellId),
         assignQuickSlot: (spellId, slot) => this.#assignSpellQuickSlot(spellId, slot),
       },
       quests: { activateQuest: (questId) => this.#activateQuest(questId) },
@@ -330,21 +391,16 @@ export class WorldScene extends Phaser.Scene {
       },
     });
     this.#worldUi.renderPanels(this.#panelModels());
-    this.#worldUi.renderHud(this.#hudViewModel(this.#controller.snapshot));
+    this.#worldUi.renderHud(this.#hudViewModel(this.#session.snapshot));
   }
 
   #panelModels(): WorldPanelViewModels {
     const content = this.#content;
-    const save = this.#activeSave;
-    const snapshot = this.#controller?.snapshot;
-    if (content === null || save === null || snapshot === undefined) {
+    const snapshot = this.#session?.snapshot;
+    if (content === null || snapshot === undefined) {
       throw new Error('世界 UI 尚未初始化');
     }
-    const character = {
-      ...snapshot.character,
-      carriedWeight: save.inventory.carriedWeight,
-      equipmentAC: save.character.equipmentAC,
-    };
+    const character = snapshot.character;
     const stats = deriveStats(character);
     const classDefinition = content.classes.find(({ id }) => id === character.classId);
     const dialogue = dialogueNodes[this.#dialogueNodeId] ?? dialogueNodes.welcome;
@@ -352,12 +408,16 @@ export class WorldScene extends Phaser.Scene {
       throw new Error('世界 UI 缺少必要內容');
     }
     const map = content.map(snapshot.player.mapId);
+    const activeNpc =
+      this.#activeNpcId === null
+        ? undefined
+        : content.npcs.find(({ id }) => id === this.#activeNpcId);
     const shopItemIds = new Set([
-      ...content.npc('balsim').shopItemIds,
-      ...save.inventory.stacks.map(({ itemId }) => itemId),
+      ...(activeNpc?.shopItemIds ?? []),
+      ...snapshot.inventory.stacks.map(({ itemId }) => itemId),
     ]);
     const warehouseItemIds = new Set([
-      ...save.inventory.stacks.map(({ itemId }) => itemId),
+      ...snapshot.inventory.stacks.map(({ itemId }) => itemId),
       ...this.#warehouse.stacks.map(({ itemId }) => itemId),
     ]);
 
@@ -371,20 +431,20 @@ export class WorldScene extends Phaser.Scene {
         mp: character.mp,
         maxMP: stats.maxMP,
         ac: stats.ac,
-        weight: save.inventory.carriedWeight,
-        weightLimit: save.inventory.weightLimit,
+        weight: snapshot.inventory.carriedWeight,
+        weightLimit: snapshot.inventory.weightLimit,
         alignment: character.alignment,
         experiencePercent: experiencePercent(character.level, character.experience),
-        equipment: Object.entries(save.equipment).map(([slot, itemId]) => ({
+        equipment: Object.entries(snapshot.equipment).map(([slot, itemId]) => ({
           slot: equipmentSlotNames[slot] ?? slot,
           label: content.item(itemId).name,
         })),
       },
       inventory: {
-        adena: save.inventory.adena,
-        weight: save.inventory.carriedWeight,
-        weightLimit: save.inventory.weightLimit,
-        items: save.inventory.stacks.map(({ itemId, quantity }) => ({
+        adena: snapshot.inventory.adena,
+        weight: snapshot.inventory.carriedWeight,
+        weightLimit: snapshot.inventory.weightLimit,
+        items: snapshot.inventory.stacks.map(({ itemId, quantity }) => ({
           id: itemId,
           name: content.item(itemId).name,
           quantity,
@@ -399,18 +459,22 @@ export class WorldScene extends Phaser.Scene {
             id: ability.id,
             name: ability.name,
             manaCost: ability.manaCost,
-            available: character.level >= ability.unlockLevel,
+            available: snapshot.unlockedAbilityIds.includes(ability.id),
           };
         }),
-        quickSlots: save.quickSlots,
+        quickSlots: snapshot.quickSlots,
       },
       quests: {
         quests: content.quests.map((quest) => ({
           id: quest.id,
           name: quest.name,
-          stage: save.quests.active[quest.id]?.stage ?? '尚未開始',
+          stage: snapshot.quests.claimedRewards.includes(quest.id)
+            ? '已領取'
+            : snapshot.quests.completed.includes(quest.id)
+              ? '可領取'
+              : snapshot.quests.active[quest.id]?.stage ?? '尚未開始',
           description: quest.description,
-          completed: save.quests.completed.includes(quest.id),
+          completed: snapshot.quests.completed.includes(quest.id),
         })),
       },
       map: {
@@ -425,12 +489,12 @@ export class WorldScene extends Phaser.Scene {
         })),
       },
       dialogue: {
-        speaker: '村莊長老傑瑞德',
+        speaker: activeNpc?.name ?? '村莊長老傑瑞德',
         text: dialogue.text,
         choices: dialogue.choices.map((choice) => ({ id: choice.id, label: choice.text })),
       },
       shop: {
-        adena: save.inventory.adena,
+        adena: snapshot.inventory.adena,
         items: [...shopItemIds].map((itemId) => {
           const item = content.item(itemId);
           return {
@@ -438,35 +502,30 @@ export class WorldScene extends Phaser.Scene {
             name: item.name,
             buyPrice: item.buyPrice,
             sellPrice: item.sellPrice,
-            owned: inventoryQuantity(save.inventory, item.id),
+            owned: inventoryQuantity(snapshot.inventory, item.id),
           };
         }),
       },
       warehouse: {
         fee: 0,
-        adena: save.inventory.adena,
+        adena: snapshot.inventory.adena,
         items: [...warehouseItemIds].map((itemId) => ({
           id: itemId,
           name: content.item(itemId).name,
-          carried: inventoryQuantity(save.inventory, itemId),
+          carried: inventoryQuantity(snapshot.inventory, itemId),
           stored: inventoryQuantity(this.#warehouse, itemId),
         })),
       },
-      settings: save.settings,
+      settings: snapshot.settings,
     };
   }
 
-  #hudViewModel(snapshot: WorldSnapshot): HudViewModel {
+  #hudViewModel(snapshot: GameSessionSnapshot): HudViewModel {
     const content = this.#content;
-    const save = this.#activeSave;
-    if (content === null || save === null) {
+    if (content === null) {
       throw new Error('世界 HUD 尚未初始化');
     }
-    const character = {
-      ...snapshot.character,
-      carriedWeight: save.inventory.carriedWeight,
-      equipmentAC: save.character.equipmentAC,
-    };
+    const character = snapshot.character;
     const stats = deriveStats(character);
     const target = snapshot.monsters.find(({ id }) => id === snapshot.autoAttackTargetId);
     return {
@@ -477,8 +536,8 @@ export class WorldScene extends Phaser.Scene {
       level: character.level,
       experiencePercent: experiencePercent(character.level, character.experience),
       ac: stats.ac,
-      weight: save.inventory.carriedWeight,
-      weightLimit: save.inventory.weightLimit,
+      weight: snapshot.inventory.carriedWeight,
+      weightLimit: snapshot.inventory.weightLimit,
       alignment: character.alignment,
       target:
         target === undefined
@@ -487,14 +546,14 @@ export class WorldScene extends Phaser.Scene {
               name: content.monster(target.monsterId).name,
               hpPercent: Math.floor((target.hp / Math.max(1, target.maxHP)) * 100),
             },
-      quickSlots: save.quickSlots.map((contentId) => {
+      quickSlots: snapshot.quickSlots.map((contentId) => {
         if (contentId === null) return null;
         const item = content.items.find(({ id }) => id === contentId);
         if (item !== undefined) {
           return {
             icon: item.assetKey,
             label: item.name,
-            quantity: inventoryQuantity(save.inventory, item.id),
+            quantity: inventoryQuantity(snapshot.inventory, item.id),
           };
         }
         const ability = content.abilities.find(({ id }) => id === contentId);
@@ -510,14 +569,17 @@ export class WorldScene extends Phaser.Scene {
   }
 
   #refreshHud(): void {
-    if (this.#controller !== null) {
-      this.#worldUi?.renderHud(this.#hudViewModel(this.#controller.snapshot));
+    if (this.#session !== null) {
+      this.#worldUi?.renderHud(this.#hudViewModel(this.#session.snapshot));
     }
   }
 
-  #storeSave(save: SaveGameV1): void {
+  #syncActiveSaveFromSession(): void {
+    const session = this.#session;
+    const current = this.#activeSave;
+    if (session === null || current === null) return;
+    const save = session.serialize(current.updatedAt);
     this.#activeSave = save;
-    this.#controller?.syncSerializableState(save);
     this.registry.set('active-save', save);
     if (window.__lineageAudioE2E !== undefined) {
       window.__lineageAudioE2E.activeSettings = { ...save.settings };
@@ -526,28 +588,26 @@ export class WorldScene extends Phaser.Scene {
   }
 
   #serializableSave(): SaveGameV1 {
+    const session = this.#session;
     const save = this.#activeSave;
-    const snapshot = this.#controller?.snapshot;
-    if (save === null || snapshot === undefined) throw new Error('世界存檔尚未準備完成');
-    return sealSaveV1({
-      ...save,
-      character: snapshot.character,
-      inventory: snapshot.inventory,
-      quests: snapshot.quests,
-      world: snapshot.world,
-      checksum: '',
-    });
+    if (session === null || save === null) throw new Error('世界存檔尚未準備完成');
+    return session.serialize(save.updatedAt);
   }
 
-  #syncActiveSaveFromController(): void {
-    if (this.#activeSave === null || this.#controller === null) return;
-    const save = this.#serializableSave();
-    this.#activeSave = save;
-    this.registry.set('active-save', save);
+  #perform(action: PlayerAction): string | null {
+    const session = this.#session;
+    if (session === null) return '世界尚未準備完成';
+    const result = session.perform(action);
+    if (!result.ok) return playerActionFailureText(result.reason);
+    this.#syncActiveSaveFromSession();
+    session.drainPersistenceEvents().forEach((reason) => {
+      void this.#requestAutosave(reason);
+    });
+    return null;
   }
 
   #advanceWorld(delta: number): void {
-    const controller = this.#controller;
+    const controller = this.#session;
     if (controller === null) return;
     this.#autosave?.setCombatTransactionPending(true);
     try {
@@ -620,117 +680,100 @@ export class WorldScene extends Phaser.Scene {
     this.scene.start('menu');
   }
 
-  #sealedSave(patch: Partial<SaveGameV1>): SaveGameV1 {
-    const save = this.#activeSave;
-    if (save === null) throw new Error('找不到目前存檔');
-    return sealSaveV1({
-      ...save,
-      ...patch,
-      checksum: '',
-      updatedAt: new Date().toISOString(),
-    });
-  }
-
   #activateInventoryItem(
     itemId: string,
   ): PanelActionResult<WorldPanelViewModels['inventory']> {
     const content = this.#content;
-    const save = this.#activeSave;
-    if (content === null || save === null) return panelFailure('世界尚未準備完成');
-    const item = domainItem(content, itemId);
-    if (item.equipmentSlot !== undefined) {
-      const result = equipItem(save.inventory, save.equipment, save.character, item);
-      if (!result.ok) return panelFailure(inventoryFailureText[result.reason]);
-      const character = {
-        ...save.character,
-        carriedWeight: result.inventory.carriedWeight,
-        equipmentAC: equipmentAC(content, result.equipment),
-      };
-      this.#storeSave(
-        this.#sealedSave({
-          inventory: result.inventory,
-          equipment: result.equipment,
-          character,
-        }),
-      );
-      return { ok: true, viewModel: this.#panelModels().inventory };
-    }
-    if (item.kind === 'consumable') {
-      const result = useItem(save.inventory, save.character, item);
-      if (!result.ok) return panelFailure(inventoryFailureText[result.reason]);
-      this.#storeSave(
-        this.#sealedSave({
-          inventory: result.inventory,
-          character: { ...result.character, carriedWeight: result.inventory.carriedWeight },
-        }),
-      );
-      return { ok: true, viewModel: this.#panelModels().inventory };
-    }
-    return panelFailure('此物品目前無法直接使用');
+    if (content === null) return panelFailure('世界尚未準備完成');
+    const item = content.item(itemId);
+    const reason = this.#perform(
+      item.equipmentSlot === undefined
+        ? { type: 'use', itemId }
+        : { type: 'equip', itemId },
+    );
+    return reason === null
+      ? { ok: true, viewModel: this.#panelModels().inventory }
+      : panelFailure(reason);
   }
 
   #assignItemQuickSlot(
     itemId: string,
     slot: number,
   ): PanelActionResult<WorldPanelViewModels['inventory']> {
-    const content = this.#content;
-    const save = this.#activeSave;
-    if (content === null || save === null) return panelFailure('世界尚未準備完成');
-    if (
-      !Number.isInteger(slot) ||
-      slot < 0 ||
-      slot >= save.quickSlots.length ||
-      inventoryQuantity(save.inventory, itemId) < 1 ||
-      !content.items.some(({ id }) => id === itemId)
-    ) {
-      return panelFailure('不可放入快捷列');
-    }
-    const quickSlots = [...save.quickSlots];
-    quickSlots[slot] = itemId;
-    this.#storeSave(this.#sealedSave({ quickSlots }));
-    return { ok: true, viewModel: this.#panelModels().inventory };
+    const reason = this.#perform({ type: 'assign-quick-slot', contentId: itemId, slot });
+    return reason === null
+      ? { ok: true, viewModel: this.#panelModels().inventory }
+      : panelFailure(reason);
   }
 
   #assignSpellQuickSlot(
     spellId: string,
     slot: number,
   ): PanelActionResult<WorldPanelViewModels['spells']> {
+    const reason = this.#perform({ type: 'assign-quick-slot', contentId: spellId, slot });
+    return reason === null
+      ? { ok: true, viewModel: this.#panelModels().spells }
+      : panelFailure(reason);
+  }
+
+  #activateSpell(spellId: string): PanelActionResult<WorldPanelViewModels['spells']> {
     const content = this.#content;
-    const save = this.#activeSave;
-    if (content === null || save === null) return panelFailure('世界尚未準備完成');
-    const classDefinition = content.classes.find(({ id }) => id === save.character.classId);
+    const snapshot = this.#session?.snapshot;
+    if (content === null || snapshot === undefined) return panelFailure('世界尚未準備完成');
     const ability = content.abilities.find(({ id }) => id === spellId);
-    if (
-      classDefinition === undefined ||
-      ability === undefined ||
-      !classDefinition.abilityIds.includes(spellId) ||
-      save.character.level < ability.unlockLevel ||
-      !Number.isInteger(slot) ||
-      slot < 0 ||
-      slot >= save.quickSlots.length
-    ) {
-      return panelFailure('此技能尚未解鎖');
+    if (ability === undefined) return panelFailure('找不到此技能');
+    const targetId =
+      ability.target === 'self' || ability.target === 'ally'
+        ? snapshot.character.id
+        : snapshot.autoAttackTargetId;
+    if (targetId === null) return panelFailure('目前沒有可用的施法目標');
+    const reason = this.#perform({ type: 'cast', abilityId: spellId, targetId });
+    return reason === null
+      ? { ok: true, viewModel: this.#panelModels().spells }
+      : panelFailure(reason);
+  }
+
+  #useQuickSlot(index: number): string | null {
+    const content = this.#content;
+    const snapshot = this.#session?.snapshot;
+    if (content === null || snapshot === undefined) return '世界尚未準備完成';
+    const contentId = snapshot.quickSlots[index];
+    if (contentId === null || contentId === undefined) return '快捷欄目前是空的';
+    if (content.items.some(({ id }) => id === contentId)) {
+      return this.#perform({ type: 'use', itemId: contentId });
     }
-    const quickSlots = [...save.quickSlots];
-    quickSlots[slot] = spellId;
-    this.#storeSave(this.#sealedSave({ quickSlots }));
-    return { ok: true, viewModel: this.#panelModels().spells };
+    const ability = content.abilities.find(({ id }) => id === contentId);
+    if (ability === undefined) return '快捷欄內容無效';
+    const targetId =
+      ability.target === 'self' || ability.target === 'ally'
+        ? snapshot.character.id
+        : snapshot.autoAttackTargetId;
+    if (targetId === null) return '目前沒有可用的施法目標';
+    return this.#perform({ type: 'cast', abilityId: contentId, targetId });
   }
 
   #activateQuest(
     questId: string,
   ): PanelActionResult<WorldPanelViewModels['quests']> {
     const content = this.#content;
-    const save = this.#activeSave;
-    if (content === null || save === null) return panelFailure('世界尚未準備完成');
-    const catalog: QuestCatalog = Object.fromEntries(
-      content.quests.map((quest) => [quest.id, quest]),
-    );
-    const quests = startQuest(save.quests, questId, save.character.classId, catalog);
-    if (quests === save.quests) return panelFailure('目前無法開始此任務');
-    this.#storeSave(this.#sealedSave({ quests }));
-    void this.#requestAutosave('quest-stage');
-    return { ok: true, viewModel: this.#panelModels().quests };
+    const snapshot = this.#session?.snapshot;
+    if (content === null || snapshot === undefined) return panelFailure('世界尚未準備完成');
+    const npcId = this.#activeNpcId ?? '';
+    let action: PlayerAction;
+    if (snapshot.quests.claimedRewards.includes(questId)) {
+      return panelFailure('任務獎勵已領取');
+    }
+    if (snapshot.quests.completed.includes(questId)) {
+      action = { type: 'claim-reward', npcId, questId };
+    } else if (snapshot.quests.active[questId] !== undefined) {
+      return panelFailure('任務仍在進行中');
+    } else {
+      action = { type: 'accept-quest', npcId, questId };
+    }
+    const reason = this.#perform(action);
+    return reason === null
+      ? { ok: true, viewModel: this.#panelModels().quests }
+      : panelFailure(reason);
   }
 
   #chooseDialogue(
@@ -741,23 +784,6 @@ export class WorldScene extends Phaser.Scene {
     const result = chooseDialogue(node, choiceId);
     if (!result.ok) return panelFailure('找不到對話選項');
     this.#dialogueNodeId = result.nextNodeId ?? this.#dialogueNodeId;
-    const save = this.#activeSave;
-    const content = this.#content;
-    if (save !== null && content !== null && choiceId === 'continue') {
-      const catalog: QuestCatalog = Object.fromEntries(
-        content.quests.map((quest) => [quest.id, quest]),
-      );
-      const quests = startQuest(
-        save.quests,
-        'village-registration',
-        save.character.classId,
-        catalog,
-      );
-      if (quests !== save.quests) {
-        this.#storeSave(this.#sealedSave({ quests }));
-        void this.#requestAutosave('quest-stage');
-      }
-    }
     return { ok: true, viewModel: this.#panelModels().dialogue };
   }
 
@@ -765,39 +791,30 @@ export class WorldScene extends Phaser.Scene {
     itemId: string,
     quantity: number,
   ): PanelActionResult<WorldPanelViewModels['shop']> {
-    const content = this.#content;
-    const save = this.#activeSave;
-    if (content === null || save === null) return panelFailure('世界尚未準備完成');
-    if (!content.npc('balsim').shopItemIds.includes(itemId)) {
-      return panelFailure('商店沒有販售此物品');
-    }
-    const result = buyItem(save.inventory, domainItem(content, itemId), quantity);
-    if (!result.ok) return panelFailure(inventoryFailureText[result.reason]);
-    this.#storeSave(
-      this.#sealedSave({
-        inventory: result.inventory,
-        character: { ...save.character, carriedWeight: result.inventory.carriedWeight },
-      }),
-    );
-    return { ok: true, viewModel: this.#panelModels().shop };
+    const reason = this.#perform({
+      type: 'buy',
+      npcId: this.#activeNpcId ?? '',
+      itemId,
+      quantity,
+    });
+    return reason === null
+      ? { ok: true, viewModel: this.#panelModels().shop }
+      : panelFailure(reason);
   }
 
   #sellShopItem(
     itemId: string,
     quantity: number,
   ): PanelActionResult<WorldPanelViewModels['shop']> {
-    const content = this.#content;
-    const save = this.#activeSave;
-    if (content === null || save === null) return panelFailure('世界尚未準備完成');
-    const result = sellItem(save.inventory, domainItem(content, itemId), quantity);
-    if (!result.ok) return panelFailure(inventoryFailureText[result.reason]);
-    this.#storeSave(
-      this.#sealedSave({
-        inventory: result.inventory,
-        character: { ...save.character, carriedWeight: result.inventory.carriedWeight },
-      }),
-    );
-    return { ok: true, viewModel: this.#panelModels().shop };
+    const reason = this.#perform({
+      type: 'sell',
+      npcId: this.#activeNpcId ?? '',
+      itemId,
+      quantity,
+    });
+    return reason === null
+      ? { ok: true, viewModel: this.#panelModels().shop }
+      : panelFailure(reason);
   }
 
   #depositWarehouseItem(
@@ -805,20 +822,18 @@ export class WorldScene extends Phaser.Scene {
     quantity: number,
   ): PanelActionResult<WorldPanelViewModels['warehouse']> {
     const content = this.#content;
-    const save = this.#activeSave;
-    if (content === null || save === null) return panelFailure('世界尚未準備完成');
+    if (content === null || this.#session === null) return panelFailure('世界尚未準備完成');
     const item = domainItem(content, itemId);
-    const removed = removeItem(save.inventory, item, quantity);
-    if (!removed.ok) return panelFailure(inventoryFailureText[removed.reason]);
     const added = addItem(this.#warehouse, item, quantity);
     if (!added.ok) return panelFailure(inventoryFailureText[added.reason]);
+    const reason = this.#perform({
+      type: 'warehouse-deposit',
+      npcId: this.#activeNpcId ?? '',
+      itemId,
+      quantity,
+    });
+    if (reason !== null) return panelFailure(reason);
     this.#warehouse = added.inventory;
-    this.#storeSave(
-      this.#sealedSave({
-        inventory: removed.inventory,
-        character: { ...save.character, carriedWeight: removed.inventory.carriedWeight },
-      }),
-    );
     return { ok: true, viewModel: this.#panelModels().warehouse };
   }
 
@@ -827,36 +842,27 @@ export class WorldScene extends Phaser.Scene {
     quantity: number,
   ): PanelActionResult<WorldPanelViewModels['warehouse']> {
     const content = this.#content;
-    const save = this.#activeSave;
-    if (content === null || save === null) return panelFailure('世界尚未準備完成');
+    if (content === null || this.#session === null) return panelFailure('世界尚未準備完成');
     const item = domainItem(content, itemId);
     const removed = removeItem(this.#warehouse, item, quantity);
     if (!removed.ok) return panelFailure(inventoryFailureText[removed.reason]);
-    const added = addItem(save.inventory, item, quantity);
-    if (!added.ok) return panelFailure(inventoryFailureText[added.reason]);
+    const reason = this.#perform({
+      type: 'warehouse-withdraw',
+      npcId: this.#activeNpcId ?? '',
+      itemId,
+      quantity,
+    });
+    if (reason !== null) return panelFailure(reason);
     this.#warehouse = removed.inventory;
-    this.#storeSave(
-      this.#sealedSave({
-        inventory: added.inventory,
-        character: { ...save.character, carriedWeight: added.inventory.carriedWeight },
-      }),
-    );
     return { ok: true, viewModel: this.#panelModels().warehouse };
   }
 
   #saveSettings(
     settings: SettingsPanelViewModel,
   ): PanelActionResult<WorldPanelViewModels['settings']> {
-    if (
-      ![settings.music, settings.ambient, settings.effects].every(
-        (value) => Number.isFinite(value) && value >= 0 && value <= 1,
-      ) ||
-      ![1, 2, 3].includes(settings.scale)
-    ) {
-      return panelFailure('設定值超出範圍');
-    }
+    const reason = this.#perform({ type: 'update-settings', settings });
+    if (reason !== null) return panelFailure(reason);
     this.#previewSettings(settings);
-    this.#storeSave(this.#sealedSave({ settings }));
     return { ok: true, viewModel: this.#panelModels().settings };
   }
 
@@ -913,24 +919,48 @@ export class WorldScene extends Phaser.Scene {
   }
 
   #dispatch(command: PlayerCommand | null): void {
-    if (command === null || this.#controller === null) return;
+    if (command === null || this.#session === null) return;
     try {
       if (command.type === 'toggle-panel') {
         this.#worldUi?.renderPanels(this.#panelModels());
         this.#worldUi?.toggle(command.panel);
       } else if (command.type === 'escape') {
         this.#worldUi?.closeTop();
+      } else if (command.type === 'use-quick-slot') {
+        const reason = this.#useQuickSlot(command.index);
+        if (reason !== null) this.#lastFeedback = reason;
+        this.#worldUi?.renderPanels(this.#panelModels());
+        this.#render();
+        return;
       } else if (command.type === 'interact' && command.targetId === 'e2e-village-elder') {
+        this.#activeNpcId = null;
         this.#worldUi?.renderPanels(this.#panelModels());
         this.#worldUi?.open('dialogue');
-      } else if (command.type === 'interact') {
+        this.#render();
+        return;
+      } else if (
+        command.type === 'interact' &&
+        this.#content?.npcs.some(({ id }) => id === command.targetId) === true
+      ) {
+        const reason = this.#perform({ type: 'interact', targetId: command.targetId });
+        if (reason !== null) {
+          this.#activeNpcId = null;
+          this.#lastFeedback = reason;
+          this.#render();
+          return;
+        }
+        this.#activeNpcId = command.targetId;
         const panel = this.#mapPresenter?.interactionForNpc(command.targetId);
         if (panel !== null && panel !== undefined) {
           this.#worldUi?.renderPanels(this.#panelModels());
           this.#worldUi?.open(panel);
         }
+        if (this.#root !== null) this.#root.dataset.lastCommand = command.type;
+        this.#render();
+        return;
       }
-      this.#controller.dispatch(command);
+      if (command.type === 'move' || command.type === 'attack') this.#activeNpcId = null;
+      this.#session.dispatch(command);
       if (this.#root !== null) this.#root.dataset.lastCommand = command.type;
       this.#render();
     } catch (error) {
@@ -951,14 +981,14 @@ export class WorldScene extends Phaser.Scene {
   }
 
   #renderUnsafe(): void {
-    if (this.#controller === null || this.#renderer === null) return;
-    this.#syncActiveSaveFromController();
-    const snapshot = this.#controller.snapshot;
+    if (this.#session === null || this.#renderer === null) return;
+    this.#syncActiveSaveFromSession();
+    const snapshot = this.#session.snapshot;
     this.#routeAudioRegion(snapshot.player.mapId);
     this.#mapPresenter?.render(snapshot.player.mapId);
     this.#renderer.render(snapshot);
     if (this.#manualE2E) this.anims.pauseAll();
-    const feedback = this.#combatPresenter?.present(this.#controller.drainEvents()) ?? [];
+    const feedback = this.#combatPresenter?.present(this.#session.drainEvents()) ?? [];
     if (feedback.length > 0) {
       this.#lastFeedback = [this.#lastFeedback, ...feedback].filter(Boolean).slice(-8).join(' / ');
     }
@@ -997,7 +1027,7 @@ export class WorldScene extends Phaser.Scene {
     ground.dataset.testid = 'ground-target';
     ground.textContent = '移動測試點';
     ground.addEventListener('click', () => {
-      const snapshot = this.#controller?.snapshot;
+      const snapshot = this.#session?.snapshot;
       if (snapshot === undefined) return;
       this.#issue({
         targetKind: 'ground',
@@ -1032,6 +1062,18 @@ export class WorldScene extends Phaser.Scene {
       button.dataset.testid = testId;
       button.textContent = label;
       button.addEventListener('click', () => {
+        if (panelId === 'shop') {
+          this.#activeNpcId = 'balsim';
+          this.#worldUi?.renderPanels(this.#panelModels());
+          this.#worldUi?.open(panelId);
+          return;
+        }
+        if (panelId === 'warehouse') {
+          this.#activeNpcId = 'dorin';
+          this.#worldUi?.renderPanels(this.#panelModels());
+          this.#worldUi?.open(panelId);
+          return;
+        }
         this.#worldUi?.renderPanels(this.#panelModels());
         this.#worldUi?.open(panelId);
       });
@@ -1097,7 +1139,7 @@ export class WorldScene extends Phaser.Scene {
     const boundary = new ErrorBoundary(
       {
         pause: () => {
-          this.#controller?.setPaused(true);
+          this.#session?.setPaused(true);
           this.scene.pause();
         },
         save: async () => {
@@ -1133,7 +1175,7 @@ export class WorldScene extends Phaser.Scene {
     try {
       await boundary.capture(error, {
         scene: 'WorldScene',
-        mapId: this.#controller?.snapshot.player.mapId ?? null,
+        mapId: this.#session?.snapshot.player.mapId ?? null,
       });
     } finally {
       this.#capturingRuntimeError = false;
@@ -1187,7 +1229,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   #keyDown = (event: KeyboardEvent): void => {
-    if (this.#controller === null) return;
+    if (this.#session === null) return;
     const target = event.target;
     if (
       event.code !== 'Escape' &&
@@ -1197,7 +1239,7 @@ export class WorldScene extends Phaser.Scene {
     ) {
       return;
     }
-    const snapshot = this.#controller.snapshot;
+    const snapshot = this.#session.snapshot;
     const command = this.#inputController.keyDown(event.code, snapshot.player, {
       shiftKey: event.shiftKey,
     });
@@ -1228,7 +1270,7 @@ export class WorldScene extends Phaser.Scene {
 
   #visibilityChange = (): void => {
     const hidden = window.__lineageAudioE2E?.hidden ?? document.hidden;
-    this.#controller?.setPaused(hidden);
+    this.#session?.setPaused(hidden);
     if (hidden) {
       this.#audioDirector?.suspend();
     } else if (this.#audioDirector?.state.phase === 'suspended') {
@@ -1248,13 +1290,13 @@ export class WorldScene extends Phaser.Scene {
   };
 
   #pause = (): void => {
-    this.#controller?.setPaused(true);
+    this.#session?.setPaused(true);
     this.#audioDirector?.suspend();
     this.#syncAudioStatus();
   };
 
   #resume = (): void => {
-    this.#controller?.setPaused(false);
+    this.#session?.setPaused(false);
     if (this.#audioDirector?.state.phase === 'suspended') this.#audioDirector.resume();
     this.#syncAudioStatus();
   };

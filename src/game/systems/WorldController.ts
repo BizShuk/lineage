@@ -65,6 +65,7 @@ export type WorldActionFailureReason =
   | AbilityFailureReason
   | 'ability-not-found'
   | 'target-not-found'
+  | 'invalid-target'
   | 'required-equipment';
 
 export type WorldActionResult =
@@ -113,7 +114,7 @@ export class WorldController {
   readonly #content: GameContent;
   readonly #grids: ReadonlyMap<string, TileGrid>;
   readonly #rng: SeededRng;
-  readonly #dropSeed: number;
+  readonly #dropRng: SeededRng;
   readonly #questCatalog: QuestCatalog;
   #character: SaveGameV1['character'];
   #inventory: InventoryState;
@@ -158,14 +159,15 @@ export class WorldController {
     this.#flags = { ...options.save.world.flags };
     this.#worldTimeMs = options.save.world.worldTimeMs;
     this.#grids = options.grids ?? new Map();
-    this.#dropSeed = options.seed ?? 7;
+    this.#dropRng = new SeededRng(options.seed ?? 7);
     this.#rng = new SeededRng(options.seed ?? 20260717);
     this.#questCatalog = Object.fromEntries(
       options.content.quests.map((quest) => [quest.id, quest]),
     );
     const map = options.content.map(this.#player.mapId);
+    const grid = options.grids?.get(map.id) ?? openGridFor(options.content, map.id);
     this.#monsters = [
-      ...(options.monsters ?? spawnMonsters(map, options.content.monsters)),
+      ...(options.monsters ?? spawnMonsters(map, options.content.monsters, grid)),
     ].map((monster) => ({ ...monster }));
   }
 
@@ -291,8 +293,14 @@ export class WorldController {
       statuses: this.#playerStatuses,
       cooldowns: this.#playerCooldowns,
     };
-    const targetsSelf = targetId === this.#character.id || ability.target === 'self';
-    const monster = targetsSelf
+    const targetsPlayer = ability.target === 'self' || ability.target === 'ally';
+    if (
+      (targetsPlayer && targetId !== this.#character.id) ||
+      (!targetsPlayer && targetId === this.#character.id)
+    ) {
+      return { ok: false, reason: 'invalid-target', events: [] };
+    }
+    const monster = targetsPlayer
       ? undefined
       : this.#monsters.find(
           (candidate) =>
@@ -300,7 +308,7 @@ export class WorldController {
             candidate.mapId === this.#player.mapId &&
             candidate.hp > 0,
         );
-    if (!targetsSelf && monster === undefined) {
+    if (!targetsPlayer && monster === undefined) {
       return { ok: false, reason: 'target-not-found', events: [] };
     }
     const monsterDefinition =
@@ -457,7 +465,11 @@ export class WorldController {
       y: exit.targetY,
     };
     this.#monsters = [
-      ...spawnMonsters(this.#content.map(exit.targetMapId), this.#content.monsters),
+      ...spawnMonsters(
+        this.#content.map(exit.targetMapId),
+        this.#content.monsters,
+        targetGrid,
+      ),
     ];
     const quests = advanceQuest(
       this.#quests,
@@ -537,7 +549,7 @@ export class WorldController {
         : candidate,
     );
     this.#autoAttackTargetId = null;
-    const drops = rollDrops(definition.drops, new SeededRng(this.#dropSeed));
+    const drops = rollDrops(definition.drops, this.#dropRng);
     this.#groundLoot.push(
       ...drops.map((drop, index) => ({
         ...drop,

@@ -105,3 +105,31 @@ class GameSession {
 - [ ] Run `npm run typecheck`.
 - [ ] Run `npm run lint`.
 - [ ] Report exact counts and any remaining UI integration gap; do not commit.
+
+### Task 5: Make WorldScene a GameSession adapter
+
+Files:
+
+- Modify: `src/game/scenes/WorldScene.ts`
+- Modify: `src/game/systems/GameSession.ts`
+- Modify: `tests/integration/game-session.test.ts`
+- Modify: `tests/e2e/hud-panels.spec.ts`
+
+Interface produced:
+
+```ts
+type PlayerAction =
+  | { type: 'assign-quick-slot'; contentId: string; slot: number }
+  | { type: 'update-settings'; settings: SaveSettings }
+  | { type: 'warehouse-deposit'; itemId: string; quantity: number }
+  | { type: 'warehouse-withdraw'; itemId: string; quantity: number };
+```
+
+- [ ] Add failing session tests for mutable quick slots, settings, warehouse inventory, serialization, and pause forwarding.
+- [ ] Run `npm test -- tests/integration/game-session.test.ts` and confirm failures from the missing actions.
+- [ ] Implement and re-run the focused session suite.
+- [ ] Update browser panel expectations for nearby NPC commerce, quest accept/claim, inventory, spells, and settings; run the focused Playwright suite and confirm the old WorldScene behavior fails.
+- [ ] Replace the WorldScene controller with GameSession and route every state-changing panel operation through `perform`.
+- [ ] Track the nearby active NPC, render its shop/quests, translate failures to Traditional Chinese, and synchronize autosave exclusively with `GameSession.serialize`.
+- [ ] Keep warehouse storage local while its player inventory side uses GameSession actions.
+- [ ] Re-run focused Vitest and Playwright tests, then typecheck and lint without committing.

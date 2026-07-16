@@ -1,6 +1,7 @@
 import type { GameContent } from '../../content/catalog';
 import type { DomainEvent } from '../../core/events';
 import {
+  addItem,
   buyItem,
   equipItem,
   removeItem,
@@ -20,7 +21,11 @@ import {
   type QuestCatalog,
 } from '../../core/quests';
 import { deriveStats } from '../../core/stats';
-import { sealSaveV1, type SaveGameV1 } from '../../storage/saveSchema';
+import {
+  sealSaveV1,
+  type SaveGameV1,
+  type SaveSettings,
+} from '../../storage/saveSchema';
 import type { PlayerCommand } from './InputController';
 import {
   WorldController,
@@ -38,7 +43,21 @@ export type PlayerAction =
   | { readonly type: 'sell'; readonly npcId: string; readonly itemId: string; readonly quantity: number }
   | { readonly type: 'equip'; readonly itemId: string }
   | { readonly type: 'use'; readonly itemId: string }
-  | { readonly type: 'cast'; readonly abilityId: string; readonly targetId: string };
+  | { readonly type: 'cast'; readonly abilityId: string; readonly targetId: string }
+  | { readonly type: 'assign-quick-slot'; readonly contentId: string; readonly slot: number }
+  | { readonly type: 'update-settings'; readonly settings: SaveSettings }
+  | {
+      readonly type: 'warehouse-deposit';
+      readonly npcId: string;
+      readonly itemId: string;
+      readonly quantity: number;
+    }
+  | {
+      readonly type: 'warehouse-withdraw';
+      readonly npcId: string;
+      readonly itemId: string;
+      readonly quantity: number;
+    };
 
 export type PlayerActionFailureReason =
   | InventoryFailureReason
@@ -50,10 +69,15 @@ export type PlayerActionFailureReason =
   | 'quest-unavailable'
   | 'item-not-sold'
   | 'not-a-merchant'
+  | 'not-a-warehouse'
   | 'wrong-class'
   | 'not-completed'
   | 'reward-unavailable'
-  | 'inventory-full';
+  | 'inventory-full'
+  | 'ability-locked'
+  | 'content-not-owned'
+  | 'invalid-quick-slot'
+  | 'settings-invalid';
 
 export type PlayerActionResult =
   | { readonly ok: true; readonly events: readonly DomainEvent[] }
@@ -109,8 +133,8 @@ export class GameSession {
   readonly #content: GameContent;
   readonly #controller: WorldController;
   readonly #questCatalog: QuestCatalog;
-  readonly #quickSlots: SaveGameV1['quickSlots'];
-  readonly #settings: SaveGameV1['settings'];
+  #quickSlots: (string | null)[];
+  #settings: SaveSettings;
   readonly #gameVersion: string;
   readonly #slot: SaveGameV1['slot'];
   #persistenceEvents: WorldPersistenceEvent[] = [];
@@ -178,6 +202,10 @@ export class GameSession {
     this.#controller.update(deltaMs);
   }
 
+  setPaused(paused: boolean): void {
+    this.#controller.setPaused(paused);
+  }
+
   drainEvents(): DomainEvent[] {
     return this.#controller.drainEvents();
   }
@@ -208,7 +236,15 @@ export class GameSession {
       case 'use':
         return this.#use(action.itemId);
       case 'cast':
-        return this.#controller.cast(action.abilityId, action.targetId);
+        return this.#cast(action.abilityId, action.targetId);
+      case 'assign-quick-slot':
+        return this.#assignQuickSlot(action.contentId, action.slot);
+      case 'update-settings':
+        return this.#updateSettings(action.settings);
+      case 'warehouse-deposit':
+        return this.#warehouseDeposit(action.npcId, action.itemId, action.quantity);
+      case 'warehouse-withdraw':
+        return this.#warehouseWithdraw(action.npcId, action.itemId, action.quantity);
     }
   }
 
@@ -420,16 +456,107 @@ export class GameSession {
       ({ id }) => id === snapshot.character.classId,
     );
     if (classDefinition === undefined) return [];
+    const questRewardAbilityIds = new Set(
+      this.#content.quests.flatMap((quest) => quest.rewards.abilityIds),
+    );
     const unlocked = classDefinition.abilityIds.filter(
-      (abilityId) => this.#content.ability(abilityId).unlockLevel <= snapshot.character.level,
+      (abilityId) =>
+        !questRewardAbilityIds.has(abilityId) &&
+        this.#content.ability(abilityId).unlockLevel <= snapshot.character.level,
     );
     for (const questId of snapshot.quests.claimedRewards) {
       const quest = this.#content.quests.find(({ id }) => id === questId);
       if (quest === undefined) continue;
       for (const abilityId of quest.rewards.abilityIds) {
-        if (!unlocked.includes(abilityId)) unlocked.push(abilityId);
+        if (
+          classDefinition.abilityIds.includes(abilityId) &&
+          !unlocked.includes(abilityId)
+        ) {
+          unlocked.push(abilityId);
+        }
       }
     }
     return unlocked;
+  }
+
+  #cast(abilityId: string, targetId: string): PlayerActionResult {
+    if (!this.#unlockedAbilityIds(this.#controller.snapshot).includes(abilityId)) {
+      return failure('ability-locked');
+    }
+    return this.#controller.cast(abilityId, targetId);
+  }
+
+  #assignQuickSlot(contentId: string, slot: number): PlayerActionResult {
+    if (!Number.isInteger(slot) || slot < 0 || slot >= this.#quickSlots.length) {
+      return failure('invalid-quick-slot');
+    }
+    const snapshot = this.#controller.snapshot;
+    const ownsItem = snapshot.inventory.stacks.some(
+      ({ itemId, quantity }) => itemId === contentId && quantity > 0,
+    );
+    const knowsAbility = this.#unlockedAbilityIds(snapshot).includes(contentId);
+    if (!ownsItem && !knowsAbility) return failure('content-not-owned');
+    this.#quickSlots = [...this.#quickSlots];
+    this.#quickSlots[slot] = contentId;
+    return success();
+  }
+
+  #updateSettings(settings: SaveSettings): PlayerActionResult {
+    if (
+      ![settings.music, settings.ambient, settings.effects].every(
+        (value) => Number.isFinite(value) && value >= 0 && value <= 1,
+      ) ||
+      ![1, 2, 3].includes(settings.scale)
+    ) {
+      return failure('settings-invalid');
+    }
+    this.#settings = { ...settings };
+    return success();
+  }
+
+  #warehouseDeposit(npcId: string, itemId: string, quantity: number): PlayerActionResult {
+    const nearby = this.#nearbyNpc(npcId);
+    if (!nearby.ok) return failure(nearby.reason);
+    if (nearby.npc.role !== 'warehouse') return failure('not-a-warehouse');
+    const snapshot = this.#controller.snapshot;
+    const result = removeItem(
+      snapshot.inventory,
+      itemDefinition(this.#content, itemId),
+      quantity,
+    );
+    if (!result.ok) return failure(result.reason);
+    this.#controller.syncSerializableState({
+      character: {
+        ...snapshot.character,
+        carriedWeight: result.inventory.carriedWeight,
+      },
+      inventory: result.inventory,
+      equipment: snapshot.equipment,
+      quests: snapshot.quests,
+    });
+    return success(result.events);
+  }
+
+  #warehouseWithdraw(npcId: string, itemId: string, quantity: number): PlayerActionResult {
+    const nearby = this.#nearbyNpc(npcId);
+    if (!nearby.ok) return failure(nearby.reason);
+    if (nearby.npc.role !== 'warehouse') return failure('not-a-warehouse');
+    const snapshot = this.#controller.snapshot;
+    const result = addItem(
+      snapshot.inventory,
+      itemDefinition(this.#content, itemId),
+      quantity,
+    );
+    if (!result.ok) return failure(result.reason);
+    this.#controller.syncSerializableState({
+      character: {
+        ...snapshot.character,
+        carriedWeight: result.inventory.carriedWeight,
+      },
+      inventory: result.inventory,
+      equipment: snapshot.equipment,
+      quests: snapshot.quests,
+    });
+    return success(result.events);
   }
 }

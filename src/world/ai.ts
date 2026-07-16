@@ -212,22 +212,60 @@ const requiredMonster = (
 export const spawnMonsters = (
   map: Pick<MapDefinition, 'id' | 'spawns'>,
   monsterDefinitions: readonly MonsterDefinition[],
+  grid: TileGrid,
 ): readonly MonsterState[] => {
   const definitions = new Map(
     monsterDefinitions.map((definition) => [definition.id, definition]),
   );
+  const occupied = new Set<string>();
+
+  const positionKey = ({ x, y }: GridPoint): string => `${String(x)},${String(y)}`;
+  const formation = (origin: GridPoint, count: number): readonly GridPoint[] => {
+    const positions: GridPoint[] = [];
+    const visited = new Set<string>();
+    const queue: GridPoint[] = grid.isWalkable(origin) ? [origin] : [];
+
+    while (queue.length > 0 && positions.length < count) {
+      const point = queue.shift();
+      if (point === undefined) break;
+      const key = positionKey(point);
+      if (visited.has(key)) continue;
+      visited.add(key);
+      if (!occupied.has(key)) positions.push(point);
+      for (const direction of patrolDirections) {
+        const candidate = { x: point.x + direction.x, y: point.y + direction.y };
+        if (grid.isWalkable(candidate) && !visited.has(positionKey(candidate))) {
+          queue.push(candidate);
+        }
+      }
+    }
+
+    for (let y = 0; y < grid.height && positions.length < count; y += 1) {
+      for (let x = 0; x < grid.width && positions.length < count; x += 1) {
+        const point = { x, y };
+        const key = positionKey(point);
+        const selected = positions.some((position) => positionKey(position) === key);
+        if (grid.isWalkable(point) && !occupied.has(key) && !selected) {
+          positions.push(point);
+        }
+      }
+    }
+
+    positions.forEach((position) => occupied.add(positionKey(position)));
+    return positions;
+  };
 
   return map.spawns.flatMap((spawn, spawnIndex) => {
     const definition = requiredMonster(definitions, spawn.monsterId);
-    return Array.from({ length: spawn.count }, (_, monsterIndex): MonsterState => ({
+    return formation(spawn, spawn.count).map((position, monsterIndex): MonsterState => ({
       id: `${map.id}:${spawn.monsterId}:${String(spawnIndex)}:${String(monsterIndex)}`,
       monsterId: spawn.monsterId,
       rank: definition.rank,
       mapId: map.id,
-      x: spawn.x,
-      y: spawn.y,
-      homeX: spawn.x,
-      homeY: spawn.y,
+      x: position.x,
+      y: position.y,
+      homeX: position.x,
+      homeY: position.y,
       hp: definition.hp,
       maxHP: definition.hp,
       aiState: 'idle',
