@@ -137,6 +137,7 @@ Expected: FAIL because `package.json`, Vitest, or `src/app/version.ts` does not 
     "vite": "8.1.5",
     "vite-plugin-pwa": "1.3.0",
     "vitest": "4.1.10",
+    "workbox-core": "7.4.1",
     "workbox-precaching": "7.4.1"
   }
 }
@@ -203,7 +204,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'coverage/**', 'tests/visual/*.png'] },
+  { ignores: ['dist/**', 'coverage/**', 'tests/visual/**/*-snapshots/*.png'] },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
@@ -423,7 +424,7 @@ git commit -m "feat: implement combat and progression rules"
 
 **Interfaces:**
 - Consumes: `CharacterClass`, `CharacterState`, and `DomainEvent`.
-- Produces: `ItemDefinition`, `InventoryStack`, `InventoryState`, `EquipmentState`, `addItem`, `removeItem`, `equipItem`, `useItem`, `buyItem`, and `sellItem`; test factories `inventoryWith`, `emptyEquipment`, `knight`, and `item`.
+- Produces: `ItemDefinition`, `InventoryStack`, `InventoryState`, `EquipmentState`, `addItem`, `removeItem`, `equipItem`, `useItem`, `consumeAmmunition`, `buyItem`, and `sellItem`; test factories `inventoryWith`, `emptyEquipment`, `knight`, and `item`.
 
 - [ ] **Step 1: Write failing inventory invariants**
 
@@ -845,28 +846,30 @@ git commit -m "feat: add versioned local save system"
 - Create: `src/game/scenes/BootScene.ts`
 - Create: `src/game/scenes/MenuScene.ts`
 - Create: `src/game/scenes/CharacterCreateScene.ts`
+- Create: `src/game/scenes/WorldScene.ts`
 - Create: `src/ui/styles.css`
 - Create: `tests/e2e/menu-character.spec.ts`
 
 **Interfaces:**
 - Consumes: `GAME_VERSION`, `loadContent`, `createCharacter`, and `SaveRepository`.
-- Produces: `createGame(parent: HTMLElement): Phaser.Game`, scenes `boot`, `menu`, `character-create`, and a saved character passed to `world`.
+- Produces: `createGame(parent: HTMLElement): Phaser.Game`, scenes `boot`, `menu`, `character-create`, and an intentionally minimal `world` scene shell that Task 11 expands.
 
 - [ ] **Step 1: Write the failing menu and four-class E2E test**
 
 ```ts
 import { expect, test } from '@playwright/test';
 
-test('creates each early class in a separate clean database', async ({ page }) => {
-  for (const label of ['王族', '騎士', '妖精', '法師']) {
+for (const label of ['王族', '騎士', '妖精', '法師']) {
+  test(`creates ${label} in a separate browser context`, async ({ page }) => {
     await page.goto('/?e2e=1');
     await page.getByRole('button', { name: '開始新遊戲' }).click();
     await page.getByLabel('角色名稱').fill(`測試${label}`);
     await page.getByRole('radio', { name: label }).check();
     await page.getByRole('button', { name: '建立角色' }).click();
-    await expect(page.getByTestId('world-scene')).toBeVisible();
-  }
-});
+    await expect(page.getByTestId('game-root')).toHaveAttribute('data-scene', 'world');
+    await expect(page.locator('canvas')).toBeVisible();
+  });
+}
 ```
 
 - [ ] **Step 2: Verify failure**
@@ -892,6 +895,26 @@ export const gameConfig = (parent: HTMLElement): Phaser.Types.Core.GameConfig =>
 });
 ```
 
+Create a minimal scene shell now so Task 10 compiles and its E2E test reaches a real canvas; Task 11 replaces the shell with world simulation and input integration:
+
+```ts
+// src/game/scenes/WorldScene.ts
+import Phaser from 'phaser';
+
+export class WorldScene extends Phaser.Scene {
+  constructor() {
+    super('world');
+  }
+
+  create(): void {
+    const parent = this.game.canvas.parentElement;
+    if (parent) parent.dataset.scene = 'world';
+    this.add.rectangle(256, 216, 512, 432, 0x172019);
+    this.add.text(256, 216, '進入說話之島', { color: '#e8dfc5', fontSize: '16px' }).setOrigin(0.5);
+  }
+}
+```
+
 Boot validates content before enabling load/new-game buttons. Validation failure renders a Traditional Chinese error panel and returns to menu without creating a save. Character creation validates 2–12 visible characters, rejects duplicate names within the three slots, previews attributes, and exposes accessible radio controls for all four classes.
 
 - [ ] **Step 4: Verify menu, scale, and character creation**
@@ -903,14 +926,14 @@ Expected: all four classes reach a visible world scene at a 640×480 logical can
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/main.ts src/app src/game/scenes/BootScene.ts src/game/scenes/MenuScene.ts src/game/scenes/CharacterCreateScene.ts src/ui/styles.css tests/e2e/menu-character.spec.ts index.html
+git add src/main.ts src/app src/game/scenes/BootScene.ts src/game/scenes/MenuScene.ts src/game/scenes/CharacterCreateScene.ts src/game/scenes/WorldScene.ts src/ui/styles.css tests/e2e/menu-character.spec.ts index.html
 git commit -m "feat: add game boot menu and character creation"
 ```
 
 ### Task 11: World scene, input, entity rendering, and combat presentation
 
 **Files:**
-- Create: `src/game/scenes/WorldScene.ts`
+- Modify: `src/game/scenes/WorldScene.ts`
 - Create: `src/game/systems/InputController.ts`
 - Create: `src/game/systems/EntityRenderer.ts`
 - Create: `src/game/systems/WorldController.ts`
@@ -1256,10 +1279,13 @@ plugins: [
 ```ts
 // src/service-worker.ts
 /// <reference lib="webworker" />
+import { setCacheNameDetails } from 'workbox-core';
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
+import { GAME_VERSION } from './app/version';
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<{ url: string; revision?: string }> };
 
+setCacheNameDetails({ prefix: 'talking-island', suffix: GAME_VERSION });
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 self.addEventListener('message', (event) => {
@@ -1368,7 +1394,7 @@ git commit -m "feat: complete and balance talking island campaign"
 
 **Files:**
 - Create: `tests/visual/visual-baselines.spec.ts`
-- Create: `tests/visual/*.png`
+- Create: `tests/visual/visual-baselines.spec.ts-snapshots/*.png`
 - Create: `tests/helpers/openFixture.ts`
 - Create: `scripts/build-content-index.ts`
 - Create: `scripts/verify-release.mjs`
