@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 
+import type { AudioDirector } from '../../audio/AudioDirector';
 import type { GameContent } from '../../content/catalog';
 import {
   addItem,
@@ -30,6 +31,7 @@ import type { PanelActionResult } from '../../ui/panels/shared';
 import type { MonsterState } from '../../world/ai';
 import { TileGrid, type GridRectangle } from '../../world/grid';
 import { CONTENT_REGISTRY_KEY } from './BootScene';
+import { ensureAudioDirector } from './MenuScene';
 import { CombatPresenter } from '../systems/CombatPresenter';
 import { EntityRenderer, TILE_SIZE } from '../systems/EntityRenderer';
 import {
@@ -192,6 +194,9 @@ export class WorldScene extends Phaser.Scene {
   #dialogueNodeId = 'welcome';
   #lastFeedback = '';
   #manualE2E = false;
+  #audioDirector: AudioDirector | null = null;
+  #audioRegion: string | null = null;
+  #audioStatus: HTMLOutputElement | null = null;
 
   constructor() {
     super('world');
@@ -202,6 +207,7 @@ export class WorldScene extends Phaser.Scene {
     if (parent === null) return;
     parent.dataset.scene = 'world';
     this.#root = parent;
+    this.#audioDirector = ensureAudioDirector(this);
     this.#manualE2E = new URLSearchParams(window.location.search).get('e2e') === '1';
     this.game.canvas.tabIndex = 0;
     this.game.canvas.setAttribute('aria-label', '說話之島遊戲畫面');
@@ -232,6 +238,14 @@ export class WorldScene extends Phaser.Scene {
     this.#content = content;
     this.#activeSave = save;
     this.registry.set('active-save', save);
+    this.#audioDirector?.updateSettings(save.settings);
+    if (window.__lineageAudioE2E !== undefined) {
+      window.__lineageAudioE2E.activeSettings = { ...save.settings };
+      window.__lineageAudioE2E.routeRegion = (regionId) => {
+        this.#routeAudioRegion(regionId);
+      };
+    }
+    this.#syncAudioStatus();
     const grids = new Map(
       await Promise.all(
         content.maps.map(async ({ id }) => [id, await this.#loadGrid(content, id)] as const),
@@ -280,7 +294,12 @@ export class WorldScene extends Phaser.Scene {
         deposit: (itemId, quantity) => this.#depositWarehouseItem(itemId, quantity),
         withdraw: (itemId, quantity) => this.#withdrawWarehouseItem(itemId, quantity),
       },
-      settings: { save: (settings) => this.#saveSettings(settings) },
+      settings: {
+        preview: (settings) => {
+          this.#previewSettings(settings);
+        },
+        save: (settings) => this.#saveSettings(settings),
+      },
     });
     this.#worldUi.renderPanels(this.#panelModels());
     this.#worldUi.renderHud(this.#hudViewModel(this.#controller.snapshot));
@@ -471,6 +490,9 @@ export class WorldScene extends Phaser.Scene {
   #storeSave(save: SaveGameV1): void {
     this.#activeSave = save;
     this.registry.set('active-save', save);
+    if (window.__lineageAudioE2E !== undefined) {
+      window.__lineageAudioE2E.activeSettings = { ...save.settings };
+    }
     this.#refreshHud();
   }
 
@@ -705,9 +727,15 @@ export class WorldScene extends Phaser.Scene {
     ) {
       return panelFailure('設定值超出範圍');
     }
+    this.#previewSettings(settings);
     this.#storeSave(this.#sealedSave({ settings }));
     this.#root?.style.setProperty('--game-scale', String(settings.scale));
     return { ok: true, viewModel: this.#panelModels().settings };
+  }
+
+  #previewSettings(settings: SettingsPanelViewModel): void {
+    this.#audioDirector?.updateSettings(settings);
+    this.#syncAudioStatus();
   }
 
   async #loadGrid(content: GameContent, mapId: string): Promise<TileGrid> {
@@ -775,6 +803,7 @@ export class WorldScene extends Phaser.Scene {
   #render(): void {
     if (this.#controller === null || this.#renderer === null) return;
     const snapshot = this.#controller.snapshot;
+    this.#routeAudioRegion(snapshot.player.mapId);
     this.#renderer.render(snapshot);
     const feedback = this.#combatPresenter?.present(this.#controller.drainEvents()) ?? [];
     if (feedback.length > 0) {
@@ -936,19 +965,56 @@ export class WorldScene extends Phaser.Scene {
 
   #focusCanvas = (): void => {
     this.game.canvas.focus();
+    this.#audioDirector?.resume();
+    this.#syncAudioStatus();
   };
 
   #visibilityChange = (): void => {
-    this.#controller?.setPaused(document.hidden);
+    const hidden = window.__lineageAudioE2E?.hidden ?? document.hidden;
+    this.#controller?.setPaused(hidden);
+    if (hidden) {
+      this.#audioDirector?.suspend();
+    } else if (this.#audioDirector?.state.phase === 'suspended') {
+      this.#audioDirector.resume();
+    }
+    this.#syncAudioStatus();
   };
 
   #pause = (): void => {
     this.#controller?.setPaused(true);
+    this.#audioDirector?.suspend();
+    this.#syncAudioStatus();
   };
 
   #resume = (): void => {
     this.#controller?.setPaused(false);
+    if (this.#audioDirector?.state.phase === 'suspended') this.#audioDirector.resume();
+    this.#syncAudioStatus();
   };
+
+  #routeAudioRegion(regionId: string): void {
+    if (regionId === this.#audioRegion) return;
+    this.#audioDirector?.enterRegion(regionId);
+    this.#audioRegion = regionId;
+    this.#syncAudioStatus();
+  }
+
+  #syncAudioStatus(): void {
+    const message = this.#audioDirector?.state.message ?? null;
+    if (message === null || this.#root === null) {
+      this.#audioStatus?.remove();
+      this.#audioStatus = null;
+      return;
+    }
+    const status = this.#audioStatus ?? document.createElement('output');
+    status.dataset.testid = 'audio-status';
+    status.setAttribute('role', 'status');
+    status.style.cssText =
+      'position:absolute;z-index:20;left:50%;bottom:12px;transform:translateX(-50%);pointer-events:none';
+    status.textContent = message;
+    if (this.#audioStatus === null) this.#root.append(status);
+    this.#audioStatus = status;
+  }
 
   #destroy(): void {
     document.removeEventListener('visibilitychange', this.#visibilityChange);
@@ -960,6 +1026,13 @@ export class WorldScene extends Phaser.Scene {
     this.#renderer?.destroy();
     this.#worldUi?.destroy();
     this.#worldUi = null;
+    this.#audioDirector?.dispose();
+    this.#audioDirector = null;
+    this.#audioStatus?.remove();
+    this.#audioStatus = null;
+    if (window.__lineageAudioE2E !== undefined) {
+      window.__lineageAudioE2E.routeRegion = null;
+    }
     this.#e2ePanel?.remove();
     this.#e2ePanel = null;
   }

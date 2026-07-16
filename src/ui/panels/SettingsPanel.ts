@@ -16,6 +16,7 @@ export interface SettingsPanelViewModel {
 }
 
 export interface SettingsPanelActions {
+  readonly preview?: (settings: SettingsPanelViewModel) => void;
   readonly save: (
     settings: SettingsPanelViewModel,
   ) => PanelActionResult<SettingsPanelViewModel>;
@@ -94,14 +95,16 @@ export class SettingsPanel {
     });
     scaleLabel.append(this.#scale);
 
+    const preview = (): void => {
+      this.#actions.preview?.(this.#controlSettings());
+    };
+    this.#music.addEventListener('input', preview);
+    this.#ambient.addEventListener('input', preview);
+    this.#effects.addEventListener('input', preview);
+    this.#muted.addEventListener('change', preview);
+
     const save = createActionButton(document, '套用設定', 'settings-save', () => {
-      this.save({
-        music: Number(this.#music.value),
-        ambient: Number(this.#ambient.value),
-        effects: Number(this.#effects.value),
-        muted: this.#muted.checked,
-        scale: scaleValue(this.#scale.value),
-      });
+      this.save(this.#controlSettings());
     });
     shell.body.replaceChildren(
       music.wrapper,
@@ -134,5 +137,15 @@ export class SettingsPanel {
       },
       this.#status,
     );
+  }
+
+  #controlSettings(): SettingsPanelViewModel {
+    return {
+      music: Number(this.#music.value),
+      ambient: Number(this.#ambient.value),
+      effects: Number(this.#effects.value),
+      muted: this.#muted.checked,
+      scale: scaleValue(this.#scale.value),
+    };
   }
 }
