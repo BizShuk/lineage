@@ -41,6 +41,20 @@ import {
 } from '../systems/InputController';
 import type { WorldSnapshot } from '../systems/WorldController';
 
+const CAMPAIGN_E2E_SEED = 20_260_717;
+
+interface CampaignE2EProbe {
+  readonly mode: 'campaign';
+  readonly seed: typeof CAMPAIGN_E2E_SEED;
+  readonly snapshot: () => GameSessionSnapshot;
+}
+
+declare global {
+  interface Window {
+    __lineageCampaignE2E?: CampaignE2EProbe;
+  }
+}
+
 const mapAssetNames: Readonly<Record<string, string>> = {
   'talking-island-village': 'village',
   'scarecrow-field': 'scarecrow-field',
@@ -255,6 +269,8 @@ export class WorldScene extends Phaser.Scene {
   #activeNpcId: string | null = null;
   #lastFeedback = '';
   #manualE2E = false;
+  #campaignE2E = false;
+  #campaignE2EProbe: CampaignE2EProbe | null = null;
   #audioDirector: AudioDirector | null = null;
   #audioRegion: string | null = null;
   #audioStatus: HTMLOutputElement | null = null;
@@ -276,7 +292,10 @@ export class WorldScene extends Phaser.Scene {
     parent.dataset.scene = 'world';
     this.#root = parent;
     this.#audioDirector = ensureAudioDirector(this);
-    this.#manualE2E = new URLSearchParams(window.location.search).get('e2e') === '1';
+    const search = new URLSearchParams(window.location.search);
+    this.#manualE2E = search.get('e2e') === '1';
+    this.#campaignE2E =
+      search.get('e2e') === 'campaign' && search.get('seed') === String(CAMPAIGN_E2E_SEED);
     this.game.canvas.tabIndex = 0;
     this.game.canvas.setAttribute('aria-label', '說話之島遊戲畫面');
     this.add.rectangle(0, 0, 2048, 2048, 0x172019).setOrigin(0).setDepth(-3_000);
@@ -329,8 +348,17 @@ export class WorldScene extends Phaser.Scene {
       save,
       grids,
       ...(monsters === undefined ? {} : { monsters }),
-      seed: 7,
+      seed: this.#campaignE2E ? CAMPAIGN_E2E_SEED : 7,
     });
+    if (this.#campaignE2E) {
+      const session = this.#session;
+      this.#campaignE2EProbe = Object.freeze({
+        mode: 'campaign',
+        seed: CAMPAIGN_E2E_SEED,
+        snapshot: () => structuredClone(session.snapshot),
+      });
+      window.__lineageCampaignE2E = this.#campaignE2EProbe;
+    }
     this.#repository = this.registry.get(SAVE_REPOSITORY_REGISTRY_KEY) as SaveRepository;
     this.#autosave = new AutosaveCoordinator(
       {
@@ -1354,6 +1382,10 @@ export class WorldScene extends Phaser.Scene {
     if (window.__lineageAudioE2E !== undefined) {
       window.__lineageAudioE2E.routeRegion = null;
     }
+    if (window.__lineageCampaignE2E === this.#campaignE2EProbe) {
+      delete window.__lineageCampaignE2E;
+    }
+    this.#campaignE2EProbe = null;
     this.#e2ePanel?.remove();
     this.#e2ePanel = null;
   }
