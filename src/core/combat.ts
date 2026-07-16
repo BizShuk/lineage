@@ -9,6 +9,7 @@ export interface StatusEffect {
   sourceId: string;
   kind: 'buff' | 'debuff' | 'control';
   expiresAt: number;
+  power?: number;
 }
 
 export interface Combatant {
@@ -34,10 +35,12 @@ export interface AttackCommand {
 export type AbilityEffect =
   | { type: 'damage'; damage: DamageRange }
   | { type: 'heal'; healing: DamageRange }
+  | { type: 'cleanse' }
   | {
       type: 'buff' | 'debuff' | 'control';
       statusId: string;
       durationMs: number;
+      power?: number;
     };
 
 export interface AbilityDefinition {
@@ -170,7 +173,7 @@ function castFailureReason(
   return undefined;
 }
 
-function applyAbilityEffect(
+export function applyAbilityEffect(
   caster: Combatant,
   target: Combatant,
   ability: AbilityDefinition,
@@ -207,6 +210,10 @@ function applyAbilityEffect(
         events: [{ type: 'heal', sourceId: caster.id, targetId: target.id, amount }],
       };
     }
+    case 'cleanse': {
+      nextTarget.statuses = (target.statuses ?? []).filter(({ kind }) => kind === 'buff');
+      return { target: nextTarget, events: [] };
+    }
     case 'buff':
     case 'debuff':
     case 'control': {
@@ -216,6 +223,7 @@ function applyAbilityEffect(
         sourceId: caster.id,
         kind: ability.effect.type,
         expiresAt,
+        ...(ability.effect.power === undefined ? {} : { power: ability.effect.power }),
       };
       nextTarget.statuses = [...(target.statuses ?? []), status];
       return {

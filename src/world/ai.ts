@@ -8,6 +8,7 @@ import {
   type InventoryState,
   type ItemDefinition,
 } from '../core/inventory';
+import type { StatusEffect } from '../core/combat';
 import type { SeededRng } from '../core/rng';
 import type { GridPoint, TileGrid } from './grid';
 import { findPath } from './pathfinding';
@@ -45,6 +46,7 @@ export interface MonsterState extends GridPoint {
   readonly respawnDelayMs: number;
   readonly defeatedAtMs: number | null;
   readonly defeatedMapEntry: number | null;
+  readonly statuses?: readonly StatusEffect[];
 }
 
 export interface MonsterWorldState extends WorldState {
@@ -136,63 +138,70 @@ export const tickMonsterAI = (
   nowMs: number,
   rng: SeededRng,
 ): MonsterAITickResult => {
-  if (monster.hp <= 0 || monster.aiState === 'dead') {
+  const current: MonsterState = {
+    ...monster,
+    statuses: (monster.statuses ?? []).filter(({ expiresAt }) => expiresAt > nowMs),
+  };
+  if (current.hp <= 0 || current.aiState === 'dead') {
     return {
-      monster: { ...monster, hp: 0, aiState: 'dead' },
+      monster: { ...current, hp: 0, aiState: 'dead' },
       intent: { type: 'despawn' },
     };
   }
+  if (current.statuses?.some(({ kind }) => kind === 'control') === true) {
+    return { monster: current, intent: WAIT };
+  }
 
-  switch (monster.aiState) {
+  switch (current.aiState) {
     case 'idle':
-      if (withinRange(monster, player, monster.alertRadius)) {
-        return { monster: { ...monster, aiState: 'chase' }, intent: WAIT };
+      if (withinRange(current, player, current.alertRadius)) {
+        return { monster: { ...current, aiState: 'chase' }, intent: WAIT };
       }
-      return { monster: { ...monster, aiState: 'patrol' }, intent: WAIT };
+      return { monster: { ...current, aiState: 'patrol' }, intent: WAIT };
 
     case 'patrol':
-      if (withinRange(monster, player, monster.alertRadius)) {
-        return { monster: { ...monster, aiState: 'chase' }, intent: WAIT };
+      if (withinRange(current, player, current.alertRadius)) {
+        return { monster: { ...current, aiState: 'chase' }, intent: WAIT };
       }
-      return patrol(monster, grid, rng);
+      return patrol(current, grid, rng);
 
     case 'chase':
-      if (shouldReturnHome(monster, player)) {
-        return returnHome(monster, grid);
+      if (shouldReturnHome(current, player)) {
+        return returnHome(current, grid);
       }
-      if (withinRange(monster, player, monster.attackRange)) {
-        return { monster: { ...monster, aiState: 'attack' }, intent: WAIT };
+      if (withinRange(current, player, current.attackRange)) {
+        return { monster: { ...current, aiState: 'attack' }, intent: WAIT };
       }
-      return { monster, intent: moveToward(monster, player, grid) };
+      return { monster: current, intent: moveToward(current, player, grid) };
 
     case 'attack':
-      if (shouldReturnHome(monster, player)) {
-        return returnHome(monster, grid);
+      if (shouldReturnHome(current, player)) {
+        return returnHome(current, grid);
       }
-      if (!withinRange(monster, player, monster.attackRange)) {
-        return { monster: { ...monster, aiState: 'chase' }, intent: WAIT };
+      if (!withinRange(current, player, current.attackRange)) {
+        return { monster: { ...current, aiState: 'chase' }, intent: WAIT };
       }
-      if (nowMs < monster.nextAttackAtMs) {
-        return { monster, intent: WAIT };
+      if (nowMs < current.nextAttackAtMs) {
+        return { monster: current, intent: WAIT };
       }
       return {
         monster: {
-          ...monster,
-          nextAttackAtMs: nowMs + monster.attackCooldownMs,
+          ...current,
+          nextAttackAtMs: nowMs + current.attackCooldownMs,
         },
         intent: { type: 'attack', targetId: player.id },
       };
 
     case 'return':
-      if (monster.x === monster.homeX && monster.y === monster.homeY) {
+      if (current.x === current.homeX && current.y === current.homeY) {
         return {
-          monster: { ...monster, aiState: 'idle', hp: monster.maxHP },
+          monster: { ...current, aiState: 'idle', hp: current.maxHP },
           intent: WAIT,
         };
       }
       return {
-        monster,
-        intent: moveToward(monster, { x: monster.homeX, y: monster.homeY }, grid),
+        monster: current,
+        intent: moveToward(current, { x: current.homeX, y: current.homeY }, grid),
       };
 
   }
@@ -291,6 +300,7 @@ const respawn = (monster: MonsterState): MonsterState => ({
   nextAttackAtMs: 0,
   defeatedAtMs: null,
   defeatedMapEntry: null,
+  statuses: [],
 });
 
 const baphometDefeated = (world: MonsterWorldState): boolean =>

@@ -5,7 +5,7 @@ import { createCharacter, deriveStats } from '../../src/core/stats';
 import { WorldController } from '../../src/game/systems/WorldController';
 import { TileGrid } from '../../src/world/grid';
 import { completeSave } from '../helpers/saveFixtures';
-import { monsterAt } from '../helpers/worldFixtures';
+import { monsterAt, openGrid } from '../helpers/worldFixtures';
 
 const content = loadBundledContent();
 const grid = TileGrid.fromRows(Array.from({ length: 16 }, () => '.'.repeat(16)));
@@ -277,6 +277,529 @@ describe('WorldController', () => {
         ?.quantity ?? 0,
     ).toBeGreaterThanOrEqual(4);
     expect(defeated).toBeLessThanOrEqual(legalHideSpawns.length);
+  });
+
+  it('damages every living monster within two tiles of an area target once', () => {
+    const save = completeSave({ slot: 1 });
+    const character = { ...createCharacter('範圍測試', 'wizard'), level: 12, mp: 60 };
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        character,
+        world: {
+          player: { mapId: 'north-field', x: 2, y: 5 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([['north-field', grid]]),
+      monsters: [
+        monsterAt({ x: 5, y: 5 }, { id: 'area-anchor', hp: 30, maxHP: 30, alertRadius: 0 }),
+        monsterAt({ x: 7, y: 6 }, { id: 'area-nearby', hp: 30, maxHP: 30, alertRadius: 0 }),
+        monsterAt({ x: 8, y: 5 }, { id: 'area-outside', hp: 30, maxHP: 30, alertRadius: 0 }),
+        monsterAt(
+          { x: 6, y: 5 },
+          { id: 'area-dead', hp: 0, maxHP: 30, aiState: 'dead', alertRadius: 0 },
+        ),
+      ],
+      seed: 7,
+    });
+
+    const result = controller.cast('frozen-cloud', 'area-anchor');
+
+    expect(result.ok).toBe(true);
+    expect(controller.snapshot.character.mp).toBe(40);
+    expect(
+      Object.fromEntries(controller.snapshot.monsters.map(({ id, hp }) => [id, hp])),
+    ).toMatchObject({
+      'area-anchor': 10,
+      'area-nearby': 10,
+      'area-outside': 30,
+      'area-dead': 0,
+    });
+    expect(
+      result.events
+        .filter((event) => event.type === 'damage')
+        .map(({ targetId }) => targetId),
+    ).toEqual(['area-anchor', 'area-nearby']);
+  });
+
+  it('uses royal-rally power as a player hit bonus', () => {
+    const createRallyController = (buffed: boolean): WorldController => {
+      const save = completeSave({ slot: 1 });
+      const character = createCharacter('命中測試', 'prince');
+      const controller = new WorldController({
+        content,
+        save: {
+          ...save,
+          character,
+          world: {
+            player: { mapId: 'north-field', x: 2, y: 2 },
+            defeatedBosses: [],
+            flags: {},
+            worldTimeMs: 0,
+          },
+        },
+        grids: new Map([['north-field', grid]]),
+        monsters: [
+          monsterAt({ x: 3, y: 2 }, { id: 'rally-target', hp: 50, maxHP: 50, alertRadius: 0 }),
+        ],
+        seed: 17,
+      });
+      if (buffed) {
+        expect(controller.cast('royal-rally', character.id).ok).toBe(true);
+      }
+      controller.dispatch({ type: 'attack', targetId: 'rally-target' });
+      controller.update(50);
+      return controller;
+    };
+
+    const normal = createRallyController(false);
+    const rallied = createRallyController(true);
+
+    expect(normal.drainEvents()).toContainEqual(
+      expect.objectContaining({ type: 'miss', targetId: 'rally-target' }),
+    );
+    expect(rallied.drainEvents()).toContainEqual(
+      expect.objectContaining({ type: 'damage', targetId: 'rally-target' }),
+    );
+  });
+
+  it('uses enchanted-weapon power as a weapon damage bonus', () => {
+    const attackDamage = (buffed: boolean): number => {
+      const save = completeSave({ slot: 1 });
+      const character = { ...createCharacter('武器測試', 'wizard'), level: 8 };
+      const controller = new WorldController({
+        content,
+        save: {
+          ...save,
+          character,
+          equipment: { weapon: 'dagger' },
+          world: {
+            player: { mapId: 'north-field', x: 2, y: 2 },
+            defeatedBosses: [],
+            flags: {},
+            worldTimeMs: 0,
+          },
+        },
+        grids: new Map([['north-field', grid]]),
+        monsters: [
+          monsterAt({ x: 3, y: 2 }, { id: 'weapon-target', hp: 50, maxHP: 50, alertRadius: 0 }),
+        ],
+        seed: 7,
+      });
+      if (buffed) {
+        expect(controller.cast('enchanted-weapon', character.id).ok).toBe(true);
+      }
+      controller.dispatch({ type: 'attack', targetId: 'weapon-target' });
+      controller.update(50);
+      const damage = controller
+        .drainEvents()
+        .find((event) => event.type === 'damage' && event.targetId === 'weapon-target');
+      expect(damage).toBeDefined();
+      return damage?.type === 'damage' ? damage.amount : 0;
+    };
+
+    expect(attackDamage(true)).toBe(attackDamage(false) + 2);
+  });
+
+  it('uses guarded-stance power as defense until the status expires', () => {
+    const createDefenseController = (buffed: boolean): WorldController => {
+      const save = completeSave({ slot: 1 });
+      const character = createCharacter('防禦測試', 'knight');
+      const controller = new WorldController({
+        content,
+        save: {
+          ...save,
+          character,
+          world: {
+            player: { mapId: 'north-field', x: 2, y: 2 },
+            defeatedBosses: [],
+            flags: {},
+            worldTimeMs: 0,
+          },
+        },
+        grids: new Map([['north-field', grid]]),
+        monsters: [
+          monsterAt(
+            { x: 3, y: 2 },
+            { id: 'defense-attacker', aiState: 'attack', nextAttackAtMs: 0 },
+          ),
+        ],
+        seed: 13,
+      });
+      if (buffed) {
+        expect(controller.cast('guarded-stance', character.id).ok).toBe(true);
+      }
+      controller.update(250);
+      controller.update(250);
+      return controller;
+    };
+
+    const normal = createDefenseController(false);
+    const guarded = createDefenseController(true);
+
+    expect(normal.snapshot.character.hp).toBeLessThan(deriveStats(normal.snapshot.character).maxHP);
+    expect(guarded.snapshot.character.hp).toBe(deriveStats(guarded.snapshot.character).maxHP);
+    expect(guarded.drainEvents()).toContainEqual(
+      expect.objectContaining({ type: 'miss', sourceId: 'defense-attacker' }),
+    );
+  });
+
+  it('uses mana-focus power for spells and stops after expiry', () => {
+    const save = completeSave({ slot: 1 });
+    const character = { ...createCharacter('魔力測試', 'wizard'), level: 4, mp: 40 };
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        character,
+        world: {
+          player: { mapId: 'north-field', x: 2, y: 2 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([['north-field', grid]]),
+      monsters: [
+        monsterAt(
+          { x: 3, y: 2 },
+          { id: 'focused-target', hp: 50, maxHP: 50, alertRadius: 0, patrolRadius: 0 },
+        ),
+        monsterAt(
+          { x: 3, y: 2 },
+          { id: 'expired-target', hp: 50, maxHP: 50, alertRadius: 0, patrolRadius: 0 },
+        ),
+      ],
+      seed: 7,
+    });
+
+    expect(controller.cast('mana-focus', character.id).ok).toBe(true);
+    expect(controller.cast('fire-arrow', 'focused-target').ok).toBe(true);
+    expect(controller.snapshot.monsters.find(({ id }) => id === 'focused-target')?.hp).toBe(29);
+    expect(controller.snapshot.playerStatuses).toContainEqual(
+      expect.objectContaining({ id: 'mana-focus', power: 3, expiresAt: 8_000 }),
+    );
+
+    for (let tick = 0; tick < 32; tick += 1) controller.update(250);
+
+    expect(controller.snapshot.playerStatuses).not.toContainEqual(
+      expect.objectContaining({ id: 'mana-focus' }),
+    );
+    expect(controller.cast('fire-arrow', 'expired-target').ok).toBe(true);
+    expect(controller.snapshot.monsters.find(({ id }) => id === 'expired-target')?.hp).toBe(32);
+  });
+
+  it('keeps light and detection as observable time-limited player utility statuses', () => {
+    const save = completeSave({ slot: 1 });
+    const character = { ...createCharacter('工具測試', 'wizard'), level: 8 };
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        character,
+        world: {
+          player: { mapId: 'north-field', x: 2, y: 2 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([['north-field', grid]]),
+      monsters: [],
+      seed: 7,
+    });
+
+    expect(controller.cast('light', character.id).ok).toBe(true);
+    expect(controller.cast('detect-invisible', character.id).ok).toBe(true);
+
+    expect(controller.snapshot.playerStatuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'light', expiresAt: 600_000 }),
+        expect.objectContaining({ id: 'detect-invisible', expiresAt: 1_000 }),
+      ]),
+    );
+  });
+
+  it('teleports to the current map entry and maps cure-poison to a cleanse action', () => {
+    const save = completeSave({ slot: 1 });
+    const character = { ...createCharacter('傳送測試', 'wizard'), level: 8, mp: 60 };
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        character,
+        world: {
+          player: { mapId: 'north-field', x: 20, y: 20 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      monsters: [],
+      seed: 7,
+    });
+
+    expect(controller.cast('teleport', character.id).ok).toBe(true);
+    expect(controller.snapshot.player).toEqual({
+      mapId: 'north-field',
+      ...content.map('north-field').entry,
+    });
+    expect(controller.cast('cure-poison', character.id)).toMatchObject({
+      ok: true,
+      events: [],
+    });
+  });
+
+  it('persists blind on a monster and blocks its attacks until expiry', () => {
+    const save = completeSave({ slot: 1 });
+    const character = { ...createCharacter('闇盲測試', 'wizard'), level: 12, mp: 60 };
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        character,
+        world: {
+          player: { mapId: 'north-field', x: 2, y: 2 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([['north-field', grid]]),
+      monsters: [
+        monsterAt(
+          { x: 3, y: 2 },
+          { id: 'blind-target', aiState: 'attack', nextAttackAtMs: 0 },
+        ),
+      ],
+      seed: 7,
+    });
+
+    expect(controller.cast('blind', 'blind-target').ok).toBe(true);
+    expect(controller.snapshot.monsters[0]?.statuses ?? []).toContainEqual(
+      expect.objectContaining({ id: 'blind', kind: 'control', power: 3, expiresAt: 8_000 }),
+    );
+
+    for (let tick = 0; tick < 30; tick += 1) controller.update(250);
+    expect(controller.snapshot.character.hp).toBe(character.hp);
+
+    controller.update(250);
+    controller.update(250);
+
+    expect(controller.snapshot.monsters[0]?.statuses).not.toContainEqual(
+      expect.objectContaining({ id: 'blind' }),
+    );
+    expect(controller.snapshot.character.hp).toBeLessThan(character.hp);
+  });
+
+  it('uses royal-command power as damage vulnerability on its target', () => {
+    const attackDamage = (commanded: boolean): number => {
+      const save = completeSave({ slot: 1 });
+      const character = { ...createCharacter('號令測試', 'prince'), level: 6 };
+      const controller = new WorldController({
+        content,
+        save: {
+          ...save,
+          character,
+          world: {
+            player: { mapId: 'north-field', x: 2, y: 2 },
+            defeatedBosses: [],
+            flags: {},
+            worldTimeMs: 0,
+          },
+        },
+        grids: new Map([['north-field', grid]]),
+        monsters: [
+          monsterAt({ x: 3, y: 2 }, { id: 'command-target', hp: 50, maxHP: 50, alertRadius: 0 }),
+        ],
+        seed: 7,
+      });
+      if (commanded) {
+        expect(controller.cast('royal-command', 'command-target').ok).toBe(true);
+        expect(controller.snapshot.monsters[0]?.statuses ?? []).toContainEqual(
+          expect.objectContaining({ id: 'royal-command', power: 3 }),
+        );
+      }
+      controller.dispatch({ type: 'attack', targetId: 'command-target' });
+      controller.update(50);
+      const damage = controller
+        .drainEvents()
+        .find((event) => event.type === 'damage' && event.targetId === 'command-target');
+      expect(damage).toBeDefined();
+      return damage?.type === 'damage' ? damage.amount : 0;
+    };
+
+    expect(attackDamage(true)).toBe(attackDamage(false) + 3);
+  });
+
+  it('makes elemental-fall-down an observable one-point damage vulnerability', () => {
+    const spellDamage = (marked: boolean): number => {
+      const save = completeSave({ slot: 1 });
+      const character = { ...createCharacter('能量測試', 'wizard'), level: 12, mp: 60 };
+      const controller = new WorldController({
+        content,
+        save: {
+          ...save,
+          character,
+          world: {
+            player: { mapId: 'north-field', x: 2, y: 2 },
+            defeatedBosses: [],
+            flags: {},
+            worldTimeMs: 0,
+          },
+        },
+        grids: new Map([['north-field', grid]]),
+        monsters: [
+          monsterAt({ x: 3, y: 2 }, { id: 'element-target', hp: 50, maxHP: 50, alertRadius: 0 }),
+        ],
+        seed: 7,
+      });
+      if (marked) {
+        expect(controller.cast('elemental-fall-down', 'element-target').ok).toBe(true);
+        expect(controller.snapshot.monsters[0]?.statuses ?? []).toContainEqual(
+          expect.objectContaining({ id: 'elemental-fall-down', expiresAt: 1_000 }),
+        );
+      }
+      const result = controller.cast('fire-arrow', 'element-target');
+      const damage = result.events.find((event) => event.type === 'damage');
+      expect(damage).toBeDefined();
+      return damage?.type === 'damage' ? damage.amount : 0;
+    };
+
+    expect(spellDamage(true)).toBe(spellDamage(false) + 1);
+  });
+
+  it('clears runtime statuses on player death and monster respawn', () => {
+    const save = completeSave({ slot: 1 });
+    const character = { ...createCharacter('重生測試', 'knight'), hp: 1 };
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        character,
+        world: {
+          player: { mapId: 'north-field', x: 2, y: 2 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([['north-field', grid]]),
+      monsters: [
+        monsterAt(
+          { x: 3, y: 2 },
+          { id: 'lethal-attacker', aiState: 'attack', nextAttackAtMs: 0 },
+        ),
+        monsterAt(
+          { x: 8, y: 8 },
+          {
+            id: 'status-respawn',
+            aiState: 'dead',
+            hp: 0,
+            defeatedAtMs: 0,
+            respawnDelayMs: 0,
+            statuses: [
+              { id: 'blind', sourceId: character.id, kind: 'control', expiresAt: 8_000 },
+            ],
+          },
+        ),
+      ],
+      seed: 7,
+    });
+
+    expect(controller.cast('guarded-stance', character.id).ok).toBe(true);
+    controller.update(250);
+    controller.update(250);
+
+    expect(controller.snapshot.playerStatuses).toEqual([]);
+    const respawned = controller.snapshot.monsters.find(({ id }) => id === 'status-respawn');
+    expect(respawned?.hp).toBe(respawned?.maxHP);
+    expect(respawned?.statuses).toEqual([]);
+  });
+
+  it('clears player runtime statuses after a real map transition', () => {
+    const largeGrid = TileGrid.fromRows(Array.from({ length: 96 }, () => '.'.repeat(96)));
+    const save = completeSave({ slot: 1 });
+    const character = createCharacter('換圖測試', 'prince');
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        character,
+        world: {
+          player: { mapId: 'north-field', x: 93, y: 48 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([
+        ['north-field', largeGrid],
+        ['talking-island-village', largeGrid],
+      ]),
+      monsters: [],
+      seed: 7,
+    });
+
+    expect(controller.cast('royal-rally', character.id).ok).toBe(true);
+    expect(controller.snapshot.playerStatuses).not.toEqual([]);
+    controller.dispatch({ type: 'move', x: 94, y: 48 });
+    controller.update(50);
+
+    expect(controller.snapshot.player.mapId).toBe('talking-island-village');
+    expect(controller.snapshot.playerStatuses).toEqual([]);
+  });
+
+  it('commits at most one monster attack per AI interval', () => {
+    const save = completeSave({ slot: 1 });
+    const character = { ...createCharacter('群攻測試', 'knight'), hp: 200 };
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        character,
+        world: {
+          player: { mapId: 'black-knight-area', x: 48, y: 48 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([['black-knight-area', openGrid(96, 96)]]),
+      monsters: Array.from({ length: 6 }, (_, index) =>
+        monsterAt(
+          { x: 49, y: 48 },
+          {
+            id: `interval-knight-${String(index)}`,
+            monsterId: 'black-knight',
+            rank: 'elite',
+            mapId: 'black-knight-area',
+            hp: 90,
+            maxHP: 90,
+            aiState: 'attack',
+            nextAttackAtMs: 0,
+          },
+        ),
+      ),
+      seed: 7,
+    });
+
+    controller.update(250);
+    controller.update(250);
+
+    expect(
+      controller
+        .drainEvents()
+        .filter(
+          (event) =>
+            (event.type === 'damage' || event.type === 'miss') &&
+            event.sourceId.startsWith('interval-knight-'),
+        ),
+    ).toHaveLength(1);
   });
 
   it('consumes one arrow after a successful bow hit but not after a miss', () => {

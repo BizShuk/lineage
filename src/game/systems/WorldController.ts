@@ -1,5 +1,6 @@
 import type { GameContent } from '../../content/catalog';
 import {
+  applyAbilityEffect,
   castAbility,
   resolveAttack,
   type AbilityDefinition as CombatAbilityDefinition,
@@ -57,6 +58,7 @@ export interface WorldSnapshot {
   readonly groundLoot: readonly GroundLoot[];
   readonly worldTimeMs: number;
   readonly autoAttackTargetId: string | null;
+  readonly playerStatuses: readonly StatusEffect[];
 }
 
 export type WorldPersistenceEvent = 'map-change' | 'quest-stage' | 'death-respawn';
@@ -88,6 +90,7 @@ const openGridFor = (content: GameContent, mapId: string): TileGrid => {
 
 const combatAbility = (
   ability: GameContent['abilities'][number],
+  powerBonus = 0,
 ): CombatAbilityDefinition => ({
   id: ability.id,
   allowedClasses: ability.allowedClasses,
@@ -99,16 +102,57 @@ const combatAbility = (
     ? {}
     : { requiredItemId: ability.reagentItemId }),
   effect:
-    ability.kind === 'attack'
-      ? { type: 'damage', damage: [Math.round(ability.power), Math.round(ability.power)] }
+    ability.id === 'cure-poison'
+      ? { type: 'cleanse' }
+      : ability.kind === 'attack'
+        ? {
+            type: 'damage',
+            damage: [
+              Math.round(ability.power + powerBonus),
+              Math.round(ability.power + powerBonus),
+            ],
+          }
       : ability.kind === 'heal'
-        ? { type: 'heal', healing: [Math.round(ability.power), Math.round(ability.power)] }
+        ? {
+            type: 'heal',
+            healing: [
+              Math.round(ability.power + powerBonus),
+              Math.round(ability.power + powerBonus),
+            ],
+          }
         : {
             type: ability.kind === 'control' ? 'control' : 'buff',
             statusId: ability.id,
             durationMs: ability.durationMs ?? 1_000,
+            power: ability.power,
           },
 });
+
+const activeStatuses = (
+  statuses: readonly StatusEffect[],
+  nowMs: number,
+): readonly StatusEffect[] => statuses.filter(({ expiresAt }) => expiresAt > nowMs);
+
+const statusPower = (
+  statuses: readonly StatusEffect[],
+  ids: ReadonlySet<string>,
+): number =>
+  statuses.reduce(
+    (total, status) => total + (ids.has(status.id) ? (status.power ?? 0) : 0),
+    0,
+  );
+
+const DEFENSE_STATUS_IDS = new Set(['shield', 'blessed-armor', 'guarded-stance']);
+const HIT_STATUS_IDS = new Set(['royal-rally']);
+const WEAPON_STATUS_IDS = new Set(['enchanted-weapon', 'holy-weapon']);
+const SPELL_STATUS_IDS = new Set(['mana-focus']);
+const VULNERABILITY_STATUS_IDS = new Set(['royal-command', 'elemental-fall-down']);
+
+const vulnerabilityPower = (statuses: readonly StatusEffect[]): number =>
+  statuses.reduce((total, status) => {
+    if (!VULNERABILITY_STATUS_IDS.has(status.id)) return total;
+    return total + (status.id === 'elemental-fall-down' ? Math.max(1, status.power ?? 0) : (status.power ?? 0));
+  }, 0);
 
 export class WorldController {
   readonly #content: GameContent;
@@ -177,6 +221,9 @@ export class WorldController {
 
   get snapshot(): WorldSnapshot {
     const player = { ...this.#player };
+    const playerStatuses = activeStatuses(this.#playerStatuses, this.#worldTimeMs).map(
+      (status) => ({ ...status }),
+    );
     return {
       player,
       world: {
@@ -201,10 +248,14 @@ export class WorldController {
         completed: [...this.#quests.completed],
         claimedRewards: [...this.#quests.claimedRewards],
       },
-      monsters: this.#monsters.map((monster) => ({ ...monster })),
+      monsters: this.#monsters.map((monster) => ({
+        ...monster,
+        statuses: (monster.statuses ?? []).map((status) => ({ ...status })),
+      })),
       groundLoot: this.#groundLoot.map((loot) => ({ ...loot })),
       worldTimeMs: this.#worldTimeMs,
       autoAttackTargetId: this.#autoAttackTargetId,
+      playerStatuses,
     };
   }
 
@@ -278,22 +329,29 @@ export class WorldController {
       return { ok: false, reason: 'required-equipment', events: [] };
     }
 
+    this.#playerStatuses = activeStatuses(this.#playerStatuses, this.#worldTimeMs);
     const stats = deriveStats(this.#character);
+    const defensePower = statusPower(this.#playerStatuses, DEFENSE_STATUS_IDS);
+    const hitPower = statusPower(this.#playerStatuses, HIT_STATUS_IDS);
+    const spellPower = statusPower(this.#playerStatuses, SPELL_STATUS_IDS);
     const caster: Combatant = {
       id: this.#character.id,
       hp: this.#character.hp,
       maxHP: stats.maxHP,
       mp: this.#character.mp,
       maxMP: stats.maxMP,
-      ac: stats.ac,
-      hitBonus: stats.hitBonus,
+      ac: stats.ac - defensePower,
+      hitBonus: stats.hitBonus + hitPower,
       damage: [Math.max(1, stats.damageBonus), Math.max(1, stats.damageBonus + 3)],
       classId: this.#character.classId,
       level: this.#character.level,
       statuses: this.#playerStatuses,
       cooldowns: this.#playerCooldowns,
     };
-    const targetsPlayer = ability.target === 'self' || ability.target === 'ally';
+    const targetsPlayer =
+      ability.target === 'self' ||
+      ability.target === 'ally' ||
+      (ability.kind === 'utility' && ability.target === 'area');
     if (
       (targetsPlayer && targetId !== this.#character.id) ||
       (!targetsPlayer && targetId === this.#character.id)
@@ -313,6 +371,10 @@ export class WorldController {
     }
     const monsterDefinition =
       monster === undefined ? undefined : this.#content.monster(monster.monsterId);
+    const monsterStatuses =
+      monster === undefined
+        ? []
+        : activeStatuses(monster.statuses ?? [], this.#worldTimeMs);
     const target: Combatant =
       monster === undefined || monsterDefinition === undefined
         ? caster
@@ -323,11 +385,16 @@ export class WorldController {
             ac: monsterDefinition.ac,
             hitBonus: monsterDefinition.level,
             damage: [monsterDefinition.attack, monsterDefinition.attack],
+            statuses: monsterStatuses,
           };
+    const definition = combatAbility(
+      ability,
+      spellPower + (ability.kind === 'attack' ? vulnerabilityPower(monsterStatuses) : 0),
+    );
     const result = castAbility(
       caster,
       target,
-      combatAbility(ability),
+      definition,
       {
         distance: monster === undefined ? 0 : distance(this.#player, monster),
         nowMs: this.#worldTimeMs,
@@ -353,19 +420,74 @@ export class WorldController {
         carriedWeight: this.#inventory.carriedWeight,
       };
     }
+    let actionEvents = result.events;
     if (monster !== undefined) {
-      this.#monsters = this.#monsters.map((candidate) =>
-        candidate.id === monster.id ? { ...candidate, hp: result.target.hp } : candidate,
-      );
-      if (result.target.hp === 0) this.#defeatMonster(monster);
+      const affected =
+        ability.kind === 'attack' && ability.target === 'area'
+          ? this.#monsters.filter(
+              (candidate) =>
+                candidate.mapId === monster.mapId &&
+                candidate.hp > 0 &&
+                distance(candidate, monster) <= 2,
+            )
+          : [monster];
+      const effects = affected.map((candidate) => {
+        if (candidate.id === monster.id) {
+          return { monster: candidate, target: result.target, events: result.events };
+        }
+        const candidateDefinition = this.#content.monster(candidate.monsterId);
+        const candidateStatuses = activeStatuses(
+          candidate.statuses ?? [],
+          this.#worldTimeMs,
+        );
+        const effect = applyAbilityEffect(
+          result.caster,
+          {
+            id: candidate.id,
+            hp: candidate.hp,
+            maxHP: candidate.maxHP,
+            ac: candidateDefinition.ac,
+            hitBonus: candidateDefinition.level,
+            damage: [candidateDefinition.attack, candidateDefinition.attack],
+            statuses: candidateStatuses,
+          },
+          combatAbility(
+            ability,
+            spellPower + vulnerabilityPower(candidateStatuses),
+          ),
+          this.#worldTimeMs,
+          this.#rng,
+        );
+        return { monster: candidate, ...effect };
+      });
+      actionEvents = effects.flatMap(({ events }) => events);
+      for (const effect of effects) {
+        this.#monsters = this.#monsters.map((candidate) =>
+          candidate.id === effect.monster.id
+            ? {
+                ...candidate,
+                hp: effect.target.hp,
+                statuses: effect.target.statuses ?? [],
+              }
+            : candidate,
+        );
+        if (effect.target.hp === 0) this.#defeatMonster(effect.monster);
+      }
     } else {
       this.#character = {
         ...this.#character,
         hp: Math.max(1, result.target.hp - ability.hpCost),
       };
     }
-    this.#events.push(...result.events);
-    return { ok: true, events: result.events };
+    if (ability.id === 'teleport') {
+      const entry = this.#content.map(this.#player.mapId).entry;
+      this.#player = { mapId: this.#player.mapId, ...entry };
+      this.#autoAttackTargetId = null;
+      this.#movementPath = [];
+      this.#pendingExit = null;
+    }
+    this.#events.push(...actionEvents);
+    return { ok: true, events: actionEvents };
   }
 
   update(deltaMs: number): void {
@@ -406,6 +528,7 @@ export class WorldController {
   #step(): void {
     this.#fixedStepCount += 1;
     this.#worldTimeMs += FIXED_STEP_MS;
+    this.#playerStatuses = activeStatuses(this.#playerStatuses, this.#worldTimeMs);
     this.#stepPlayer();
     if (this.#worldTimeMs >= this.#nextMonsterAITickAtMs) {
       this.#nextMonsterAITickAtMs = this.#worldTimeMs + MONSTER_AI_INTERVAL_MS;
@@ -464,6 +587,7 @@ export class WorldController {
       x: exit.targetX,
       y: exit.targetY,
     };
+    this.#playerStatuses = [];
     this.#monsters = [
       ...spawnMonsters(
         this.#content.map(exit.targetMapId),
@@ -482,6 +606,7 @@ export class WorldController {
   }
 
   #attackMonster(monster: MonsterState): void {
+    this.#playerStatuses = activeStatuses(this.#playerStatuses, this.#worldTimeMs);
     const stats = deriveStats(this.#character);
     const definition = this.#content.monster(monster.monsterId);
     const weapon =
@@ -497,13 +622,18 @@ export class WorldController {
         : undefined;
     if (weapon?.id === 'bow' && ammunition === undefined) return;
     const weaponDamage = weapon?.damageSmall ?? 0;
-    const damageBonus = Math.max(1, stats.damageBonus);
+    const weaponStatusPower = statusPower(this.#playerStatuses, WEAPON_STATUS_IDS);
+    const monsterStatuses = activeStatuses(monster.statuses ?? [], this.#worldTimeMs);
+    const damageBonus =
+      Math.max(1, stats.damageBonus) +
+      weaponStatusPower +
+      vulnerabilityPower(monsterStatuses);
     const attacker: Combatant = {
       id: this.#character.id,
       hp: this.#character.hp,
       maxHP: stats.maxHP,
       ac: stats.ac,
-      hitBonus: stats.hitBonus,
+      hitBonus: stats.hitBonus + statusPower(this.#playerStatuses, HIT_STATUS_IDS),
       damage: [
         Math.max(1, weaponDamage + damageBonus - 2),
         Math.max(1, weaponDamage + damageBonus),
@@ -577,6 +707,7 @@ export class WorldController {
 
   #stepMonsters(): void {
     const grid = this.#grid();
+    let attackCommitted = false;
     const playerTarget = {
       id: this.#character.id,
       x: this.#player.x,
@@ -589,7 +720,13 @@ export class WorldController {
       if (result.intent.type === 'move') {
         return { ...result.monster, x: result.intent.x, y: result.intent.y };
       }
-      if (result.intent.type === 'attack') this.#attackPlayer(result.monster);
+      if (result.intent.type === 'attack') {
+        if (attackCommitted) {
+          return { ...result.monster, nextAttackAtMs: monster.nextAttackAtMs };
+        }
+        attackCommitted = true;
+        this.#attackPlayer(result.monster);
+      }
       return result.monster;
     });
   }
@@ -610,7 +747,7 @@ export class WorldController {
         id: this.#character.id,
         hp: this.#character.hp,
         maxHP: stats.maxHP,
-        ac: stats.ac,
+        ac: stats.ac - statusPower(this.#playerStatuses, DEFENSE_STATUS_IDS),
         hitBonus: stats.hitBonus,
         damage: [1, 1],
       },
@@ -626,6 +763,7 @@ export class WorldController {
     const penalized = applyDeathPenalty(this.#character);
     this.#character = { ...penalized, hp: deriveStats(penalized).maxHP };
     this.#player = { mapId: map.id, x: map.entry.x, y: map.entry.y };
+    this.#playerStatuses = [];
     this.#autoAttackTargetId = null;
     this.#movementPath = [];
     this.#pendingExit = null;

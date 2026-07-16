@@ -199,7 +199,7 @@ describe('castAbility', () => {
         ...fireBolt,
         id: `${type}-spell`,
         requiredItemId: undefined,
-        effect: { type, statusId: `${type}-status`, durationMs: 2_500 },
+        effect: { type, statusId: `${type}-status`, durationMs: 2_500, power: 3 },
       };
       const caster = abilityCaster();
       const recipient = type === 'buff' ? caster : target();
@@ -217,6 +217,7 @@ describe('castAbility', () => {
         sourceId: 'hero',
         kind: type,
         expiresAt: 12_500,
+        power: 3,
       });
       expect(result.events).toContainEqual({
         type: 'status-applied',
@@ -226,4 +227,34 @@ describe('castAbility', () => {
       });
     },
   );
+
+  it('cleanses negative statuses without removing active buffs', () => {
+    const cleanse: AbilityDefinition = {
+      ...fireBolt,
+      id: 'cure-poison',
+      requiredItemId: undefined,
+      effect: { type: 'cleanse' },
+    };
+    const poisoned = abilityCaster({
+      statuses: [
+        { id: 'shield', sourceId: 'hero', kind: 'buff', expiresAt: 5_000, power: 2 },
+        { id: 'poison', sourceId: 'spider', kind: 'debuff', expiresAt: 5_000, power: 1 },
+        { id: 'blind', sourceId: 'wizard', kind: 'control', expiresAt: 5_000, power: 3 },
+      ],
+    });
+
+    const result = castAbility(
+      poisoned,
+      poisoned,
+      cleanse,
+      { distance: 0, nowMs: 1_000, availableItemIds: [] },
+      new SeededRng(5),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.target.statuses).toEqual([
+      { id: 'shield', sourceId: 'hero', kind: 'buff', expiresAt: 5_000, power: 2 },
+    ]);
+    expect(result.events).toEqual([]);
+  });
 });
