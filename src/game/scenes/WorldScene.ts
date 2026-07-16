@@ -1,7 +1,32 @@
 import Phaser from 'phaser';
 
 import type { GameContent } from '../../content/catalog';
-import type { SaveGameV1 } from '../../storage/saveSchema';
+import {
+  addItem,
+  buyItem,
+  equipItem,
+  removeItem,
+  sellItem,
+  useItem,
+  type EquipmentState,
+  type InventoryFailureReason,
+  type InventoryState,
+  type ItemDefinition,
+} from '../../core/inventory';
+import { experienceFloorForLevel } from '../../core/progression';
+import {
+  chooseDialogue,
+  startQuest,
+  type DialogueNode,
+  type QuestCatalog,
+} from '../../core/quests';
+import { deriveStats } from '../../core/stats';
+import { sealSaveV1, type SaveGameV1 } from '../../storage/saveSchema';
+import { WorldUi, type WorldPanelViewModels } from '../../ui/WorldUi';
+import type { HudViewModel } from '../../ui/Hud';
+import type { PanelId as UiPanelId } from '../../ui/WindowManager';
+import type { SettingsPanelViewModel } from '../../ui/panels/SettingsPanel';
+import type { PanelActionResult } from '../../ui/panels/shared';
 import type { MonsterState } from '../../world/ai';
 import { TileGrid, type GridRectangle } from '../../world/grid';
 import { CONTENT_REGISTRY_KEY } from './BootScene';
@@ -28,6 +53,96 @@ const mapAssetNames: Readonly<Record<string, string>> = {
   'black-knight-area': 'black-knight-area',
   'talking-island-dungeon-1': 'dungeon-floor-1',
   'talking-island-dungeon-2': 'dungeon-floor-2',
+};
+
+const dialogueNodes: Readonly<Record<string, DialogueNode>> = {
+  welcome: {
+    id: 'welcome',
+    text: '歡迎來到說話之島。',
+    choices: [
+      {
+        id: 'continue',
+        text: '請告訴我該從哪裡開始。',
+        nextNodeId: 'guide',
+        signal: { type: 'npc-talked', npcId: 'village-elder-jered' },
+      },
+    ],
+  },
+  guide: {
+    id: 'guide',
+    text: '先到村莊補給，再前往訓練場。',
+    choices: [{ id: 'back', text: '我明白了。', nextNodeId: 'welcome' }],
+  },
+};
+
+const inventoryFailureText: Readonly<Record<InventoryFailureReason, string>> = {
+  overweight: '負重過高',
+  'missing-item': '沒有足夠的物品',
+  'wrong-class': '目前職業無法使用',
+  'quest-item': '任務物品不可出售',
+  'insufficient-adena': '金幣不足',
+  'invalid-quantity': '數量或操作無效',
+};
+
+const domainItem = (content: GameContent, itemId: string): ItemDefinition => {
+  const item = content.item(itemId);
+  return {
+    id: item.id,
+    name: item.name,
+    kind: item.kind,
+    weight: item.weight,
+    stackLimit: item.stackLimit,
+    buyPrice: item.buyPrice,
+    sellPrice: item.sellPrice,
+    allowedClasses: item.allowedClasses,
+    ...(item.equipmentSlot === undefined ? {} : { equipmentSlot: item.equipmentSlot }),
+    ...(item.healAmount === undefined ? {} : { healAmount: item.healAmount }),
+  };
+};
+
+const inventoryQuantity = (inventory: InventoryState, itemId: string): number =>
+  inventory.stacks.find((stack) => stack.itemId === itemId)?.quantity ?? 0;
+
+const experiencePercent = (level: number, experience: number): number => {
+  const floor = experienceFloorForLevel(level);
+  const ceiling = experienceFloorForLevel(level + 1);
+  return Math.floor(((experience - floor) / Math.max(1, ceiling - floor)) * 100);
+};
+
+const equipmentAC = (content: GameContent, equipment: EquipmentState): number =>
+  Object.values(equipment).reduce(
+    (total, itemId) => total + (content.item(itemId).acModifier ?? 0),
+    0,
+  );
+
+const createE2EUiSave = (save: SaveGameV1, content: GameContent): SaveGameV1 => {
+  const stacks = save.inventory.stacks.map((stack) =>
+    stack.itemId === 'red-potion' ? { ...stack, quantity: 3 } : stack,
+  );
+  const carriedWeight = stacks.reduce(
+    (weight, stack) => weight + content.item(stack.itemId).weight * stack.quantity,
+    0,
+  );
+  return sealSaveV1({
+    ...save,
+    checksum: '',
+    inventory: { ...save.inventory, stacks, adena: 500, carriedWeight },
+    character: { ...save.character, carriedWeight },
+  });
+};
+
+const panelFailure = <T>(reason: string): PanelActionResult<T> => ({ ok: false, reason });
+
+const equipmentSlotNames: Readonly<Record<string, string>> = {
+  weapon: '武器',
+  shield: '盾牌',
+  helmet: '頭盔',
+  armor: '盔甲',
+  cloak: '斗篷',
+  gloves: '手套',
+  boots: '長靴',
+  amulet: '項鍊',
+  ring: '戒指',
 };
 
 const createE2EMonster = (save: SaveGameV1, content: GameContent): MonsterState => {
@@ -65,6 +180,16 @@ export class WorldScene extends Phaser.Scene {
   #combatPresenter: CombatPresenter | null = null;
   #root: HTMLElement | null = null;
   #e2ePanel: HTMLElement | null = null;
+  #worldUi: WorldUi | null = null;
+  #content: GameContent | null = null;
+  #activeSave: SaveGameV1 | null = null;
+  #warehouse: InventoryState = {
+    stacks: [],
+    adena: 0,
+    carriedWeight: 0,
+    weightLimit: Number.MAX_SAFE_INTEGER,
+  };
+  #dialogueNodeId = 'welcome';
   #lastFeedback = '';
   #manualE2E = false;
 
@@ -102,7 +227,11 @@ export class WorldScene extends Phaser.Scene {
 
   async #initialize(): Promise<void> {
     const content = this.registry.get(CONTENT_REGISTRY_KEY) as GameContent;
-    const save = this.registry.get('active-save') as SaveGameV1;
+    const storedSave = this.registry.get('active-save') as SaveGameV1;
+    const save = this.#manualE2E ? createE2EUiSave(storedSave, content) : storedSave;
+    this.#content = content;
+    this.#activeSave = save;
+    this.registry.set('active-save', save);
     const grids = new Map(
       await Promise.all(
         content.maps.map(async ({ id }) => [id, await this.#loadGrid(content, id)] as const),
@@ -120,9 +249,465 @@ export class WorldScene extends Phaser.Scene {
     });
     this.#renderer = new EntityRenderer(this);
     this.#combatPresenter = new CombatPresenter(this, (id) => this.#renderer?.positionOf(id) ?? null);
+    this.cameras.main.setViewport(0, 0, 512, 432);
     this.#wirePointerInput();
+    this.#createWorldUi();
     if (this.#manualE2E) this.#createE2EPanel();
     this.#render();
+  }
+
+  #createWorldUi(): void {
+    if (this.#root === null || this.#controller === null) return;
+    this.#worldUi = new WorldUi(document, this.#root, {
+      inventory: {
+        activateItem: (itemId) => this.#activateInventoryItem(itemId),
+        assignQuickSlot: (itemId, slot) => this.#assignItemQuickSlot(itemId, slot),
+      },
+      spells: {
+        activateSpell: () => panelFailure('請在遊戲世界中選擇施法目標'),
+        assignQuickSlot: (spellId, slot) => this.#assignSpellQuickSlot(spellId, slot),
+      },
+      quests: { activateQuest: (questId) => this.#activateQuest(questId) },
+      map: {
+        selectLocation: () => ({ ok: true, viewModel: this.#panelModels().map }),
+      },
+      dialogue: { choose: (choiceId) => this.#chooseDialogue(choiceId) },
+      shop: {
+        buy: (itemId, quantity) => this.#buyShopItem(itemId, quantity),
+        sell: (itemId, quantity) => this.#sellShopItem(itemId, quantity),
+      },
+      warehouse: {
+        deposit: (itemId, quantity) => this.#depositWarehouseItem(itemId, quantity),
+        withdraw: (itemId, quantity) => this.#withdrawWarehouseItem(itemId, quantity),
+      },
+      settings: { save: (settings) => this.#saveSettings(settings) },
+    });
+    this.#worldUi.renderPanels(this.#panelModels());
+    this.#worldUi.renderHud(this.#hudViewModel(this.#controller.snapshot));
+  }
+
+  #panelModels(): WorldPanelViewModels {
+    const content = this.#content;
+    const save = this.#activeSave;
+    const snapshot = this.#controller?.snapshot;
+    if (content === null || save === null || snapshot === undefined) {
+      throw new Error('世界 UI 尚未初始化');
+    }
+    const character = {
+      ...snapshot.character,
+      carriedWeight: save.inventory.carriedWeight,
+      equipmentAC: save.character.equipmentAC,
+    };
+    const stats = deriveStats(character);
+    const classDefinition = content.classes.find(({ id }) => id === character.classId);
+    const dialogue = dialogueNodes[this.#dialogueNodeId] ?? dialogueNodes.welcome;
+    if (classDefinition === undefined || dialogue === undefined) {
+      throw new Error('世界 UI 缺少必要內容');
+    }
+    const map = content.map(snapshot.player.mapId);
+    const shopItemIds = new Set([
+      ...content.npc('balsim').shopItemIds,
+      ...save.inventory.stacks.map(({ itemId }) => itemId),
+    ]);
+    const warehouseItemIds = new Set([
+      ...save.inventory.stacks.map(({ itemId }) => itemId),
+      ...this.#warehouse.stacks.map(({ itemId }) => itemId),
+    ]);
+
+    return {
+      character: {
+        name: character.name,
+        className: classDefinition.name,
+        level: character.level,
+        hp: character.hp,
+        maxHP: stats.maxHP,
+        mp: character.mp,
+        maxMP: stats.maxMP,
+        ac: stats.ac,
+        weight: save.inventory.carriedWeight,
+        weightLimit: save.inventory.weightLimit,
+        alignment: character.alignment,
+        experiencePercent: experiencePercent(character.level, character.experience),
+        equipment: Object.entries(save.equipment).map(([slot, itemId]) => ({
+          slot: equipmentSlotNames[slot] ?? slot,
+          label: content.item(itemId).name,
+        })),
+      },
+      inventory: {
+        adena: save.inventory.adena,
+        weight: save.inventory.carriedWeight,
+        weightLimit: save.inventory.weightLimit,
+        items: save.inventory.stacks.map(({ itemId, quantity }) => ({
+          id: itemId,
+          name: content.item(itemId).name,
+          quantity,
+          equipped: false,
+        })),
+      },
+      spells: {
+        currentMP: character.mp,
+        spells: classDefinition.abilityIds.map((abilityId) => {
+          const ability = content.ability(abilityId);
+          return {
+            id: ability.id,
+            name: ability.name,
+            manaCost: ability.manaCost,
+            available: character.level >= ability.unlockLevel,
+          };
+        }),
+        quickSlots: save.quickSlots,
+      },
+      quests: {
+        quests: content.quests.map((quest) => ({
+          id: quest.id,
+          name: quest.name,
+          stage: save.quests.active[quest.id]?.stage ?? '尚未開始',
+          description: quest.description,
+          completed: save.quests.completed.includes(quest.id),
+        })),
+      },
+      map: {
+        mapName: map.name,
+        playerX: snapshot.player.x,
+        playerY: snapshot.player.y,
+        locations: map.exits.map((exit, index) => ({
+          id: `${map.id}-exit-${String(index)}`,
+          name: content.map(exit.targetMapId).name,
+          x: exit.x,
+          y: exit.y,
+        })),
+      },
+      dialogue: {
+        speaker: '村莊長老傑瑞德',
+        text: dialogue.text,
+        choices: dialogue.choices.map((choice) => ({ id: choice.id, label: choice.text })),
+      },
+      shop: {
+        adena: save.inventory.adena,
+        items: [...shopItemIds].map((itemId) => {
+          const item = content.item(itemId);
+          return {
+            id: item.id,
+            name: item.name,
+            buyPrice: item.buyPrice,
+            sellPrice: item.sellPrice,
+            owned: inventoryQuantity(save.inventory, item.id),
+          };
+        }),
+      },
+      warehouse: {
+        fee: 0,
+        adena: save.inventory.adena,
+        items: [...warehouseItemIds].map((itemId) => ({
+          id: itemId,
+          name: content.item(itemId).name,
+          carried: inventoryQuantity(save.inventory, itemId),
+          stored: inventoryQuantity(this.#warehouse, itemId),
+        })),
+      },
+      settings: save.settings,
+    };
+  }
+
+  #hudViewModel(snapshot: WorldSnapshot): HudViewModel {
+    const content = this.#content;
+    const save = this.#activeSave;
+    if (content === null || save === null) {
+      throw new Error('世界 HUD 尚未初始化');
+    }
+    const character = {
+      ...snapshot.character,
+      carriedWeight: save.inventory.carriedWeight,
+      equipmentAC: save.character.equipmentAC,
+    };
+    const stats = deriveStats(character);
+    const target = snapshot.monsters.find(({ id }) => id === snapshot.autoAttackTargetId);
+    return {
+      hp: character.hp,
+      maxHP: stats.maxHP,
+      mp: character.mp,
+      maxMP: stats.maxMP,
+      level: character.level,
+      experiencePercent: experiencePercent(character.level, character.experience),
+      ac: stats.ac,
+      weight: save.inventory.carriedWeight,
+      weightLimit: save.inventory.weightLimit,
+      alignment: character.alignment,
+      target:
+        target === undefined
+          ? null
+          : {
+              name: content.monster(target.monsterId).name,
+              hpPercent: Math.floor((target.hp / Math.max(1, target.maxHP)) * 100),
+            },
+      quickSlots: save.quickSlots.map((contentId) => {
+        if (contentId === null) return null;
+        const item = content.items.find(({ id }) => id === contentId);
+        if (item !== undefined) {
+          return {
+            icon: item.assetKey,
+            label: item.name,
+            quantity: inventoryQuantity(save.inventory, item.id),
+          };
+        }
+        const ability = content.abilities.find(({ id }) => id === contentId);
+        return ability === undefined
+          ? null
+          : { icon: ability.assetKey, label: ability.name };
+      }),
+      messages:
+        this.#lastFeedback.length === 0
+          ? []
+          : [{ id: 'latest-feedback', kind: 'combat', text: this.#lastFeedback }],
+    };
+  }
+
+  #refreshHud(): void {
+    if (this.#controller !== null) {
+      this.#worldUi?.renderHud(this.#hudViewModel(this.#controller.snapshot));
+    }
+  }
+
+  #storeSave(save: SaveGameV1): void {
+    this.#activeSave = save;
+    this.registry.set('active-save', save);
+    this.#refreshHud();
+  }
+
+  #sealedSave(patch: Partial<SaveGameV1>): SaveGameV1 {
+    const save = this.#activeSave;
+    if (save === null) throw new Error('找不到目前存檔');
+    return sealSaveV1({
+      ...save,
+      ...patch,
+      checksum: '',
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  #activateInventoryItem(
+    itemId: string,
+  ): PanelActionResult<WorldPanelViewModels['inventory']> {
+    const content = this.#content;
+    const save = this.#activeSave;
+    if (content === null || save === null) return panelFailure('世界尚未準備完成');
+    const item = domainItem(content, itemId);
+    if (item.equipmentSlot !== undefined) {
+      const result = equipItem(save.inventory, save.equipment, save.character, item);
+      if (!result.ok) return panelFailure(inventoryFailureText[result.reason]);
+      const character = {
+        ...save.character,
+        carriedWeight: result.inventory.carriedWeight,
+        equipmentAC: equipmentAC(content, result.equipment),
+      };
+      this.#storeSave(
+        this.#sealedSave({
+          inventory: result.inventory,
+          equipment: result.equipment,
+          character,
+        }),
+      );
+      return { ok: true, viewModel: this.#panelModels().inventory };
+    }
+    if (item.kind === 'consumable') {
+      const result = useItem(save.inventory, save.character, item);
+      if (!result.ok) return panelFailure(inventoryFailureText[result.reason]);
+      this.#storeSave(
+        this.#sealedSave({
+          inventory: result.inventory,
+          character: { ...result.character, carriedWeight: result.inventory.carriedWeight },
+        }),
+      );
+      return { ok: true, viewModel: this.#panelModels().inventory };
+    }
+    return panelFailure('此物品目前無法直接使用');
+  }
+
+  #assignItemQuickSlot(
+    itemId: string,
+    slot: number,
+  ): PanelActionResult<WorldPanelViewModels['inventory']> {
+    const content = this.#content;
+    const save = this.#activeSave;
+    if (content === null || save === null) return panelFailure('世界尚未準備完成');
+    if (
+      !Number.isInteger(slot) ||
+      slot < 0 ||
+      slot >= save.quickSlots.length ||
+      inventoryQuantity(save.inventory, itemId) < 1 ||
+      !content.items.some(({ id }) => id === itemId)
+    ) {
+      return panelFailure('不可放入快捷列');
+    }
+    const quickSlots = [...save.quickSlots];
+    quickSlots[slot] = itemId;
+    this.#storeSave(this.#sealedSave({ quickSlots }));
+    return { ok: true, viewModel: this.#panelModels().inventory };
+  }
+
+  #assignSpellQuickSlot(
+    spellId: string,
+    slot: number,
+  ): PanelActionResult<WorldPanelViewModels['spells']> {
+    const content = this.#content;
+    const save = this.#activeSave;
+    if (content === null || save === null) return panelFailure('世界尚未準備完成');
+    const classDefinition = content.classes.find(({ id }) => id === save.character.classId);
+    const ability = content.abilities.find(({ id }) => id === spellId);
+    if (
+      classDefinition === undefined ||
+      ability === undefined ||
+      !classDefinition.abilityIds.includes(spellId) ||
+      save.character.level < ability.unlockLevel ||
+      !Number.isInteger(slot) ||
+      slot < 0 ||
+      slot >= save.quickSlots.length
+    ) {
+      return panelFailure('此技能尚未解鎖');
+    }
+    const quickSlots = [...save.quickSlots];
+    quickSlots[slot] = spellId;
+    this.#storeSave(this.#sealedSave({ quickSlots }));
+    return { ok: true, viewModel: this.#panelModels().spells };
+  }
+
+  #activateQuest(
+    questId: string,
+  ): PanelActionResult<WorldPanelViewModels['quests']> {
+    const content = this.#content;
+    const save = this.#activeSave;
+    if (content === null || save === null) return panelFailure('世界尚未準備完成');
+    const catalog: QuestCatalog = Object.fromEntries(
+      content.quests.map((quest) => [quest.id, quest]),
+    );
+    const quests = startQuest(save.quests, questId, save.character.classId, catalog);
+    if (quests === save.quests) return panelFailure('目前無法開始此任務');
+    this.#storeSave(this.#sealedSave({ quests }));
+    return { ok: true, viewModel: this.#panelModels().quests };
+  }
+
+  #chooseDialogue(
+    choiceId: string,
+  ): PanelActionResult<WorldPanelViewModels['dialogue']> {
+    const node = dialogueNodes[this.#dialogueNodeId];
+    if (node === undefined) return panelFailure('找不到目前對話');
+    const result = chooseDialogue(node, choiceId);
+    if (!result.ok) return panelFailure('找不到對話選項');
+    this.#dialogueNodeId = result.nextNodeId ?? this.#dialogueNodeId;
+    const save = this.#activeSave;
+    const content = this.#content;
+    if (save !== null && content !== null && choiceId === 'continue') {
+      const catalog: QuestCatalog = Object.fromEntries(
+        content.quests.map((quest) => [quest.id, quest]),
+      );
+      const quests = startQuest(
+        save.quests,
+        'village-registration',
+        save.character.classId,
+        catalog,
+      );
+      if (quests !== save.quests) this.#storeSave(this.#sealedSave({ quests }));
+    }
+    return { ok: true, viewModel: this.#panelModels().dialogue };
+  }
+
+  #buyShopItem(
+    itemId: string,
+    quantity: number,
+  ): PanelActionResult<WorldPanelViewModels['shop']> {
+    const content = this.#content;
+    const save = this.#activeSave;
+    if (content === null || save === null) return panelFailure('世界尚未準備完成');
+    if (!content.npc('balsim').shopItemIds.includes(itemId)) {
+      return panelFailure('商店沒有販售此物品');
+    }
+    const result = buyItem(save.inventory, domainItem(content, itemId), quantity);
+    if (!result.ok) return panelFailure(inventoryFailureText[result.reason]);
+    this.#storeSave(
+      this.#sealedSave({
+        inventory: result.inventory,
+        character: { ...save.character, carriedWeight: result.inventory.carriedWeight },
+      }),
+    );
+    return { ok: true, viewModel: this.#panelModels().shop };
+  }
+
+  #sellShopItem(
+    itemId: string,
+    quantity: number,
+  ): PanelActionResult<WorldPanelViewModels['shop']> {
+    const content = this.#content;
+    const save = this.#activeSave;
+    if (content === null || save === null) return panelFailure('世界尚未準備完成');
+    const result = sellItem(save.inventory, domainItem(content, itemId), quantity);
+    if (!result.ok) return panelFailure(inventoryFailureText[result.reason]);
+    this.#storeSave(
+      this.#sealedSave({
+        inventory: result.inventory,
+        character: { ...save.character, carriedWeight: result.inventory.carriedWeight },
+      }),
+    );
+    return { ok: true, viewModel: this.#panelModels().shop };
+  }
+
+  #depositWarehouseItem(
+    itemId: string,
+    quantity: number,
+  ): PanelActionResult<WorldPanelViewModels['warehouse']> {
+    const content = this.#content;
+    const save = this.#activeSave;
+    if (content === null || save === null) return panelFailure('世界尚未準備完成');
+    const item = domainItem(content, itemId);
+    const removed = removeItem(save.inventory, item, quantity);
+    if (!removed.ok) return panelFailure(inventoryFailureText[removed.reason]);
+    const added = addItem(this.#warehouse, item, quantity);
+    if (!added.ok) return panelFailure(inventoryFailureText[added.reason]);
+    this.#warehouse = added.inventory;
+    this.#storeSave(
+      this.#sealedSave({
+        inventory: removed.inventory,
+        character: { ...save.character, carriedWeight: removed.inventory.carriedWeight },
+      }),
+    );
+    return { ok: true, viewModel: this.#panelModels().warehouse };
+  }
+
+  #withdrawWarehouseItem(
+    itemId: string,
+    quantity: number,
+  ): PanelActionResult<WorldPanelViewModels['warehouse']> {
+    const content = this.#content;
+    const save = this.#activeSave;
+    if (content === null || save === null) return panelFailure('世界尚未準備完成');
+    const item = domainItem(content, itemId);
+    const removed = removeItem(this.#warehouse, item, quantity);
+    if (!removed.ok) return panelFailure(inventoryFailureText[removed.reason]);
+    const added = addItem(save.inventory, item, quantity);
+    if (!added.ok) return panelFailure(inventoryFailureText[added.reason]);
+    this.#warehouse = removed.inventory;
+    this.#storeSave(
+      this.#sealedSave({
+        inventory: added.inventory,
+        character: { ...save.character, carriedWeight: added.inventory.carriedWeight },
+      }),
+    );
+    return { ok: true, viewModel: this.#panelModels().warehouse };
+  }
+
+  #saveSettings(
+    settings: SettingsPanelViewModel,
+  ): PanelActionResult<WorldPanelViewModels['settings']> {
+    if (
+      ![settings.music, settings.ambient, settings.effects].every(
+        (value) => Number.isFinite(value) && value >= 0 && value <= 1,
+      ) ||
+      ![1, 2, 3].includes(settings.scale)
+    ) {
+      return panelFailure('設定值超出範圍');
+    }
+    this.#storeSave(this.#sealedSave({ settings }));
+    this.#root?.style.setProperty('--game-scale', String(settings.scale));
+    return { ok: true, viewModel: this.#panelModels().settings };
   }
 
   async #loadGrid(content: GameContent, mapId: string): Promise<TileGrid> {
@@ -173,6 +758,15 @@ export class WorldScene extends Phaser.Scene {
 
   #dispatch(command: PlayerCommand | null): void {
     if (command === null || this.#controller === null) return;
+    if (command.type === 'toggle-panel') {
+      this.#worldUi?.renderPanels(this.#panelModels());
+      this.#worldUi?.toggle(command.panel);
+    } else if (command.type === 'escape') {
+      this.#worldUi?.closeTop();
+    } else if (command.type === 'interact' && command.targetId === 'e2e-village-elder') {
+      this.#worldUi?.renderPanels(this.#panelModels());
+      this.#worldUi?.open('dialogue');
+    }
     this.#controller.dispatch(command);
     if (this.#root !== null) this.#root.dataset.lastCommand = command.type;
     this.#render();
@@ -192,6 +786,7 @@ export class WorldScene extends Phaser.Scene {
     );
     this.#syncInputContext(snapshot);
     this.#renderE2EState(snapshot);
+    this.#worldUi?.renderHud(this.#hudViewModel(snapshot));
   }
 
   #syncInputContext(snapshot: WorldSnapshot): void {
@@ -203,7 +798,9 @@ export class WorldScene extends Phaser.Scene {
           Math.abs(candidate.y - snapshot.player.y),
         ) <= 1,
     );
-    this.#inputController.setNearestInteractable(loot?.id ?? null);
+    this.#inputController.setNearestInteractable(
+      loot?.id ?? (this.#manualE2E ? 'e2e-village-elder' : null),
+    );
   }
 
   #createE2EPanel(): void {
@@ -232,7 +829,24 @@ export class WorldScene extends Phaser.Scene {
       this.#controller?.update(250);
       this.#render();
     });
-    panel.append(ground, step);
+    const fixturePanels: readonly (readonly [string, string, UiPanelId])[] = [
+      ['open-dialogue', '對話測試', 'dialogue'],
+      ['open-shop', '商店測試', 'shop'],
+      ['open-warehouse', '倉庫測試', 'warehouse'],
+      ['open-settings', '設定測試', 'settings'],
+    ];
+    const fixtureButtons = fixturePanels.map(([testId, label, panelId]) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.testid = testId;
+      button.textContent = label;
+      button.addEventListener('click', () => {
+        this.#worldUi?.renderPanels(this.#panelModels());
+        this.#worldUi?.open(panelId);
+      });
+      return button;
+    });
+    panel.append(ground, step, ...fixtureButtons);
     this.#root.append(panel);
     this.#e2ePanel = panel;
   }
@@ -289,7 +903,14 @@ export class WorldScene extends Phaser.Scene {
   #keyDown = (event: KeyboardEvent): void => {
     if (this.#controller === null) return;
     const target = event.target;
-    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+    if (
+      event.code !== 'Escape' &&
+      (target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement)
+    ) {
+      return;
+    }
     const snapshot = this.#controller.snapshot;
     const command = this.#inputController.keyDown(event.code, snapshot.player, {
       shiftKey: event.shiftKey,
@@ -337,6 +958,8 @@ export class WorldScene extends Phaser.Scene {
     this.events.off(Phaser.Scenes.Events.PAUSE, this.#pause);
     this.events.off(Phaser.Scenes.Events.RESUME, this.#resume);
     this.#renderer?.destroy();
+    this.#worldUi?.destroy();
+    this.#worldUi = null;
     this.#e2ePanel?.remove();
     this.#e2ePanel = null;
   }

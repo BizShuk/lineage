@@ -65,7 +65,16 @@ export class SpellPanel {
       );
       button.disabled = !spell.available;
       bindDragPayload(button, spell.id);
-      item.append(button);
+      const quickSlot = createActionButton(
+        this.#document,
+        '放入快捷列',
+        `spell-quick-${spell.id}`,
+        () => {
+          this.assignQuickSlot(spell.id, 1);
+        },
+      );
+      quickSlot.disabled = !spell.available;
+      item.append(button, quickSlot);
       list.append(item);
     });
     this.#body.replaceChildren(mp, list);

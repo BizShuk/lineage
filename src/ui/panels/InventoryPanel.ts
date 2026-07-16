@@ -73,7 +73,15 @@ export class InventoryPanel {
         },
       );
       bindDragPayload(button, item.id);
-      row.append(button);
+      const quickSlot = createActionButton(
+        this.#document,
+        '放入快捷列',
+        `inventory-quick-${item.id}`,
+        () => {
+          this.assignQuickSlot(item.id, 0);
+        },
+      );
+      row.append(button, quickSlot);
       list.append(row);
     });
     const equipmentTarget = this.#document.createElement('div');
