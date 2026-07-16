@@ -1,0 +1,172 @@
+{
+  "id": "north-field",
+  "width": 96,
+  "height": 96,
+  "terrainLayer": {
+    "defaultTerrain": "grass",
+    "regions": [
+      {
+        "terrain": "forest",
+        "x": 8,
+        "y": 8,
+        "width": 30,
+        "height": 76
+      },
+      {
+        "terrain": "road",
+        "x": 44,
+        "y": 1,
+        "width": 8,
+        "height": 94
+      }
+    ]
+  },
+  "collisionLayer": {
+    "blockedRectangles": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 1
+      },
+      {
+        "x": 0,
+        "y": 95,
+        "width": 96,
+        "height": 1
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "width": 1,
+        "height": 94
+      },
+      {
+        "x": 95,
+        "y": 1,
+        "width": 1,
+        "height": 94
+      },
+      {
+        "x": 8,
+        "y": 8,
+        "width": 12,
+        "height": 18
+      },
+      {
+        "x": 25,
+        "y": 12,
+        "width": 10,
+        "height": 12
+      },
+      {
+        "x": 10,
+        "y": 40,
+        "width": 18,
+        "height": 8
+      },
+      {
+        "x": 18,
+        "y": 62,
+        "width": 14,
+        "height": 18
+      },
+      {
+        "x": 62,
+        "y": 20,
+        "width": 12,
+        "height": 10
+      },
+      {
+        "x": 70,
+        "y": 68,
+        "width": 14,
+        "height": 12
+      }
+    ]
+  },
+  "entry": {
+    "x": 94,
+    "y": 48
+  },
+  "exits": [
+    {
+      "id": "to-village",
+      "x": 94,
+      "y": 48,
+      "targetMapId": "talking-island-village",
+      "targetX": 2,
+      "targetY": 20
+    },
+    {
+      "id": "to-black-knight-area",
+      "x": 48,
+      "y": 2,
+      "targetMapId": "black-knight-area",
+      "targetX": 48,
+      "targetY": 94
+    }
+  ],
+  "npcAnchors": [
+    {
+      "id": "gunther",
+      "x": 82,
+      "y": 48
+    },
+    {
+      "id": "atonement-priestess",
+      "x": 48,
+      "y": 12
+    }
+  ],
+  "monsterSpawnZones": [
+    {
+      "id": "goblin-grove",
+      "monsterIds": [
+        "goblin",
+        "orc",
+        "dwarf",
+        "ghoul"
+      ],
+      "x": 40,
+      "y": 25,
+      "width": 12,
+      "height": 12
+    },
+    {
+      "id": "wolf-clearing",
+      "monsterIds": [
+        "werewolf",
+        "kobold",
+        "stone-golem"
+      ],
+      "x": 54,
+      "y": 56,
+      "width": 12,
+      "height": 12
+    }
+  ],
+  "questObjectives": [
+    {
+      "id": "lost-hunter-pack",
+      "x": 36,
+      "y": 70
+    },
+    {
+      "id": "northern-marker",
+      "x": 48,
+      "y": 12
+    }
+  ],
+  "bossAnchors": [],
+  "encounterSafeTiles": [
+    {
+      "x": 94,
+      "y": 48
+    },
+    {
+      "x": 48,
+      "y": 6
+    }
+  ]
+}

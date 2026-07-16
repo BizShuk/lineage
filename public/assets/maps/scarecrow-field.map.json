@@ -1,0 +1,148 @@
+{
+  "id": "scarecrow-field",
+  "width": 96,
+  "height": 96,
+  "terrainLayer": {
+    "defaultTerrain": "grass",
+    "regions": [
+      {
+        "terrain": "dirt",
+        "x": 12,
+        "y": 18,
+        "width": 72,
+        "height": 58
+      },
+      {
+        "terrain": "road",
+        "x": 44,
+        "y": 1,
+        "width": 9,
+        "height": 94
+      }
+    ]
+  },
+  "collisionLayer": {
+    "blockedRectangles": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 1
+      },
+      {
+        "x": 0,
+        "y": 95,
+        "width": 96,
+        "height": 1
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "width": 1,
+        "height": 94
+      },
+      {
+        "x": 95,
+        "y": 1,
+        "width": 1,
+        "height": 94
+      },
+      {
+        "x": 10,
+        "y": 10,
+        "width": 10,
+        "height": 8
+      },
+      {
+        "x": 70,
+        "y": 10,
+        "width": 12,
+        "height": 9
+      },
+      {
+        "x": 15,
+        "y": 70,
+        "width": 10,
+        "height": 12
+      },
+      {
+        "x": 65,
+        "y": 68,
+        "width": 14,
+        "height": 10
+      },
+      {
+        "x": 40,
+        "y": 35,
+        "width": 3,
+        "height": 20
+      }
+    ]
+  },
+  "entry": {
+    "x": 48,
+    "y": 2
+  },
+  "exits": [
+    {
+      "id": "to-village",
+      "x": 48,
+      "y": 2,
+      "targetMapId": "talking-island-village",
+      "targetX": 32,
+      "targetY": 62
+    }
+  ],
+  "npcAnchors": [
+    {
+      "id": "scarecrow-instructor",
+      "x": 48,
+      "y": 12
+    }
+  ],
+  "monsterSpawnZones": [
+    {
+      "id": "west-scarecrows",
+      "monsterIds": [
+        "goblin"
+      ],
+      "x": 22,
+      "y": 24,
+      "width": 12,
+      "height": 12
+    },
+    {
+      "id": "east-scarecrows",
+      "monsterIds": [
+        "goblin"
+      ],
+      "x": 58,
+      "y": 26,
+      "width": 12,
+      "height": 12
+    }
+  ],
+  "questObjectives": [
+    {
+      "id": "movement-lesson",
+      "x": 30,
+      "y": 52
+    },
+    {
+      "id": "combat-lesson",
+      "x": 62,
+      "y": 52
+    }
+  ],
+  "bossAnchors": [],
+  "encounterSafeTiles": [
+    {
+      "x": 48,
+      "y": 2
+    },
+    {
+      "x": 48,
+      "y": 14
+    }
+  ]
+}

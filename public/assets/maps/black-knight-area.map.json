@@ -1,0 +1,175 @@
+{
+  "id": "black-knight-area",
+  "width": 96,
+  "height": 96,
+  "terrainLayer": {
+    "defaultTerrain": "grass",
+    "regions": [
+      {
+        "terrain": "burnt-ground",
+        "x": 48,
+        "y": 22,
+        "width": 40,
+        "height": 48
+      },
+      {
+        "terrain": "road",
+        "x": 44,
+        "y": 1,
+        "width": 8,
+        "height": 94
+      }
+    ]
+  },
+  "collisionLayer": {
+    "blockedRectangles": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 1
+      },
+      {
+        "x": 0,
+        "y": 95,
+        "width": 96,
+        "height": 1
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "width": 1,
+        "height": 94
+      },
+      {
+        "x": 95,
+        "y": 1,
+        "width": 1,
+        "height": 94
+      },
+      {
+        "x": 12,
+        "y": 18,
+        "width": 15,
+        "height": 10
+      },
+      {
+        "x": 15,
+        "y": 64,
+        "width": 14,
+        "height": 10
+      },
+      {
+        "x": 55,
+        "y": 24,
+        "width": 8,
+        "height": 8
+      },
+      {
+        "x": 82,
+        "y": 30,
+        "width": 8,
+        "height": 14
+      },
+      {
+        "x": 52,
+        "y": 70,
+        "width": 12,
+        "height": 9
+      }
+    ]
+  },
+  "entry": {
+    "x": 48,
+    "y": 94
+  },
+  "exits": [
+    {
+      "id": "to-north-field",
+      "x": 48,
+      "y": 94,
+      "targetMapId": "north-field",
+      "targetX": 48,
+      "targetY": 2
+    },
+    {
+      "id": "to-coast",
+      "x": 2,
+      "y": 70,
+      "targetMapId": "coast",
+      "targetX": 94,
+      "targetY": 70
+    },
+    {
+      "id": "to-dungeon-floor-1",
+      "x": 80,
+      "y": 20,
+      "targetMapId": "talking-island-dungeon-1",
+      "targetX": 2,
+      "targetY": 36
+    }
+  ],
+  "npcAnchors": [
+    {
+      "id": "ricky",
+      "x": 20,
+      "y": 50
+    }
+  ],
+  "monsterSpawnZones": [
+    {
+      "id": "black-knight-camp",
+      "monsterIds": [
+        "black-knight"
+      ],
+      "x": 64,
+      "y": 38,
+      "width": 16,
+      "height": 18
+    },
+    {
+      "id": "outer-patrol",
+      "monsterIds": [
+        "black-knight",
+        "orc"
+      ],
+      "x": 34,
+      "y": 46,
+      "width": 12,
+      "height": 12
+    }
+  ],
+  "questObjectives": [
+    {
+      "id": "stolen-orders",
+      "x": 68,
+      "y": 34
+    },
+    {
+      "id": "dungeon-seal",
+      "x": 80,
+      "y": 24
+    }
+  ],
+  "bossAnchors": [
+    {
+      "id": "kurt",
+      "x": 72,
+      "y": 48
+    }
+  ],
+  "encounterSafeTiles": [
+    {
+      "x": 48,
+      "y": 94
+    },
+    {
+      "x": 4,
+      "y": 70
+    },
+    {
+      "x": 80,
+      "y": 20
+    }
+  ]
+}

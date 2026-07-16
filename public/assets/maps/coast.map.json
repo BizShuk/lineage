@@ -1,0 +1,157 @@
+{
+  "id": "coast",
+  "width": 96,
+  "height": 96,
+  "terrainLayer": {
+    "defaultTerrain": "sand",
+    "regions": [
+      {
+        "terrain": "grass",
+        "x": 1,
+        "y": 1,
+        "width": 94,
+        "height": 30
+      },
+      {
+        "terrain": "shallow-water",
+        "x": 1,
+        "y": 80,
+        "width": 94,
+        "height": 15
+      }
+    ]
+  },
+  "collisionLayer": {
+    "blockedRectangles": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 1
+      },
+      {
+        "x": 0,
+        "y": 95,
+        "width": 96,
+        "height": 1
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "width": 1,
+        "height": 94
+      },
+      {
+        "x": 95,
+        "y": 1,
+        "width": 1,
+        "height": 94
+      },
+      {
+        "x": 1,
+        "y": 80,
+        "width": 94,
+        "height": 15
+      },
+      {
+        "x": 20,
+        "y": 22,
+        "width": 10,
+        "height": 8
+      },
+      {
+        "x": 58,
+        "y": 8,
+        "width": 9,
+        "height": 14
+      },
+      {
+        "x": 35,
+        "y": 60,
+        "width": 8,
+        "height": 6
+      },
+      {
+        "x": 70,
+        "y": 55,
+        "width": 10,
+        "height": 7
+      }
+    ]
+  },
+  "entry": {
+    "x": 2,
+    "y": 48
+  },
+  "exits": [
+    {
+      "id": "to-village",
+      "x": 2,
+      "y": 48,
+      "targetMapId": "talking-island-village",
+      "targetX": 62,
+      "targetY": 40
+    },
+    {
+      "id": "to-black-knight-area",
+      "x": 94,
+      "y": 70,
+      "targetMapId": "black-knight-area",
+      "targetX": 2,
+      "targetY": 70
+    }
+  ],
+  "npcAnchors": [
+    {
+      "id": "injured-fisher",
+      "x": 20,
+      "y": 60
+    }
+  ],
+  "monsterSpawnZones": [
+    {
+      "id": "shore-spiders",
+      "monsterIds": [
+        "spider"
+      ],
+      "x": 20,
+      "y": 42,
+      "width": 12,
+      "height": 10
+    },
+    {
+      "id": "coastal-orcs",
+      "monsterIds": [
+        "floating-eye",
+        "werewolf"
+      ],
+      "x": 52,
+      "y": 62,
+      "width": 12,
+      "height": 10
+    }
+  ],
+  "questObjectives": [
+    {
+      "id": "washed-up-crate",
+      "x": 46,
+      "y": 74
+    },
+    {
+      "id": "lighthouse-signal",
+      "x": 76,
+      "y": 24
+    }
+  ],
+  "bossAnchors": [],
+  "encounterSafeTiles": [
+    {
+      "x": 2,
+      "y": 48
+    },
+    {
+      "x": 90,
+      "y": 70
+    }
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "id": "talking-island-dungeon-1",
+  "width": 72,
+  "height": 72,
+  "terrainLayer": {
+    "defaultTerrain": "dungeon-stone",
+    "regions": [
+      {
+        "terrain": "damp-stone",
+        "x": 24,
+        "y": 38,
+        "width": 18,
+        "height": 24
+      },
+      {
+        "terrain": "crypt",
+        "x": 50,
+        "y": 8,
+        "width": 16,
+        "height": 18
+      }
+    ]
+  },
+  "collisionLayer": {
+    "blockedRectangles": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 72,
+        "height": 1
+      },
+      {
+        "x": 0,
+        "y": 71,
+        "width": 72,
+        "height": 1
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "width": 1,
+        "height": 70
+      },
+      {
+        "x": 71,
+        "y": 1,
+        "width": 1,
+        "height": 70
+      },
+      {
+        "x": 20,
+        "y": 1,
+        "width": 2,
+        "height": 25
+      },
+      {
+        "x": 20,
+        "y": 35,
+        "width": 2,
+        "height": 20
+      },
+      {
+        "x": 45,
+        "y": 15,
+        "width": 2,
+        "height": 40
+      },
+      {
+        "x": 28,
+        "y": 30,
+        "width": 10,
+        "height": 2
+      },
+      {
+        "x": 52,
+        "y": 28,
+        "width": 12,
+        "height": 2
+      },
+      {
+        "x": 8,
+        "y": 58,
+        "width": 14,
+        "height": 2
+      }
+    ]
+  },
+  "entry": {
+    "x": 2,
+    "y": 36
+  },
+  "exits": [
+    {
+      "id": "to-black-knight-area",
+      "x": 2,
+      "y": 36,
+      "targetMapId": "black-knight-area",
+      "targetX": 80,
+      "targetY": 20
+    },
+    {
+      "id": "to-dungeon-floor-2",
+      "x": 69,
+      "y": 60,
+      "targetMapId": "talking-island-dungeon-2",
+      "targetX": 2,
+      "targetY": 60
+    }
+  ],
+  "npcAnchors": [
+    {
+      "id": "dungeon-warden",
+      "x": 10,
+      "y": 36
+    }
+  ],
+  "monsterSpawnZones": [
+    {
+      "id": "west-crypt",
+      "monsterIds": [
+        "zombie",
+        "skeleton",
+        "floating-eye"
+      ],
+      "x": 5,
+      "y": 8,
+      "width": 10,
+      "height": 10
+    },
+    {
+      "id": "east-crypt",
+      "monsterIds": [
+        "ghoul",
+        "skeleton"
+      ],
+      "x": 52,
+      "y": 35,
+      "width": 10,
+      "height": 10
+    }
+  ],
+  "questObjectives": [
+    {
+      "id": "crypt-key",
+      "x": 30,
+      "y": 20
+    },
+    {
+      "id": "lower-stair-seal",
+      "x": 66,
+      "y": 58
+    }
+  ],
+  "bossAnchors": [],
+  "encounterSafeTiles": [
+    {
+      "x": 2,
+      "y": 36
+    },
+    {
+      "x": 68,
+      "y": 60
+    }
+  ]
+}
