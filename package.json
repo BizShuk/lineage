@@ -13,6 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "content:index": "tsx scripts/build-content-index.ts",
+    "verify:release": "node scripts/verify-release.mjs",
     "verify": "npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e"
   },
   "dependencies": {
