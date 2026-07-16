@@ -50,6 +50,7 @@ export type InventoryFailureReason =
   | 'overweight'
   | 'missing-item'
   | 'wrong-class'
+  | 'quest-item'
   | 'insufficient-adena'
   | 'invalid-quantity';
 
@@ -288,6 +289,10 @@ export function sellItem(
   item: ItemDefinition,
   quantity: number,
 ): InventoryResult {
+  if (item.kind === 'quest') {
+    return failure(inventory, 'quest-item');
+  }
+
   if (invalidQuantity(quantity)) {
     return failure(inventory, 'invalid-quantity');
   }

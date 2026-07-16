@@ -60,6 +60,15 @@ describe('shop and equipment integration', () => {
     expect(result.inventory.adena).toBe(10);
   });
 
+  it('rejects selling a quest item without removing it', () => {
+    const inventory = inventoryWith({ itemId: 'heavy-stone', quantity: 1 });
+
+    const result = sellItem(inventory, item('heavy-stone'), 1);
+
+    expect(result).toMatchObject({ ok: false, reason: 'quest-item' });
+    expect(result.inventory).toBe(inventory);
+  });
+
   it('buys and equips an item through immutable transactions', () => {
     const initial = inventoryWith([], { adena: 150 });
 
