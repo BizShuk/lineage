@@ -3,6 +3,7 @@ import type Phaser from 'phaser';
 import type { DomainEvent } from '../../core/events';
 
 type PositionLookup = (id: string) => Readonly<{ x: number; y: number }> | null;
+export type CombatEffect = 'melee' | 'projectile' | 'spell' | 'damage' | 'level-up' | 'loot';
 
 export class CombatPresenter {
   readonly #scene: Phaser.Scene;
@@ -21,6 +22,7 @@ export class CombatPresenter {
         : event.targetId;
       const position = this.#positionOf(entityId);
       if (position !== null) {
+        this.playEffect(this.#effectFor(event), entityId);
         const text = this.#scene.add
           .text(position.x, position.y - 14, message, {
             color: event.type === 'damage' ? '#ffccbc' : '#f4df8f',
@@ -40,6 +42,62 @@ export class CombatPresenter {
       }
       return message;
     });
+  }
+
+  playEffect(effect: CombatEffect, entityId: string): void {
+    const position = this.#positionOf(entityId);
+    if (position === null) return;
+    const key = `effect:${effect}`;
+    if (!this.#scene.anims.exists(key)) {
+      this.#playFallback(effect, position);
+      return;
+    }
+    const animation = this.#scene.anims.get(key);
+    const firstFrame = animation.frames[0];
+    if (firstFrame !== undefined) {
+      const sprite = this.#scene.add
+        .sprite(position.x, position.y, firstFrame.textureKey, firstFrame.textureFrame)
+        .setDisplaySize(30, 30)
+        .setDepth(99_999);
+      sprite.once('animationcomplete', () => {
+        sprite.destroy();
+      });
+      sprite.play(key);
+      return;
+    }
+
+    this.#playFallback(effect, position);
+  }
+
+  #playFallback(effect: CombatEffect, position: Readonly<{ x: number; y: number }>): void {
+    const fallback = this.#scene.add
+      .circle(position.x, position.y, 7, effect === 'damage' ? 0xc85b4a : 0xe0bd6f, 0.7)
+      .setDepth(99_999);
+    this.#scene.tweens.add({
+      targets: fallback,
+      alpha: 0,
+      scale: 1.8,
+      duration: 250,
+      onComplete: () => {
+        fallback.destroy();
+      },
+    });
+  }
+
+  #effectFor(event: DomainEvent): CombatEffect {
+    switch (event.type) {
+      case 'damage':
+        return 'damage';
+      case 'miss':
+        return 'melee';
+      case 'heal':
+      case 'status-applied':
+        return 'spell';
+      case 'death':
+        return 'loot';
+      case 'level-up':
+        return 'level-up';
+    }
   }
 
   #message(event: DomainEvent): string {

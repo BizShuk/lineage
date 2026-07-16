@@ -1,5 +1,11 @@
 import type Phaser from 'phaser';
 
+import { loadAssetManifest, type AssetManifest } from '../../content/assets';
+import {
+  ASSET_MANIFEST_REGISTRY_KEY,
+  entityAnimationKey,
+  type EntityAnimationState,
+} from '../scenes/BootScene';
 import type { WorldSnapshot } from './WorldController';
 
 export const TILE_SIZE = 16;
@@ -12,15 +18,49 @@ interface RenderEntity {
   readonly textureKey: string;
   readonly color: number;
   readonly label: string;
-  readonly hidden?: boolean;
+  readonly state?: EntityAnimationState;
 }
+
+type Direction = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+
+const monsterAnimationState = (aiState: WorldSnapshot['monsters'][number]['aiState']): EntityAnimationState => {
+  switch (aiState) {
+    case 'chase':
+    case 'patrol':
+    case 'return':
+      return 'walk';
+    case 'attack':
+      return 'attack';
+    case 'dead':
+      return 'death';
+    case 'idle':
+      return 'idle';
+  }
+};
+
+const directionFromDelta = (dx: number, dy: number, fallback: Direction): Direction => {
+  const horizontal = Math.sign(dx);
+  const vertical = Math.sign(dy);
+  if (horizontal === 0 && vertical === 0) return fallback;
+  if (horizontal === 0) return vertical < 0 ? 'n' : 's';
+  if (vertical === 0) return horizontal < 0 ? 'w' : 'e';
+  if (horizontal > 0) return vertical < 0 ? 'ne' : 'se';
+  return vertical < 0 ? 'nw' : 'sw';
+};
 
 export class EntityRenderer {
   readonly #scene: Phaser.Scene;
+  readonly #manifest: AssetManifest;
   readonly #entities = new Map<string, Phaser.GameObjects.Container>();
+  readonly #sprites = new Map<string, Phaser.GameObjects.Sprite>();
+  readonly #positions = new Map<string, Readonly<{ x: number; y: number }>>();
+  readonly #directions = new Map<string, Direction>();
 
   constructor(scene: Phaser.Scene) {
     this.#scene = scene;
+    this.#manifest =
+      (scene.registry.get(ASSET_MANIFEST_REGISTRY_KEY) as AssetManifest | undefined) ??
+      loadAssetManifest();
   }
 
   render(snapshot: WorldSnapshot): void {
@@ -30,9 +70,10 @@ export class EntityRenderer {
         kind: 'player',
         x: snapshot.player.x,
         y: snapshot.player.y,
-        textureKey: `player-${snapshot.character.classId}`,
+        textureKey: `class-${snapshot.character.classId}`,
         color: 0x4d8cba,
         label: snapshot.character.name,
+        state: snapshot.autoAttackTargetId === null ? 'idle' : 'attack',
       },
       ...snapshot.monsters.map((monster): RenderEntity => ({
         id: monster.id,
@@ -42,7 +83,7 @@ export class EntityRenderer {
         textureKey: `monster-${monster.monsterId}`,
         color: monster.rank === 'boss' ? 0x9f3b55 : 0x8a563b,
         label: monster.monsterId,
-        hidden: monster.hp <= 0,
+        state: monsterAnimationState(monster.aiState),
       })),
       ...snapshot.groundLoot.map((loot): RenderEntity => ({
         id: loot.id,
@@ -59,6 +100,9 @@ export class EntityRenderer {
       if (!liveIds.has(id)) {
         object.destroy(true);
         this.#entities.delete(id);
+        this.#sprites.delete(id);
+        this.#positions.delete(id);
+        this.#directions.delete(id);
       }
     }
     for (const view of views) this.#renderEntity(view);
@@ -72,14 +116,30 @@ export class EntityRenderer {
   destroy(): void {
     for (const entity of this.#entities.values()) entity.destroy(true);
     this.#entities.clear();
+    this.#sprites.clear();
+    this.#positions.clear();
+    this.#directions.clear();
   }
 
   #renderEntity(view: RenderEntity): void {
     let container = this.#entities.get(view.id);
     if (container === undefined) {
-      const visual = this.#scene.textures.exists(view.textureKey)
-        ? this.#scene.add.image(0, 0, view.textureKey).setDisplaySize(14, 14)
-        : this.#scene.add.rectangle(0, 0, 12, 12, view.color).setStrokeStyle(1, 0x080b0a);
+      const entry = this.#manifest[view.textureKey];
+      const firstFrame = `${view.textureKey}:frame:0`;
+      let visual: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle;
+      if (
+        entry !== undefined &&
+        this.#scene.textures.exists(entry.group) &&
+        this.#scene.textures.get(entry.group).has(firstFrame)
+      ) {
+        const sprite = this.#scene.add.sprite(0, 0, entry.group, firstFrame).setDisplaySize(28, 36);
+        this.#sprites.set(view.id, sprite);
+        visual = sprite;
+      } else {
+        visual = this.#scene.add
+          .rectangle(0, 0, 12, 12, view.color)
+          .setStrokeStyle(1, 0x080b0a);
+      }
       const label = this.#scene.add
         .text(0, -11, view.label, { color: '#f1e7ca', fontSize: '8px' })
         .setOrigin(0.5, 1);
@@ -89,9 +149,31 @@ export class EntityRenderer {
       container.setData('target-id', view.id);
       this.#entities.set(view.id, container);
     }
+    const previous = this.#positions.get(view.id) ?? { x: view.x, y: view.y };
+    const direction = directionFromDelta(
+      view.x - previous.x,
+      view.y - previous.y,
+      this.#directions.get(view.id) ?? 's',
+    );
+    const inferredState =
+      view.state === 'idle' && (view.x !== previous.x || view.y !== previous.y)
+        ? 'walk'
+        : view.state;
+    const sprite = this.#sprites.get(view.id);
+    if (sprite !== undefined && inferredState !== undefined) {
+      const key = entityAnimationKey(view.textureKey, inferredState, direction);
+      if (
+        this.#scene.anims.exists(key) &&
+        (sprite.anims.currentAnim?.key !== key ||
+          (!sprite.anims.isPlaying && (inferredState === 'idle' || inferredState === 'walk')))
+      ) {
+        sprite.play(key);
+      }
+    }
+    this.#positions.set(view.id, { x: view.x, y: view.y });
+    this.#directions.set(view.id, direction);
     container
       .setPosition(view.x * TILE_SIZE + TILE_SIZE / 2, view.y * TILE_SIZE + TILE_SIZE / 2)
-      .setDepth(view.y * TILE_SIZE + (view.kind === 'loot' ? -1 : 0))
-      .setVisible(view.hidden !== true);
+      .setDepth(view.y * TILE_SIZE + (view.kind === 'loot' ? -1 : 0));
   }
 }
