@@ -1,8 +1,17 @@
 import type { GameContent } from '../../content/catalog';
-import { resolveAttack, type Combatant } from '../../core/combat';
+import {
+  castAbility,
+  resolveAttack,
+  type AbilityDefinition as CombatAbilityDefinition,
+  type AbilityFailureReason,
+  type Combatant,
+  type StatusEffect,
+} from '../../core/combat';
 import type { DomainEvent } from '../../core/events';
 import {
   addItem,
+  consumeAmmunition,
+  type EquipmentState,
   type InventoryState,
   type ItemDefinition,
 } from '../../core/inventory';
@@ -42,6 +51,7 @@ export interface WorldSnapshot {
   readonly world: SaveGameV1['world'];
   readonly character: SaveGameV1['character'];
   readonly inventory: InventoryState;
+  readonly equipment: EquipmentState;
   readonly quests: SaveGameV1['quests'];
   readonly monsters: readonly MonsterState[];
   readonly groundLoot: readonly GroundLoot[];
@@ -50,6 +60,20 @@ export interface WorldSnapshot {
 }
 
 export type WorldPersistenceEvent = 'map-change' | 'quest-stage' | 'death-respawn';
+
+export type WorldActionFailureReason =
+  | AbilityFailureReason
+  | 'ability-not-found'
+  | 'target-not-found'
+  | 'required-equipment';
+
+export type WorldActionResult =
+  | { readonly ok: true; readonly events: readonly DomainEvent[] }
+  | {
+      readonly ok: false;
+      readonly reason: WorldActionFailureReason;
+      readonly events: readonly DomainEvent[];
+    };
 
 const distance = (
   left: Readonly<{ x: number; y: number }>,
@@ -61,6 +85,30 @@ const openGridFor = (content: GameContent, mapId: string): TileGrid => {
   return TileGrid.fromBlockedRectangles(map.width, map.height, []);
 };
 
+const combatAbility = (
+  ability: GameContent['abilities'][number],
+): CombatAbilityDefinition => ({
+  id: ability.id,
+  allowedClasses: ability.allowedClasses,
+  minLevel: ability.unlockLevel,
+  mpCost: ability.manaCost,
+  range: ability.target === 'self' ? 0 : 8,
+  cooldownMs: ability.cooldownMs,
+  ...(ability.reagentItemId === undefined
+    ? {}
+    : { requiredItemId: ability.reagentItemId }),
+  effect:
+    ability.kind === 'attack'
+      ? { type: 'damage', damage: [Math.round(ability.power), Math.round(ability.power)] }
+      : ability.kind === 'heal'
+        ? { type: 'heal', healing: [Math.round(ability.power), Math.round(ability.power)] }
+        : {
+            type: ability.kind === 'control' ? 'control' : 'buff',
+            statusId: ability.id,
+            durationMs: ability.durationMs ?? 1_000,
+          },
+});
+
 export class WorldController {
   readonly #content: GameContent;
   readonly #grids: ReadonlyMap<string, TileGrid>;
@@ -69,6 +117,7 @@ export class WorldController {
   readonly #questCatalog: QuestCatalog;
   #character: SaveGameV1['character'];
   #inventory: InventoryState;
+  #equipment: EquipmentState;
   #quests: SaveGameV1['quests'];
   #player: SaveGameV1['world']['player'];
   #defeatedBosses: readonly string[];
@@ -92,6 +141,8 @@ export class WorldController {
   #nextMonsterAITickAtMs = MONSTER_AI_INTERVAL_MS;
   #paused = false;
   #fixedStepCount = 0;
+  #playerCooldowns: Readonly<Record<string, number>> = {};
+  #playerStatuses: readonly StatusEffect[] = [];
 
   constructor(options: WorldControllerOptions) {
     this.#content = options.content;
@@ -100,6 +151,7 @@ export class WorldController {
       ...options.save.inventory,
       stacks: options.save.inventory.stacks.map((stack) => ({ ...stack })),
     };
+    this.#equipment = { ...options.save.equipment };
     this.#quests = options.save.quests;
     this.#player = { ...options.save.world.player };
     this.#defeatedBosses = [...options.save.world.defeatedBosses];
@@ -136,6 +188,7 @@ export class WorldController {
         ...this.#inventory,
         stacks: this.#inventory.stacks.map((stack) => ({ ...stack })),
       },
+      equipment: { ...this.#equipment },
       quests: {
         active: Object.fromEntries(
           Object.entries(this.#quests.active).map(([id, progress]) => [
@@ -154,7 +207,9 @@ export class WorldController {
   }
 
   syncSerializableState(
-    state: Pick<SaveGameV1, 'character' | 'inventory' | 'quests'>,
+    state: Pick<SaveGameV1, 'character' | 'inventory' | 'quests'> & {
+      readonly equipment?: EquipmentState;
+    },
   ): void {
     this.#character = { ...state.character, attributes: { ...state.character.attributes } };
     this.#inventory = {
@@ -171,6 +226,7 @@ export class WorldController {
       completed: [...state.quests.completed],
       claimedRewards: [...state.quests.claimedRewards],
     };
+    if (state.equipment !== undefined) this.#equipment = { ...state.equipment };
   }
 
   setPaused(paused: boolean): void {
@@ -205,6 +261,103 @@ export class WorldController {
       case 'adjust-scale':
         break;
     }
+  }
+
+  cast(abilityId: string, targetId: string): WorldActionResult {
+    const ability = this.#content.abilities.find(({ id }) => id === abilityId);
+    if (ability === undefined) {
+      return { ok: false, reason: 'ability-not-found', events: [] };
+    }
+    if (
+      ability.reagentItemId !== undefined &&
+      this.#content.item(ability.reagentItemId).kind === 'ammunition' &&
+      this.#equipment.weapon !== 'bow'
+    ) {
+      return { ok: false, reason: 'required-equipment', events: [] };
+    }
+
+    const stats = deriveStats(this.#character);
+    const caster: Combatant = {
+      id: this.#character.id,
+      hp: this.#character.hp,
+      maxHP: stats.maxHP,
+      mp: this.#character.mp,
+      maxMP: stats.maxMP,
+      ac: stats.ac,
+      hitBonus: stats.hitBonus,
+      damage: [Math.max(1, stats.damageBonus), Math.max(1, stats.damageBonus + 3)],
+      classId: this.#character.classId,
+      level: this.#character.level,
+      statuses: this.#playerStatuses,
+      cooldowns: this.#playerCooldowns,
+    };
+    const targetsSelf = targetId === this.#character.id || ability.target === 'self';
+    const monster = targetsSelf
+      ? undefined
+      : this.#monsters.find(
+          (candidate) =>
+            candidate.id === targetId &&
+            candidate.mapId === this.#player.mapId &&
+            candidate.hp > 0,
+        );
+    if (!targetsSelf && monster === undefined) {
+      return { ok: false, reason: 'target-not-found', events: [] };
+    }
+    const monsterDefinition =
+      monster === undefined ? undefined : this.#content.monster(monster.monsterId);
+    const target: Combatant =
+      monster === undefined || monsterDefinition === undefined
+        ? caster
+        : {
+            id: monster.id,
+            hp: monster.hp,
+            maxHP: monster.maxHP,
+            ac: monsterDefinition.ac,
+            hitBonus: monsterDefinition.level,
+            damage: [monsterDefinition.attack, monsterDefinition.attack],
+          };
+    const result = castAbility(
+      caster,
+      target,
+      combatAbility(ability),
+      {
+        distance: monster === undefined ? 0 : distance(this.#player, monster),
+        nowMs: this.#worldTimeMs,
+        availableItemIds: this.#inventory.stacks
+          .filter(({ quantity }) => quantity > 0)
+          .map(({ itemId }) => itemId),
+      },
+      this.#rng,
+    );
+    if (!result.ok) return result;
+
+    this.#character = {
+      ...this.#character,
+      hp: Math.max(1, result.caster.hp - ability.hpCost),
+      mp: result.caster.mp ?? this.#character.mp,
+    };
+    this.#playerCooldowns = result.caster.cooldowns ?? this.#playerCooldowns;
+    this.#playerStatuses = result.caster.statuses ?? this.#playerStatuses;
+    if (ability.reagentItemId !== undefined) {
+      this.#inventory = consumeAmmunition(this.#inventory, ability.reagentItemId);
+      this.#character = {
+        ...this.#character,
+        carriedWeight: this.#inventory.carriedWeight,
+      };
+    }
+    if (monster !== undefined) {
+      this.#monsters = this.#monsters.map((candidate) =>
+        candidate.id === monster.id ? { ...candidate, hp: result.target.hp } : candidate,
+      );
+      if (result.target.hp === 0) this.#defeatMonster(monster);
+    } else {
+      this.#character = {
+        ...this.#character,
+        hp: Math.max(1, result.target.hp - ability.hpCost),
+      };
+    }
+    this.#events.push(...result.events);
+    return { ok: true, events: result.events };
   }
 
   update(deltaMs: number): void {
@@ -319,6 +472,19 @@ export class WorldController {
   #attackMonster(monster: MonsterState): void {
     const stats = deriveStats(this.#character);
     const definition = this.#content.monster(monster.monsterId);
+    const weapon =
+      this.#equipment.weapon === undefined
+        ? undefined
+        : this.#content.items.find(({ id }) => id === this.#equipment.weapon);
+    const ammunition =
+      weapon?.id === 'bow'
+        ? this.#inventory.stacks.find(
+            ({ itemId, quantity }) =>
+              quantity > 0 && this.#content.item(itemId).kind === 'ammunition',
+          )?.itemId
+        : undefined;
+    if (weapon?.id === 'bow' && ammunition === undefined) return;
+    const weaponDamage = weapon?.damageSmall ?? 0;
     const damageBonus = Math.max(1, stats.damageBonus);
     const attacker: Combatant = {
       id: this.#character.id,
@@ -326,7 +492,10 @@ export class WorldController {
       maxHP: stats.maxHP,
       ac: stats.ac,
       hitBonus: stats.hitBonus,
-      damage: [damageBonus, damageBonus + 3],
+      damage: [
+        Math.max(1, weaponDamage + damageBonus - 2),
+        Math.max(1, weaponDamage + damageBonus),
+      ],
     };
     const target: Combatant = {
       id: monster.id,
@@ -338,6 +507,16 @@ export class WorldController {
     };
     const result = resolveAttack(attacker, target, this.#rng);
     this.#events.push(...result.events);
+    if (
+      ammunition !== undefined &&
+      result.events.some((event) => event.type === 'damage')
+    ) {
+      this.#inventory = consumeAmmunition(this.#inventory, ammunition);
+      this.#character = {
+        ...this.#character,
+        carriedWeight: this.#inventory.carriedWeight,
+      };
+    }
     this.#monsters = this.#monsters.map((candidate) =>
       candidate.id === monster.id ? { ...candidate, hp: result.target.hp } : candidate,
     );
@@ -483,6 +662,13 @@ export class WorldController {
     this.#inventory = result.inventory;
     this.#character = { ...this.#character, carriedWeight: result.inventory.carriedWeight };
     this.#groundLoot = this.#groundLoot.filter(({ id }) => id !== targetId);
+    const quests = advanceQuest(
+      this.#quests,
+      { type: 'item-acquired', itemId: loot.itemId, count: loot.quantity },
+      this.#questCatalog,
+    );
+    if (quests !== this.#quests) this.#persistenceEvents.push('quest-stage');
+    this.#quests = quests;
   }
 
   #toggleTarget(): void {

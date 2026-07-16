@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { loadBundledContent } from '../../src/content/loadContent';
+import { createCharacter, deriveStats } from '../../src/core/stats';
 import { WorldController } from '../../src/game/systems/WorldController';
 import { TileGrid } from '../../src/world/grid';
 import { completeSave } from '../helpers/saveFixtures';
@@ -37,6 +38,42 @@ const createController = (monsterHp = 14): WorldController =>
     ],
     seed: 7,
   });
+
+const createBowController = (seed: number, arrowQuantity: number): WorldController => {
+  const save = completeSave({ slot: 1 });
+  const character = createCharacter('弓箭測試', 'elf');
+  const stacks =
+    arrowQuantity === 0 ? [] : [{ itemId: 'wooden-arrow', quantity: arrowQuantity }];
+  return new WorldController({
+    content,
+    save: {
+      ...save,
+      character: { ...character, carriedWeight: arrowQuantity },
+      inventory: {
+        stacks,
+        adena: 0,
+        carriedWeight: arrowQuantity,
+        weightLimit: deriveStats(character).weightLimit,
+      },
+      equipment: { weapon: 'bow' },
+      quests: { active: {}, completed: [], claimedRewards: [] },
+      world: {
+        player: { mapId: 'north-field', x: 2, y: 2 },
+        defeatedBosses: [],
+        flags: {},
+        worldTimeMs: 0,
+      },
+    },
+    grids: new Map([['north-field', grid]]),
+    monsters: [
+      monsterAt(
+        { x: 3, y: 2 },
+        { id: 'arrow-target', mapId: 'north-field', hp: 14, maxHP: 14, alertRadius: 0 },
+      ),
+    ],
+    seed,
+  });
+};
 
 describe('WorldController', () => {
   it('uses 50ms fixed steps and caps one update at 250ms', () => {
@@ -170,6 +207,97 @@ describe('WorldController', () => {
       itemId: 'wooden-club',
       quantity: 1,
     });
+  });
+
+  it('consumes one arrow after a successful bow hit but not after a miss', () => {
+    const hit = createBowController(7, 2);
+    hit.dispatch({ type: 'attack', targetId: 'arrow-target' });
+    hit.update(250);
+    expect(hit.drainEvents()).toContainEqual(
+      expect.objectContaining({ type: 'damage', targetId: 'arrow-target' }),
+    );
+    expect(hit.snapshot.inventory.stacks).toContainEqual({
+      itemId: 'wooden-arrow',
+      quantity: 1,
+    });
+
+    const miss = createBowController(4, 2);
+    miss.dispatch({ type: 'attack', targetId: 'arrow-target' });
+    miss.update(250);
+    expect(miss.drainEvents()).toContainEqual(
+      expect.objectContaining({ type: 'miss', targetId: 'arrow-target' }),
+    );
+    expect(miss.snapshot.inventory.stacks).toContainEqual({
+      itemId: 'wooden-arrow',
+      quantity: 2,
+    });
+  });
+
+  it('does not damage a target when a bow has no ammunition', () => {
+    const controller = createBowController(7, 0);
+
+    controller.dispatch({ type: 'attack', targetId: 'arrow-target' });
+    controller.update(250);
+
+    expect(controller.snapshot.monsters[0]?.hp).toBe(14);
+    expect(controller.drainEvents()).toEqual([]);
+  });
+
+  it('advances collect objectives only after nearby ground loot enters inventory', () => {
+    const save = completeSave({ slot: 1 });
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        quests: {
+          active: {
+            'dungeon-seal': {
+              stage: 'in-progress',
+              counters: { 'in-progress:0': 1 },
+            },
+          },
+          completed: [],
+          claimedRewards: [],
+        },
+        world: {
+          player: { mapId: 'talking-island-dungeon-1', x: 2, y: 2 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([['talking-island-dungeon-1', grid]]),
+      monsters: [
+        monsterAt(
+          { x: 3, y: 2 },
+          {
+            id: 'loot-skeleton',
+            monsterId: 'skeleton',
+            mapId: 'talking-island-dungeon-1',
+            hp: 1,
+            maxHP: 1,
+            alertRadius: 0,
+          },
+        ),
+      ],
+      seed: 7,
+    });
+
+    controller.dispatch({ type: 'attack', targetId: 'loot-skeleton' });
+    controller.update(250);
+    const loot = controller.snapshot.groundLoot.find(({ itemId }) => itemId === 'bone-piece');
+    expect(loot).toBeDefined();
+    expect(controller.snapshot.quests.active['dungeon-seal']?.counters).not.toHaveProperty(
+      'in-progress:2',
+    );
+    if (loot === undefined) return;
+
+    controller.dispatch({ type: 'interact', targetId: loot.id });
+
+    expect(controller.snapshot.quests.active['dungeon-seal']?.counters).toMatchObject({
+      'in-progress:2': 1,
+    });
+    expect(controller.drainPersistenceEvents()).toContain('quest-stage');
   });
 
   it('emits quest-stage persistence only when combat changes quest progress', () => {
