@@ -218,6 +218,8 @@ export class CampaignDriver {
     await this.#questAction('gunther', 'baphomet-ending', 'accept');
     await this.travelTo('talking-island-dungeon-2');
     await this.fightMany('baphomet', 1);
+    await this.travelTo('talking-island-village');
+    await this.sell('pandora', 'dagger', 1);
     await this.travelTo('north-field');
     await this.#questAction('gunther', 'baphomet-ending', 'claim');
   }
@@ -253,6 +255,18 @@ export class CampaignDriver {
     if (quantity < 1) throw new Error(`cannot afford ${itemId}`);
     for (let index = 0; index < quantity; index += 1) {
       await this.#page.getByTestId(`shop-buy-${itemId}`).click();
+    }
+    await this.#closePanels();
+  }
+
+  async sell(npcId: string, itemId: string, requested: number): Promise<void> {
+    await this.#interactNpc(npcId);
+    const snapshot = await this.snapshot();
+    const owned = quantityOf(snapshot, itemId);
+    const quantity = Math.min(requested, owned);
+    if (quantity < 1) throw new Error(`cannot sell missing ${itemId}`);
+    for (let index = 0; index < quantity; index += 1) {
+      await this.#page.getByTestId(`shop-sell-${itemId}`).click();
     }
     await this.#closePanels();
   }
