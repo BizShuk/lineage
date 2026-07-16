@@ -5,7 +5,11 @@ import {
   consumeAmmunition,
   equipItem,
   removeItem,
+  replaceEquipment,
+  unequipItem,
   useItem,
+  type InventoryState,
+  type ItemDefinition,
 } from '../../src/core/inventory';
 import { deriveStats } from '../../src/core/stats';
 import {
@@ -14,6 +18,40 @@ import {
   item,
   knight,
 } from '../helpers/inventoryFixtures';
+
+const stackableRing: ItemDefinition = {
+  id: 'stackable-ring',
+  name: '測試戒指',
+  kind: 'armor',
+  weight: 5,
+  stackLimit: 2,
+  buyPrice: 20,
+  sellPrice: 10,
+  allowedClasses: ['prince', 'knight', 'elf', 'wizard'],
+  equipmentSlot: 'ring',
+};
+
+const replacementRing: ItemDefinition = {
+  ...stackableRing,
+  id: 'replacement-ring',
+  name: '替換戒指',
+};
+
+const equipmentItemLookup = (itemId: string): ItemDefinition => {
+  if (itemId === stackableRing.id) return stackableRing;
+  if (itemId === replacementRing.id) return replacementRing;
+  if (itemId === 'iron-sword') return item('iron-sword');
+  if (itemId === 'wizard-staff') return item('wizard-staff');
+  if (itemId === 'iron-armor') return item('iron-armor');
+  throw new Error(`Unknown test item: ${itemId}`);
+};
+
+const ringInventory = (quantity: number, weightLimit: number): InventoryState => ({
+  stacks: [{ itemId: stackableRing.id, quantity }],
+  adena: 0,
+  carriedWeight: stackableRing.weight * quantity,
+  weightLimit,
+});
 
 describe('inventory stacks and weight', () => {
   it('adds to an existing stack up to its definition limit', () => {
@@ -69,6 +107,145 @@ describe('inventory stacks and weight', () => {
 });
 
 describe('equipment and consumables', () => {
+  it('rejects unequipping an empty slot without creating new state', () => {
+    const inventory = inventoryWith();
+    const equipment = emptyEquipment();
+
+    const result = unequipItem(inventory, equipment, equipmentItemLookup, 'weapon');
+
+    expect(result).toMatchObject({ ok: false, reason: 'invalid-quantity' });
+    expect(result.inventory).toBe(inventory);
+    expect(result.equipment).toBe(equipment);
+  });
+
+  it('unequips an item into inventory without mutating either input', () => {
+    const inventory = inventoryWith();
+    const equipment = { weapon: 'iron-sword' } as const;
+
+    const result = unequipItem(inventory, equipment, equipmentItemLookup, 'weapon');
+
+    expect(result.ok).toBe(true);
+    expect(result.inventory.stacks).toEqual([{ itemId: 'iron-sword', quantity: 1 }]);
+    expect(result.inventory.carriedWeight).toBe(30);
+    expect(result.equipment).toEqual({});
+    expect(inventory.stacks).toEqual([]);
+    expect(equipment).toEqual({ weapon: 'iron-sword' });
+  });
+
+  it('merges an unequipped item into its existing stack', () => {
+    const inventory = ringInventory(1, 100);
+    const equipment = { ring: stackableRing.id } as const;
+
+    const result = unequipItem(inventory, equipment, equipmentItemLookup, 'ring');
+
+    expect(result.ok).toBe(true);
+    expect(result.inventory.stacks).toEqual([{ itemId: stackableRing.id, quantity: 2 }]);
+    expect(result.inventory.carriedWeight).toBe(10);
+    expect(result.equipment).toEqual({});
+  });
+
+  it('rolls unequip back when the destination stack is full', () => {
+    const inventory = ringInventory(2, 100);
+    const equipment = { ring: stackableRing.id } as const;
+
+    const result = unequipItem(inventory, equipment, equipmentItemLookup, 'ring');
+
+    expect(result).toMatchObject({ ok: false, reason: 'invalid-quantity' });
+    expect(result.inventory).toBe(inventory);
+    expect(result.equipment).toBe(equipment);
+  });
+
+  it('rolls unequip back when the returned item would exceed weight capacity', () => {
+    const inventory = ringInventory(1, 5);
+    const equipment = { weapon: 'iron-sword' } as const;
+
+    const result = unequipItem(inventory, equipment, equipmentItemLookup, 'weapon');
+
+    expect(result).toMatchObject({ ok: false, reason: 'overweight' });
+    expect(result.inventory).toBe(inventory);
+    expect(result.equipment).toBe(equipment);
+  });
+
+  it('rejects replacing equipment with an item for another slot atomically', () => {
+    const inventory = inventoryWith({ itemId: 'iron-sword', quantity: 1 });
+    const equipment = { armor: 'iron-armor' } as const;
+
+    const result = replaceEquipment(
+      inventory,
+      equipment,
+      knight(),
+      equipmentItemLookup,
+      'armor',
+      item('iron-sword'),
+    );
+
+    expect(result).toMatchObject({ ok: false, reason: 'invalid-quantity' });
+    expect(result.inventory).toBe(inventory);
+    expect(result.equipment).toBe(equipment);
+  });
+
+  it('rejects replacing equipment with a class-incompatible item atomically', () => {
+    const inventory = inventoryWith({ itemId: 'wizard-staff', quantity: 1 });
+    const equipment = { weapon: 'iron-sword' } as const;
+
+    const result = replaceEquipment(
+      inventory,
+      equipment,
+      knight(),
+      equipmentItemLookup,
+      'weapon',
+      item('wizard-staff'),
+    );
+
+    expect(result).toMatchObject({ ok: false, reason: 'wrong-class' });
+    expect(result.inventory).toBe(inventory);
+    expect(result.equipment).toBe(equipment);
+  });
+
+  it('rolls replacement back when unequipping into a full stack fails', () => {
+    const inventory: InventoryState = {
+      stacks: [
+        { itemId: stackableRing.id, quantity: 2 },
+        { itemId: replacementRing.id, quantity: 1 },
+      ],
+      adena: 0,
+      carriedWeight: 15,
+      weightLimit: 100,
+    };
+    const equipment = { ring: stackableRing.id } as const;
+
+    const result = replaceEquipment(
+      inventory,
+      equipment,
+      knight(),
+      equipmentItemLookup,
+      'ring',
+      replacementRing,
+    );
+
+    expect(result).toMatchObject({ ok: false, reason: 'invalid-quantity' });
+    expect(result.inventory).toBe(inventory);
+    expect(result.equipment).toBe(equipment);
+  });
+
+  it('rolls replacement back when the new item is missing after unequip', () => {
+    const inventory = inventoryWith();
+    const equipment = { weapon: 'wizard-staff' } as const;
+
+    const result = replaceEquipment(
+      inventory,
+      equipment,
+      knight(),
+      equipmentItemLookup,
+      'weapon',
+      item('iron-sword'),
+    );
+
+    expect(result).toMatchObject({ ok: false, reason: 'missing-item' });
+    expect(result.inventory).toBe(inventory);
+    expect(result.equipment).toBe(equipment);
+  });
+
   it('rejects class-incompatible equipment without losing the item', () => {
     const inventory = inventoryWith({ itemId: 'wizard-staff', quantity: 1 });
     const equipment = emptyEquipment();

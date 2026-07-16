@@ -1,12 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
-import { buyItem, equipItem, sellItem } from '../../src/core/inventory';
+import {
+  buyItem,
+  equipItem,
+  replaceEquipment,
+  sellItem,
+  type ItemDefinition,
+} from '../../src/core/inventory';
 import {
   emptyEquipment,
   inventoryWith,
   item,
   knight,
 } from '../helpers/inventoryFixtures';
+
+const equipmentItemLookup = (itemId: string): ItemDefinition => {
+  if (itemId === 'iron-sword') return item('iron-sword');
+  if (itemId === 'wizard-staff') return item('wizard-staff');
+  throw new Error(`Unknown test item: ${itemId}`);
+};
 
 describe('shop and equipment integration', () => {
   it('rejects a purchase with insufficient Adena without adding stock', () => {
@@ -90,5 +102,26 @@ describe('shop and equipment integration', () => {
     });
     expect(equipped.equipment).toEqual({ weapon: 'iron-sword' });
     expect(initial).toEqual(inventoryWith([], { adena: 150 }));
+  });
+
+  it('atomically swaps held equipment without losing or duplicating either item', () => {
+    const inventory = inventoryWith({ itemId: 'iron-sword', quantity: 1 });
+    const equipment = { weapon: 'wizard-staff' } as const;
+
+    const result = replaceEquipment(
+      inventory,
+      equipment,
+      knight(),
+      equipmentItemLookup,
+      'weapon',
+      item('iron-sword'),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.inventory.stacks).toEqual([{ itemId: 'wizard-staff', quantity: 1 }]);
+    expect(result.inventory.carriedWeight).toBe(15);
+    expect(result.equipment).toEqual({ weapon: 'iron-sword' });
+    expect(inventory.stacks).toEqual([{ itemId: 'iron-sword', quantity: 1 }]);
+    expect(equipment).toEqual({ weapon: 'wizard-staff' });
   });
 });

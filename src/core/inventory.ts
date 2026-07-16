@@ -32,6 +32,8 @@ export interface ItemDefinition {
   readonly healAmount?: number;
 }
 
+export type ItemLookup = (itemId: string) => ItemDefinition;
+
 export interface InventoryStack {
   readonly itemId: string;
   readonly quantity: number;
@@ -201,6 +203,60 @@ export function equipItem(
     ...removed,
     equipment: { ...equipment, [item.equipmentSlot]: item.id },
   };
+}
+
+export function unequipItem(
+  inventory: InventoryState,
+  equipment: EquipmentState,
+  itemLookup: ItemLookup,
+  slot: EquipmentSlot,
+): EquipmentResult {
+  const itemId = equipment[slot];
+  if (itemId === undefined) {
+    return { ...failure(inventory, 'invalid-quantity'), equipment };
+  }
+
+  const added = addItem(inventory, itemLookup(itemId), 1);
+  if (!added.ok) {
+    return { ...added, equipment };
+  }
+
+  const nextEquipment: EquipmentState = Object.fromEntries(
+    Object.entries(equipment).filter(([equipmentSlot]) => equipmentSlot !== slot),
+  );
+  return { ...added, equipment: nextEquipment };
+}
+
+export function replaceEquipment(
+  inventory: InventoryState,
+  equipment: EquipmentState,
+  character: CharacterState,
+  itemLookup: ItemLookup,
+  slot: EquipmentSlot,
+  newItem: ItemDefinition,
+): EquipmentResult {
+  if (newItem.equipmentSlot !== slot) {
+    return { ...failure(inventory, 'invalid-quantity'), equipment };
+  }
+  if (!newItem.allowedClasses.includes(character.classId)) {
+    return { ...failure(inventory, 'wrong-class'), equipment };
+  }
+
+  const unequipped = unequipItem(inventory, equipment, itemLookup, slot);
+  if (!unequipped.ok) {
+    return unequipped;
+  }
+
+  const equipped = equipItem(
+    unequipped.inventory,
+    unequipped.equipment,
+    character,
+    newItem,
+  );
+  if (!equipped.ok) {
+    return { ...failure(inventory, equipped.reason), equipment };
+  }
+  return equipped;
 }
 
 export function useItem(
