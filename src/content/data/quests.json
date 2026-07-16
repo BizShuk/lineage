@@ -1,0 +1,121 @@
+[
+  {
+    "id": "scarecrow-training", "name": "稻草人訓練", "description": "完成基礎移動、攻擊與補給訓練。", "kind": "main",
+    "sourceTier": "S", "sourceNotes": "稻草人一至五級訓練有官方經典版支持；任務流程為單機適配。", "giverNpcId": "scarecrow-instructor",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": [],
+    "objectives": [{ "type": "talk", "npcId": "scarecrow-instructor", "count": 1 }, { "type": "kill", "monsterId": "goblin", "count": 4 }],
+    "rewards": { "experience": 100, "adena": 80, "itemRewards": [{ "itemId": "red-potion", "quantity": 5 }], "abilityIds": [] }
+  },
+  {
+    "id": "village-registration", "name": "村莊登記", "description": "向長老報到並認識村莊服務。", "kind": "main",
+    "sourceTier": "S", "sourceNotes": "村莊、商店與倉庫是早期內容；登記流程為單機主線。", "giverNpcId": "village-elder-jered",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["scarecrow-training"],
+    "objectives": [{ "type": "talk", "npcId": "pandora", "count": 1 }, { "type": "talk", "npcId": "dorin", "count": 1 }, { "type": "talk", "npcId": "gereng", "count": 1 }],
+    "rewards": { "experience": 120, "adena": 120, "itemRewards": [{ "itemId": "orange-potion", "quantity": 2 }], "abilityIds": [] }
+  },
+  {
+    "id": "field-supplies", "name": "野外物資", "description": "巡查北部野外並收集村莊需要的物資。", "kind": "main",
+    "sourceTier": "S", "sourceNotes": "怪物種類有官方支持；收集與交付流程為單機適配。", "giverNpcId": "gunther",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["village-registration"],
+    "objectives": [{ "type": "reach", "mapId": "north-field", "count": 1 }, { "type": "collect", "itemId": "animal-hide", "count": 4 }, { "type": "kill", "monsterId": "dwarf", "count": 3 }],
+    "rewards": { "experience": 350, "adena": 300, "itemRewards": [{ "itemId": "green-potion", "quantity": 3 }], "abilityIds": [] }
+  },
+  {
+    "id": "black-knight-assault", "name": "黑騎士來襲", "description": "協助瑞奇擊退黑騎士並阻止克特的搜索。", "kind": "main",
+    "sourceTier": "S", "sourceNotes": "克特為追捕王室後裔在港口登場是官方歷史回憶；單人擊退事件為適配。", "giverNpcId": "ricky",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["field-supplies"],
+    "objectives": [{ "type": "kill", "monsterId": "black-knight", "count": 6 }, { "type": "defeat", "monsterId": "kurt", "count": 1 }],
+    "rewards": { "experience": 900, "adena": 650, "itemRewards": [{ "itemId": "baphomet-seal-fragment", "quantity": 1 }, { "itemId": "clear-potion", "quantity": 2 }], "abilityIds": [] }
+  },
+  {
+    "id": "dungeon-seal", "name": "地監封印", "description": "深入地監清除不死族並修復通往二樓的封印。", "kind": "main",
+    "sourceTier": "S", "sourceNotes": "地監一樓不死系配置為官方資料；封印碎片流程為單機適配。", "giverNpcId": "dungeon-warden",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["black-knight-assault"],
+    "objectives": [{ "type": "reach", "mapId": "talking-island-dungeon-1", "count": 1 }, { "type": "kill", "monsterId": "skeleton", "count": 8 }, { "type": "collect", "itemId": "bone-piece", "count": 6 }],
+    "rewards": { "experience": 1100, "adena": 800, "itemRewards": [{ "itemId": "silver-arrow", "quantity": 30 }, { "itemId": "greater-green-potion", "quantity": 2 }], "abilityIds": [] }
+  },
+  {
+    "id": "baphomet-ending", "name": "巴風特房", "description": "擊敗巴風特並向甘特報告封印結果。", "kind": "main",
+    "sourceTier": "S", "sourceNotes": "巴風特位於地監二樓為官方史實；十二至十五級單人首領與結局旗標為適配。", "giverNpcId": "gunther",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["dungeon-seal"],
+    "objectives": [{ "type": "reach", "mapId": "talking-island-dungeon-2", "count": 1 }, { "type": "defeat", "monsterId": "baphomet", "count": 1 }, { "type": "talk", "npcId": "gunther", "count": 1 }],
+    "rewards": { "experience": 1800, "adena": 1500, "itemRewards": [{ "itemId": "magic-cloak", "quantity": 1 }], "abilityIds": [] }
+  },
+  {
+    "id": "prince-guidance", "name": "王族的責任", "description": "向甘特學習如何辨識威脅並鼓舞自己。", "kind": "class",
+    "sourceTier": "S", "sourceNotes": "早期王族十五級任務與領導定位有同期資料；島內個人技能路線為適配。", "giverNpcId": "gunther",
+    "allowedClasses": ["prince"], "prerequisiteQuestIds": ["village-registration"],
+    "objectives": [{ "type": "kill", "monsterId": "orc", "count": 5 }, { "type": "talk", "npcId": "gunther", "count": 1 }],
+    "rewards": { "experience": 300, "adena": 200, "itemRewards": [{ "itemId": "long-sword", "quantity": 1 }], "abilityIds": ["royal-rally", "royal-command"] }
+  },
+  {
+    "id": "knight-guidance", "name": "騎士的鍛鍊", "description": "接受警衛的防禦與重擊訓練。", "kind": "class",
+    "sourceTier": "S", "sourceNotes": "早期低等騎士沒有專用技能；本任務完全屬單機平衡。", "giverNpcId": "village-guard",
+    "allowedClasses": ["knight"], "prerequisiteQuestIds": ["village-registration"],
+    "objectives": [{ "type": "kill", "monsterId": "dwarf", "count": 5 }, { "type": "talk", "npcId": "village-guard", "count": 1 }],
+    "rewards": { "experience": 300, "adena": 200, "itemRewards": [{ "itemId": "large-shield", "quantity": 1 }], "abilityIds": ["guarded-stance", "power-strike"] }
+  },
+  {
+    "id": "elf-guidance", "name": "海岸弓術", "description": "協助漁夫後練習遠程連射。", "kind": "class",
+    "sourceTier": "S", "sourceNotes": "早期妖精以弓為核心，但原生於妖精森林；島內路線與技能為適配。", "giverNpcId": "injured-fisher",
+    "allowedClasses": ["elf"], "prerequisiteQuestIds": ["village-registration"],
+    "objectives": [{ "type": "kill", "monsterId": "spider", "count": 5 }, { "type": "talk", "npcId": "injured-fisher", "count": 1 }],
+    "rewards": { "experience": 300, "adena": 200, "itemRewards": [{ "itemId": "silver-arrow", "quantity": 40 }], "abilityIds": ["rapid-shot", "nature-breath"] }
+  },
+  {
+    "id": "wizard-guidance", "name": "吉倫的課程", "description": "使用基礎魔法通過吉倫的測驗。", "kind": "class",
+    "sourceTier": "A", "sourceNotes": "吉倫教授一至三階魔法為官方資料；具體擊殺目標為單機編排。", "giverNpcId": "gereng",
+    "allowedClasses": ["wizard"], "prerequisiteQuestIds": ["village-registration"],
+    "objectives": [{ "type": "kill", "monsterId": "zombie", "count": 4 }, { "type": "talk", "npcId": "gereng", "count": 1 }],
+    "rewards": { "experience": 300, "adena": 200, "itemRewards": [{ "itemId": "spellbook-cure-poison", "quantity": 1 }], "abilityIds": ["mana-focus", "fire-arrow"] }
+  },
+  {
+    "id": "pandoras-shortage", "name": "潘朵拉的缺貨", "description": "替潘朵拉收集野外缺少的皮革。", "kind": "side",
+    "sourceTier": "S", "sourceNotes": "潘朵拉與皮革掉落有史料；委託內容為單機支線。", "giverNpcId": "pandora",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["village-registration"],
+    "objectives": [{ "type": "collect", "itemId": "animal-hide", "count": 5 }],
+    "rewards": { "experience": 120, "adena": 180, "itemRewards": [{ "itemId": "red-potion", "quantity": 6 }], "abilityIds": [] }
+  },
+  {
+    "id": "warehouse-practice", "name": "倉庫練習", "description": "認識倉庫服務與負重管理。", "kind": "side",
+    "sourceTier": "S", "sourceNotes": "朵琳倉庫功能有資料支持；教學任務為單機適配。", "giverNpcId": "dorin",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["village-registration"],
+    "objectives": [{ "type": "talk", "npcId": "dorin", "count": 1 }],
+    "rewards": { "experience": 60, "adena": 50, "itemRewards": [{ "itemId": "meat", "quantity": 3 }], "abilityIds": [] }
+  },
+  {
+    "id": "ghoul-antidote", "name": "食屍鬼之毒", "description": "收集食屍鬼的牙以調配解毒補給。", "kind": "side",
+    "sourceTier": "S", "sourceNotes": "食屍鬼麻痺毒與解毒劑為官方機制；交換任務為單機適配。", "giverNpcId": "atonement-priestess",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["field-supplies"],
+    "objectives": [{ "type": "collect", "itemId": "ghoul-tooth", "count": 3 }],
+    "rewards": { "experience": 260, "adena": 150, "itemRewards": [{ "itemId": "antidote", "quantity": 8 }], "abilityIds": [] }
+  },
+  {
+    "id": "coast-supplies", "name": "海岸失蹤補給", "description": "清除蜘蛛並找回漁夫需要的物資。", "kind": "side",
+    "sourceTier": "S", "sourceNotes": "海岸專屬狩獵區與漁夫事件沒有早期史料，為單機適配。", "giverNpcId": "injured-fisher",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["field-supplies"],
+    "objectives": [{ "type": "kill", "monsterId": "spider", "count": 6 }, { "type": "collect", "itemId": "animal-hide", "count": 2 }],
+    "rewards": { "experience": 300, "adena": 220, "itemRewards": [{ "itemId": "orange-potion", "quantity": 3 }], "abilityIds": [] }
+  },
+  {
+    "id": "black-knight-document", "name": "黑騎士誓約書", "description": "取得黑騎士文件並交給瑞奇。", "kind": "side",
+    "sourceTier": "S", "sourceNotes": "二〇〇三年有同名騎士任務物品，但說話之島共通支線用途為適配。", "giverNpcId": "ricky",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["field-supplies"],
+    "objectives": [{ "type": "collect", "itemId": "black-knight-pledge", "count": 1 }],
+    "rewards": { "experience": 420, "adena": 350, "itemRewards": [{ "itemId": "protection-cloak", "quantity": 1 }], "abilityIds": [] }
+  },
+  {
+    "id": "skeleton-cleanup", "name": "地監骷髏清剿", "description": "清除骷髏並回收骨頭。", "kind": "side",
+    "sourceTier": "S", "sourceNotes": "地監骷髏配置有官方支持；交換支線為單機適配。", "giverNpcId": "dungeon-warden",
+    "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["black-knight-assault"],
+    "objectives": [{ "type": "kill", "monsterId": "skeleton", "count": 6 }, { "type": "collect", "itemId": "bone-piece", "count": 5 }],
+    "rewards": { "experience": 420, "adena": 300, "itemRewards": [{ "itemId": "silver-arrow", "quantity": 25 }, { "itemId": "blue-potion", "quantity": 2 }], "abilityIds": [] }
+  },
+  {
+    "id": "gerengs-test", "name": "吉倫的魔法測驗", "description": "證明神聖魔法能有效對付不死族。", "kind": "side",
+    "sourceTier": "S", "sourceNotes": "吉倫教授魔法與治癒術傷害不死系為歷史機制；測驗任務為適配。", "giverNpcId": "gereng",
+    "allowedClasses": ["prince", "elf", "wizard"], "prerequisiteQuestIds": ["village-registration"],
+    "objectives": [{ "type": "kill", "monsterId": "zombie", "count": 5 }],
+    "rewards": { "experience": 240, "adena": 180, "itemRewards": [{ "itemId": "spellbook-holy-weapon", "quantity": 1 }], "abilityIds": ["holy-weapon"] }
+  }
+]

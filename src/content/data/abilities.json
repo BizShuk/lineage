@@ -1,0 +1,147 @@
+[
+  {
+    "id": "lesser-heal", "name": "初級治癒術", "description": "恢復少量生命，對不死系敵人造成傷害。", "kind": "heal",
+    "sourceTier": "B", "sourceNotes": "二〇〇一年手冊與台灣官方魔法表均收錄；王族、妖精與法師的歷史學習等級不同。",
+    "assetKey": "ability-lesser-heal", "allowedClasses": ["prince", "elf", "wizard"], "unlockLevel": 4, "manaCost": 4, "hpCost": 0, "cooldownMs": 800, "target": "ally", "power": 12
+  },
+  {
+    "id": "light", "name": "日光術", "description": "照亮施法者周圍的黑暗。", "kind": "utility",
+    "sourceTier": "B", "sourceNotes": "二〇〇一年手冊確認的一階魔法。",
+    "assetKey": "ability-light", "allowedClasses": ["prince", "elf", "wizard"], "unlockLevel": 4, "manaCost": 4, "hpCost": 0, "cooldownMs": 0, "target": "self", "power": 1, "durationMs": 600000
+  },
+  {
+    "id": "shield", "name": "保護罩", "description": "短時間降低自己的 AC。", "kind": "buff",
+    "sourceTier": "B", "sourceNotes": "二〇〇一年手冊確認的一階魔法；單機版縮短持續時間。",
+    "assetKey": "ability-shield", "allowedClasses": ["prince", "elf", "wizard"], "unlockLevel": 4, "manaCost": 8, "hpCost": 0, "cooldownMs": 1000, "target": "self", "power": 2, "durationMs": 120000
+  },
+  {
+    "id": "energy-bolt", "name": "光箭", "description": "發射純粹魔法能量攻擊單一敵人。", "kind": "attack",
+    "sourceTier": "B", "sourceNotes": "二〇〇一年手冊確認的一階魔法。",
+    "assetKey": "ability-energy-bolt", "allowedClasses": ["prince", "elf", "wizard"], "unlockLevel": 4, "manaCost": 3, "hpCost": 0, "cooldownMs": 700, "target": "enemy", "power": 10
+  },
+  {
+    "id": "teleport", "name": "指定傳送", "description": "脫離戰鬥並返回目前區域入口。", "kind": "utility",
+    "sourceTier": "S", "sourceNotes": "早期原型為隨機傳送；單機版為避免跳過離線地圖關卡，改成返回區域入口。",
+    "assetKey": "ability-teleport", "allowedClasses": ["prince", "elf", "wizard"], "unlockLevel": 4, "manaCost": 10, "hpCost": 0, "cooldownMs": 30000, "target": "self", "power": 0
+  },
+  {
+    "id": "ice-dagger", "name": "冰箭", "description": "以冰冷魔力傷害單一敵人。", "kind": "attack",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年同期魔法彙編收錄；二〇〇一年手冊尚未列出。",
+    "assetKey": "ability-ice-dagger", "allowedClasses": ["prince", "elf", "wizard"], "unlockLevel": 5, "manaCost": 4, "hpCost": 0, "cooldownMs": 800, "target": "enemy", "power": 11
+  },
+  {
+    "id": "wind-cutter", "name": "風刃", "description": "以高壓風刃傷害單一敵人。", "kind": "attack",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年同期魔法彙編收錄；二〇〇一年手冊尚未列出。",
+    "assetKey": "ability-wind-cutter", "allowedClasses": ["prince", "elf", "wizard"], "unlockLevel": 5, "manaCost": 4, "hpCost": 0, "cooldownMs": 800, "target": "enemy", "power": 11
+  },
+  {
+    "id": "holy-weapon", "name": "神聖武器", "description": "使武器暫時對不死系造成額外傷害。", "kind": "buff",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年同期魔法彙編收錄，適合說話之島地監。",
+    "assetKey": "ability-holy-weapon", "allowedClasses": ["prince", "elf", "wizard"], "unlockLevel": 6, "manaCost": 10, "hpCost": 0, "cooldownMs": 1000, "target": "self", "power": 4, "durationMs": 120000
+  },
+  {
+    "id": "cure-poison", "name": "解毒術", "description": "解除目標身上的中毒狀態。", "kind": "heal",
+    "sourceTier": "A", "sourceNotes": "台灣官方二階一般魔法；在一至十五級範圍僅法師歷史上可學。",
+    "assetKey": "ability-cure-poison", "allowedClasses": ["wizard"], "unlockLevel": 8, "manaCost": 15, "hpCost": 0, "cooldownMs": 500, "target": "ally", "power": 0
+  },
+  {
+    "id": "chill-touch", "name": "寒冷戰慄", "description": "傷害敵人並吸收部分生命。", "kind": "attack",
+    "sourceTier": "A", "sourceNotes": "台灣官方二階一般魔法。",
+    "assetKey": "ability-chill-touch", "allowedClasses": ["wizard"], "unlockLevel": 8, "manaCost": 8, "hpCost": 0, "cooldownMs": 1200, "target": "enemy", "power": 10
+  },
+  {
+    "id": "enchanted-weapon", "name": "擬似魔法武器", "description": "暫時提高武器傷害。", "kind": "buff",
+    "sourceTier": "A", "sourceNotes": "台灣官方二階一般魔法。",
+    "assetKey": "ability-enchanted-weapon", "allowedClasses": ["wizard"], "unlockLevel": 8, "manaCost": 20, "hpCost": 0, "cooldownMs": 1000, "target": "self", "power": 2, "durationMs": 120000
+  },
+  {
+    "id": "detect-invisible", "name": "無所遁形術", "description": "揭露附近隱藏的敵人。", "kind": "utility",
+    "sourceTier": "A", "sourceNotes": "台灣官方二階一般魔法。",
+    "assetKey": "ability-detect-invisible", "allowedClasses": ["wizard"], "unlockLevel": 8, "manaCost": 15, "hpCost": 0, "cooldownMs": 5000, "target": "area", "power": 6
+  },
+  {
+    "id": "decrease-weight", "name": "負重強化", "description": "暫時提高可攜帶重量。", "kind": "buff",
+    "sourceTier": "A", "sourceNotes": "台灣官方二階一般魔法；單機版不消耗 HP。",
+    "assetKey": "ability-decrease-weight", "allowedClasses": ["wizard"], "unlockLevel": 8, "manaCost": 10, "hpCost": 0, "cooldownMs": 1000, "target": "self", "power": 60, "durationMs": 120000
+  },
+  {
+    "id": "fire-arrow", "name": "火箭", "description": "以火焰形成的箭攻擊單一敵人。", "kind": "attack",
+    "sourceTier": "A", "sourceNotes": "台灣官方二階一般魔法。",
+    "assetKey": "ability-fire-arrow", "allowedClasses": ["wizard"], "unlockLevel": 8, "manaCost": 6, "hpCost": 0, "cooldownMs": 850, "target": "enemy", "power": 14
+  },
+  {
+    "id": "stalac", "name": "地獄之牙", "description": "從敵人腳下冒出石鑽造成傷害。", "kind": "attack",
+    "sourceTier": "A", "sourceNotes": "台灣官方二階一般魔法。",
+    "assetKey": "ability-stalac", "allowedClasses": ["wizard"], "unlockLevel": 8, "manaCost": 6, "hpCost": 0, "cooldownMs": 850, "target": "enemy", "power": 14
+  },
+  {
+    "id": "lightning", "name": "極光雷電", "description": "以閃電傷害直線上的敵人。", "kind": "attack",
+    "sourceTier": "A", "sourceNotes": "台灣官方三階一般魔法。",
+    "assetKey": "ability-lightning", "allowedClasses": ["wizard"], "unlockLevel": 12, "manaCost": 20, "hpCost": 0, "cooldownMs": 1800, "target": "area", "power": 22
+  },
+  {
+    "id": "turn-undead", "name": "起死回生術", "description": "重創不死系敵人，普通敵人可能直接被消滅。", "kind": "attack",
+    "sourceTier": "A", "sourceNotes": "台灣官方三階一般魔法；單機版對首領改為固定神聖傷害。",
+    "assetKey": "ability-turn-undead", "allowedClasses": ["wizard"], "unlockLevel": 12, "manaCost": 20, "hpCost": 0, "cooldownMs": 2500, "target": "enemy", "power": 30
+  },
+  {
+    "id": "medium-heal", "name": "中級治癒術", "description": "恢復生命，亦可傷害不死系敵人。", "kind": "heal",
+    "sourceTier": "A", "sourceNotes": "台灣官方三階一般魔法。",
+    "assetKey": "ability-medium-heal", "allowedClasses": ["wizard"], "unlockLevel": 12, "manaCost": 15, "hpCost": 0, "cooldownMs": 1100, "target": "ally", "power": 28
+  },
+  {
+    "id": "blind", "name": "闇盲咒術", "description": "降低敵人的視野與命中。", "kind": "control",
+    "sourceTier": "A", "sourceNotes": "台灣官方三階一般魔法。",
+    "assetKey": "ability-blind", "allowedClasses": ["wizard"], "unlockLevel": 12, "manaCost": 20, "hpCost": 0, "cooldownMs": 6000, "target": "enemy", "power": 3, "durationMs": 8000
+  },
+  {
+    "id": "blessed-armor", "name": "鎧甲護持", "description": "暫時強化身上盔甲的防禦。", "kind": "buff",
+    "sourceTier": "A", "sourceNotes": "台灣官方三階一般魔法。",
+    "assetKey": "ability-blessed-armor", "allowedClasses": ["wizard"], "unlockLevel": 12, "manaCost": 20, "hpCost": 0, "cooldownMs": 1000, "target": "self", "power": 3, "durationMs": 120000
+  },
+  {
+    "id": "frozen-cloud", "name": "寒冰氣息", "description": "以寒氣傷害一小片區域。", "kind": "attack",
+    "sourceTier": "A", "sourceNotes": "台灣官方三階一般魔法。",
+    "assetKey": "ability-frozen-cloud", "allowedClasses": ["wizard"], "unlockLevel": 12, "manaCost": 20, "hpCost": 0, "cooldownMs": 2000, "target": "area", "power": 20
+  },
+  {
+    "id": "elemental-fall-down", "name": "能量感測", "description": "顯示目標最脆弱的屬性。", "kind": "utility",
+    "sourceTier": "A", "sourceNotes": "台灣官方三階一般魔法。",
+    "assetKey": "ability-elemental-fall-down", "allowedClasses": ["wizard"], "unlockLevel": 12, "manaCost": 8, "hpCost": 0, "cooldownMs": 3000, "target": "enemy", "power": 0
+  },
+  {
+    "id": "royal-rally", "name": "王族鼓舞", "description": "短時間提高自己的命中與交易收益。", "kind": "buff",
+    "sourceTier": "S", "sourceNotes": "將早期王族的多人領導定位改為單機自我強化。",
+    "assetKey": "ability-royal-rally", "allowedClasses": ["prince"], "unlockLevel": 1, "manaCost": 4, "hpCost": 0, "cooldownMs": 12000, "target": "self", "power": 2, "durationMs": 8000
+  },
+  {
+    "id": "royal-command", "name": "王族號令", "description": "標記敵人並提高自己對它造成的傷害。", "kind": "buff",
+    "sourceTier": "S", "sourceNotes": "單機版替代血盟號令的個人戰鬥能力。",
+    "assetKey": "ability-royal-command", "allowedClasses": ["prince"], "unlockLevel": 6, "manaCost": 7, "hpCost": 0, "cooldownMs": 15000, "target": "enemy", "power": 3, "durationMs": 10000
+  },
+  {
+    "id": "guarded-stance", "name": "防禦姿態", "description": "短時間降低受到的傷害。", "kind": "buff",
+    "sourceTier": "S", "sourceNotes": "早期低等騎士沒有專用魔法，為單機平衡新增。",
+    "assetKey": "ability-guarded-stance", "allowedClasses": ["knight"], "unlockLevel": 1, "manaCost": 0, "hpCost": 0, "cooldownMs": 12000, "target": "self", "power": 3, "durationMs": 6000
+  },
+  {
+    "id": "power-strike", "name": "強力打擊", "description": "蓄力後對近距離敵人造成重擊。", "kind": "attack",
+    "sourceTier": "S", "sourceNotes": "早期低等騎士沒有專用技能，為單機平衡新增。",
+    "assetKey": "ability-power-strike", "allowedClasses": ["knight"], "unlockLevel": 4, "manaCost": 0, "hpCost": 2, "cooldownMs": 5000, "target": "enemy", "power": 18
+  },
+  {
+    "id": "rapid-shot", "name": "連射", "description": "快速射出兩支箭。", "kind": "attack",
+    "sourceTier": "S", "sourceNotes": "以早期妖精弓術定位設計的單機技能。",
+    "assetKey": "ability-rapid-shot", "allowedClasses": ["elf"], "unlockLevel": 1, "manaCost": 3, "hpCost": 0, "cooldownMs": 3000, "target": "enemy", "power": 14, "reagentItemId": "wooden-arrow"
+  },
+  {
+    "id": "nature-breath", "name": "自然呼吸", "description": "短時間持續恢復自己的生命與魔力。", "kind": "heal",
+    "sourceTier": "S", "sourceNotes": "以妖精自然魔法定位設計的單機恢復能力。",
+    "assetKey": "ability-nature-breath", "allowedClasses": ["elf"], "unlockLevel": 6, "manaCost": 8, "hpCost": 0, "cooldownMs": 18000, "target": "self", "power": 4, "durationMs": 8000
+  },
+  {
+    "id": "mana-focus", "name": "魔力專注", "description": "短時間提高魔法威力。", "kind": "buff",
+    "sourceTier": "S", "sourceNotes": "為單機法師資源循環新增的低等能力。",
+    "assetKey": "ability-mana-focus", "allowedClasses": ["wizard"], "unlockLevel": 1, "manaCost": 0, "hpCost": 2, "cooldownMs": 18000, "target": "self", "power": 3, "durationMs": 8000
+  }
+]

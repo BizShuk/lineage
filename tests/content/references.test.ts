@@ -1,0 +1,122 @@
+import { describe, expect, it } from 'vitest';
+
+import { loadBundledContent } from '../../src/content/loadContent';
+
+describe('bundled content references', () => {
+  it('has no duplicate IDs in any catalog', () => {
+    const content = loadBundledContent();
+
+    for (const definitions of [
+      content.classes,
+      content.items,
+      content.abilities,
+      content.monsters,
+      content.npcs,
+      content.quests,
+      content.maps,
+    ]) {
+      const ids = definitions.map(({ id }) => id);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+  });
+
+  it('resolves every class, item, ability, monster, NPC, quest, map exit, and spawn reference', () => {
+    const content = loadBundledContent();
+    const classIds = new Set(content.classes.map(({ id }) => id));
+    const itemIds = new Set(content.items.map(({ id }) => id));
+    const abilityIds = new Set(content.abilities.map(({ id }) => id));
+    const monsterIds = new Set(content.monsters.map(({ id }) => id));
+    const npcIds = new Set(content.npcs.map(({ id }) => id));
+    const questIds = new Set(content.quests.map(({ id }) => id));
+    const mapIds = new Set(content.maps.map(({ id }) => id));
+
+    for (const characterClass of content.classes) {
+      for (const id of characterClass.startingItemIds) {
+        expect(itemIds.has(id)).toBe(true);
+      }
+      for (const id of characterClass.abilityIds) {
+        expect(abilityIds.has(id)).toBe(true);
+      }
+    }
+
+    for (const item of content.items) {
+      for (const id of item.allowedClasses) {
+        expect(classIds.has(id)).toBe(true);
+      }
+      if (item.grantsAbilityId !== undefined) {
+        expect(abilityIds.has(item.grantsAbilityId)).toBe(true);
+      }
+    }
+
+    for (const ability of content.abilities) {
+      for (const id of ability.allowedClasses) {
+        expect(classIds.has(id)).toBe(true);
+      }
+      if (ability.reagentItemId !== undefined) {
+        expect(itemIds.has(ability.reagentItemId)).toBe(true);
+      }
+    }
+
+    for (const monster of content.monsters) {
+      for (const id of monster.abilityIds) {
+        expect(abilityIds.has(id)).toBe(true);
+      }
+      for (const { itemId } of monster.drops) {
+        expect(itemIds.has(itemId)).toBe(true);
+      }
+    }
+
+    for (const npc of content.npcs) {
+      expect(mapIds.has(npc.mapId)).toBe(true);
+      for (const id of npc.shopItemIds) {
+        expect(itemIds.has(id)).toBe(true);
+      }
+      for (const id of npc.questIds) {
+        expect(questIds.has(id)).toBe(true);
+      }
+      for (const id of npc.taughtAbilityIds) {
+        expect(abilityIds.has(id)).toBe(true);
+      }
+    }
+
+    for (const quest of content.quests) {
+      expect(npcIds.has(quest.giverNpcId)).toBe(true);
+      for (const id of quest.allowedClasses) {
+        expect(classIds.has(id)).toBe(true);
+      }
+      for (const id of quest.prerequisiteQuestIds) {
+        expect(questIds.has(id)).toBe(true);
+      }
+      for (const { itemId } of quest.rewards.itemRewards) {
+        expect(itemIds.has(itemId)).toBe(true);
+      }
+      for (const id of quest.rewards.abilityIds) {
+        expect(abilityIds.has(id)).toBe(true);
+      }
+
+      for (const objective of quest.objectives) {
+        if (objective.type === 'kill' || objective.type === 'defeat') {
+          expect(monsterIds.has(objective.monsterId)).toBe(true);
+        } else if (objective.type === 'collect') {
+          expect(itemIds.has(objective.itemId)).toBe(true);
+        } else if (objective.type === 'talk') {
+          expect(npcIds.has(objective.npcId)).toBe(true);
+        } else {
+          expect(mapIds.has(objective.mapId)).toBe(true);
+        }
+      }
+    }
+
+    for (const map of content.maps) {
+      for (const id of map.npcIds) {
+        expect(npcIds.has(id)).toBe(true);
+      }
+      for (const { targetMapId } of map.exits) {
+        expect(mapIds.has(targetMapId)).toBe(true);
+      }
+      for (const { monsterId } of map.spawns) {
+        expect(monsterIds.has(monsterId)).toBe(true);
+      }
+    }
+  });
+});

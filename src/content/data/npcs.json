@@ -1,0 +1,92 @@
+[
+  {
+    "id": "pandora", "name": "潘朵拉", "description": "在港口旁販賣冒險用品的雜貨商。", "role": "shop",
+    "sourceTier": "A", "sourceNotes": "官方經典版資料確認潘朵拉位於村莊港口側並販售藥水、卷軸與基礎裝備。", "spriteKey": "npc-pandora",
+    "mapId": "talking-island-village", "x": 42, "y": 32,
+    "shopItemIds": ["red-potion", "orange-potion", "green-potion", "antidote", "meat", "wooden-arrow", "silver-arrow", "dagger", "leather-jacket"],
+    "questIds": ["pandoras-shortage"], "taughtAbilityIds": []
+  },
+  {
+    "id": "dorin", "name": "朵琳", "description": "替冒險者保管物品的倉庫管理員。", "role": "warehouse",
+    "sourceTier": "B", "sourceNotes": "長期資料庫與說話之島 NPC 彙整均記載朵琳負責倉庫。", "spriteKey": "npc-dorin",
+    "mapId": "talking-island-village", "x": 32, "y": 38, "shopItemIds": [], "questIds": ["warehouse-practice"], "taughtAbilityIds": []
+  },
+  {
+    "id": "gereng", "name": "吉倫", "description": "在說話之島教授基礎魔法的導師。", "role": "trainer",
+    "sourceTier": "A", "sourceNotes": "台灣官方資料確認吉倫之家位於村莊西南，並教授一至三階一般魔法。", "spriteKey": "npc-gereng",
+    "mapId": "talking-island-village", "x": 22, "y": 20, "shopItemIds": ["spellbook-lesser-heal", "spellbook-shield", "spellbook-energy-bolt", "spellbook-cure-poison", "spellbook-holy-weapon", "spellbook-turn-undead"],
+    "questIds": ["wizard-guidance", "gerengs-test"], "taughtAbilityIds": ["lesser-heal", "light", "shield", "energy-bolt", "teleport", "ice-dagger", "wind-cutter", "holy-weapon", "cure-poison", "chill-touch", "enchanted-weapon", "detect-invisible", "decrease-weight", "fire-arrow", "stalac", "lightning", "turn-undead", "medium-heal", "blind", "blessed-armor", "frozen-cloud", "elemental-fall-down"]
+  },
+  {
+    "id": "gunther", "name": "甘特", "description": "守護島嶼並等待有志冒險者的赤色騎士。", "role": "guide",
+    "sourceTier": "A", "sourceNotes": "官方故事記載甘特與吉倫平定島嶼並將巴風特封印於地監二樓。", "spriteKey": "npc-gunther",
+    "mapId": "north-field", "x": 82, "y": 48, "shopItemIds": [], "questIds": ["field-supplies", "prince-guidance", "baphomet-ending"], "taughtAbilityIds": ["royal-rally", "royal-command"]
+  },
+  {
+    "id": "balsim", "name": "巴辛", "description": "販售基礎武器與防具的商人。", "role": "shop",
+    "sourceTier": "B", "sourceNotes": "說話之島 NPC 彙整記載巴辛販售基本武器與防具；版本細節不如潘朵拉明確。", "spriteKey": "npc-balsim",
+    "mapId": "talking-island-village", "x": 22, "y": 32,
+    "shopItemIds": ["wooden-club", "orc-sword", "bow", "helmet", "low-boots", "leather-gloves", "small-shield", "cloak", "studded-leather-armor"],
+    "questIds": [], "taughtAbilityIds": []
+  },
+  {
+    "id": "selena", "name": "瑟琳娜", "description": "提供房間與休息服務的旅館主人。", "role": "inn",
+    "sourceTier": "C", "sourceNotes": "後期說話之島 NPC 彙整記載旅館租賃功能；單機版採用此功能，不宣稱為二〇〇〇年首發配置。", "spriteKey": "npc-selena",
+    "mapId": "talking-island-village", "x": 24, "y": 40, "shopItemIds": ["meat"], "questIds": [], "taughtAbilityIds": []
+  },
+  {
+    "id": "village-guard", "name": "說話之島警衛", "description": "維持村莊安全並監視黑騎士動向。", "role": "guard",
+    "sourceTier": "B", "sourceNotes": "同期敘事記載港口兩側有甘特訓練的警衛；本作合併成單一 NPC 定義。", "spriteKey": "npc-village-guard",
+    "mapId": "talking-island-village", "x": 36, "y": 20, "shopItemIds": [], "questIds": ["knight-guidance"], "taughtAbilityIds": ["guarded-stance", "power-strike"]
+  },
+  {
+    "id": "harbor-captain", "name": "港口船長", "description": "說明通往古魯丁航線的船長。", "role": "guide",
+    "sourceTier": "S", "sourceNotes": "早期港口可前往本土有官方經典回憶支持；船長名稱與離線版停航對話為適配。", "spriteKey": "npc-harbor-captain",
+    "mapId": "talking-island-village", "x": 58, "y": 40, "shopItemIds": [], "questIds": [], "taughtAbilityIds": []
+  },
+  {
+    "id": "atonement-priestess", "name": "贖罪神女", "description": "照料負傷冒險者並講解死亡代價的神女。", "role": "healer",
+    "sourceTier": "C", "sourceNotes": "後期座標與 NPC 彙整記載北島贖罪神女；單機版僅保留恢復與教學功能。", "spriteKey": "npc-atonement-priestess",
+    "mapId": "north-field", "x": 48, "y": 12, "shopItemIds": ["red-potion", "antidote"], "questIds": ["ghoul-antidote"], "taughtAbilityIds": []
+  },
+  {
+    "id": "james", "name": "詹姆", "description": "協助整理魔法書與法師試煉的研究者。", "role": "trainer",
+    "sourceTier": "B", "sourceNotes": "同期法師十五級任務資料提及詹姆與魔法能量之書；位置可信度較低。", "spriteKey": "npc-james",
+    "mapId": "talking-island-village", "x": 42, "y": 20, "shopItemIds": [], "questIds": [], "taughtAbilityIds": ["mana-focus"]
+  },
+  {
+    "id": "lucas", "name": "盧卡斯", "description": "向冒險者說明島上各獵場方向。", "role": "guide",
+    "sourceTier": "C", "sourceNotes": "盧卡斯傳送師屬後期說話之島資料；單機版移除免費傳送，只保留地圖導覽。", "spriteKey": "npc-lucas",
+    "mapId": "talking-island-village", "x": 32, "y": 22, "shopItemIds": [], "questIds": [], "taughtAbilityIds": []
+  },
+  {
+    "id": "rabbian", "name": "拉比安尼", "description": "修補基礎裝備的工匠。", "role": "shop",
+    "sourceTier": "C", "sourceNotes": "後期資料記載拉比安尼從事製作；單機版縮減為基礎修補與材料收購。", "spriteKey": "npc-rabbian",
+    "mapId": "talking-island-village", "x": 40, "y": 38, "shopItemIds": ["dagger", "small-shield", "leather-jacket"], "questIds": [], "taughtAbilityIds": []
+  },
+  {
+    "id": "village-elder-jered", "name": "村莊長老傑瑞德", "description": "統整村莊防務並發布冒險者任務的長老。", "role": "quest",
+    "sourceTier": "S", "sourceNotes": "傑瑞德出自後期任務資料；村莊主線樞紐身分為單機適配。", "spriteKey": "npc-village-elder-jered",
+    "mapId": "talking-island-village", "x": 32, "y": 18, "shopItemIds": [], "questIds": ["village-registration"], "taughtAbilityIds": []
+  },
+  {
+    "id": "ricky", "name": "瑞奇", "description": "在前線抵抗黑騎士的年輕守衛。", "role": "quest",
+    "sourceTier": "S", "sourceNotes": "瑞奇與黑騎士任務出自後期任務資料；移至說話之島前線屬單機適配。", "spriteKey": "npc-ricky",
+    "mapId": "black-knight-area", "x": 20, "y": 50, "shopItemIds": ["orange-potion", "brave-potion", "blue-potion"], "questIds": ["black-knight-assault", "black-knight-document"], "taughtAbilityIds": []
+  },
+  {
+    "id": "scarecrow-instructor", "name": "訓練場教官", "description": "教導移動、攻擊、裝備與快捷列操作。", "role": "trainer",
+    "sourceTier": "S", "sourceNotes": "官方經典版確認稻草人區用於一至五級成長；具名教官為單機教學角色。", "spriteKey": "npc-scarecrow-instructor",
+    "mapId": "scarecrow-field", "x": 48, "y": 12, "shopItemIds": ["wooden-club", "red-potion"], "questIds": ["scarecrow-training"], "taughtAbilityIds": []
+  },
+  {
+    "id": "dungeon-warden", "name": "地監看守者", "description": "看守地監入口並記錄不死族活動。", "role": "guard",
+    "sourceTier": "S", "sourceNotes": "地監入口為歷史場景；具名看守者與封印任務為單機適配。", "spriteKey": "npc-dungeon-warden",
+    "mapId": "talking-island-dungeon-1", "x": 10, "y": 36, "shopItemIds": ["antidote", "silver-arrow", "orange-potion"], "questIds": ["dungeon-seal", "skeleton-cleanup"], "taughtAbilityIds": []
+  },
+  {
+    "id": "injured-fisher", "name": "受傷的漁夫", "description": "在蜘蛛襲擊後失去補給的島民。", "role": "quest",
+    "sourceTier": "S", "sourceNotes": "以港口與海岸環境設計的單機支線角色，沒有早期同名史料。", "spriteKey": "npc-injured-fisher",
+    "mapId": "coast", "x": 20, "y": 60, "shopItemIds": ["meat", "wooden-arrow"], "questIds": ["elf-guidance", "coast-supplies"], "taughtAbilityIds": ["rapid-shot", "nature-breath"]
+  }
+]

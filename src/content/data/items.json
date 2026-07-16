@@ -1,0 +1,247 @@
+[
+  {
+    "id": "dagger", "name": "匕首", "description": "輕巧且容易使用的入門武器。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "二〇〇一年手冊記載騎士與法師以匕首起步。", "assetKey": "item-dagger",
+    "weight": 10, "stackLimit": 1, "buyPrice": 50, "sellPrice": 25, "allowedClasses": ["prince", "knight", "elf", "wizard"], "equipmentSlot": "weapon", "damageSmall": 4, "damageLarge": 3
+  },
+  {
+    "id": "wooden-club", "name": "木棒", "description": "哥布林與狗頭人常用的粗糙木棒。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "同期怪物掉落資料收錄。", "assetKey": "item-wooden-club",
+    "weight": 30, "stackLimit": 1, "buyPrice": 30, "sellPrice": 10, "allowedClasses": ["prince", "knight", "elf", "wizard"], "equipmentSlot": "weapon", "damageSmall": 3, "damageLarge": 2
+  },
+  {
+    "id": "orc-dagger", "name": "妖魔匕首", "description": "妖魔打造的短小武器。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年武器表與官方怪物資料收錄。", "assetKey": "item-orc-dagger",
+    "weight": 10, "stackLimit": 1, "buyPrice": 70, "sellPrice": 30, "allowedClasses": ["prince", "knight", "elf", "wizard"], "equipmentSlot": "weapon", "damageSmall": 4, "damageLarge": 4
+  },
+  {
+    "id": "orc-sword", "name": "妖魔劍", "description": "妖魔戰士使用的鐵劍。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "官方妖魔掉落表收錄。", "assetKey": "item-orc-sword",
+    "weight": 35, "stackLimit": 1, "buyPrice": 120, "sellPrice": 50, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "weapon", "damageSmall": 6, "damageLarge": 5
+  },
+  {
+    "id": "dwarven-short-sword", "name": "侏儒短劍", "description": "侏儒工藝製作的短劍。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年武器表記載由侏儒與侏儒戰士掉落。", "assetKey": "item-dwarven-short-sword",
+    "weight": 40, "stackLimit": 1, "buyPrice": 300, "sellPrice": 125, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "weapon", "damageSmall": 7, "damageLarge": 8
+  },
+  {
+    "id": "scimitar", "name": "彎刀", "description": "適合對付小型敵人的彎刃武器。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年武器表與骷髏掉落資料收錄。", "assetKey": "item-scimitar",
+    "weight": 40, "stackLimit": 1, "buyPrice": 900, "sellPrice": 500, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "weapon", "damageSmall": 8, "damageLarge": 8
+  },
+  {
+    "id": "long-sword", "name": "長劍", "description": "攻守均衡的單手長劍。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年武器表與狼人掉落資料收錄。", "assetKey": "item-long-sword",
+    "weight": 40, "stackLimit": 1, "buyPrice": 1800, "sellPrice": 700, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "weapon", "damageSmall": 8, "damageLarge": 12
+  },
+  {
+    "id": "mace", "name": "釘錘", "description": "對不死系外骨骼有效的鈍器。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "同期狼人掉落資料收錄。", "assetKey": "item-mace",
+    "weight": 45, "stackLimit": 1, "buyPrice": 500, "sellPrice": 220, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "weapon", "damageSmall": 6, "damageLarge": 8
+  },
+  {
+    "id": "axe", "name": "斧", "description": "沉重但破壞力可靠的單手斧。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "官方石頭高崙與骷髏掉落資料收錄。", "assetKey": "item-axe",
+    "weight": 50, "stackLimit": 1, "buyPrice": 600, "sellPrice": 250, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "weapon", "damageSmall": 7, "damageLarge": 10
+  },
+  {
+    "id": "flail", "name": "連枷", "description": "揮動鐵球攻擊的鈍器。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "官方石頭高崙掉落資料收錄。", "assetKey": "item-flail",
+    "weight": 55, "stackLimit": 1, "buyPrice": 750, "sellPrice": 300, "allowedClasses": ["prince", "knight"], "equipmentSlot": "weapon", "damageSmall": 8, "damageLarge": 10
+  },
+  {
+    "id": "bow", "name": "弓", "description": "搭配箭矢使用的遠程武器。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "二〇〇一年手冊記載妖精以弓起步。", "assetKey": "item-bow",
+    "weight": 30, "stackLimit": 1, "buyPrice": 400, "sellPrice": 150, "allowedClasses": ["prince", "elf"], "equipmentSlot": "weapon", "damageSmall": 4, "damageLarge": 4
+  },
+  {
+    "id": "two-handed-sword", "name": "雙手劍", "description": "犧牲盾牌換取高傷害的重劍。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年巴風特與黑騎士掉落資料收錄。", "assetKey": "item-two-handed-sword",
+    "weight": 90, "stackLimit": 1, "buyPrice": 6000, "sellPrice": 2400, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "weapon", "damageSmall": 14, "damageLarge": 16
+  },
+  {
+    "id": "mana-staff", "name": "瑪那魔杖", "description": "幫助法師維持魔力循環的法杖。", "kind": "weapon",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年同期攻略記載法師使用瑪那魔杖；取得位置不限定說話之島。", "assetKey": "item-mana-staff",
+    "weight": 25, "stackLimit": 1, "buyPrice": 4000, "sellPrice": 1600, "allowedClasses": ["wizard"], "equipmentSlot": "weapon", "damageSmall": 3, "damageLarge": 3
+  },
+  {
+    "id": "leather-jacket", "name": "皮夾克", "description": "所有職業都能穿著的輕型防具。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "二〇〇一年手冊記載騎士與法師的起始防具。", "assetKey": "item-leather-jacket",
+    "weight": 30, "stackLimit": 1, "buyPrice": 80, "sellPrice": 30, "allowedClasses": ["prince", "knight", "elf", "wizard"], "equipmentSlot": "armor", "acModifier": -1
+  },
+  {
+    "id": "helmet", "name": "頭盔", "description": "保護頭部的基本鐵盔。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "哥布林與黑騎士掉落資料收錄。", "assetKey": "item-helmet",
+    "weight": 20, "stackLimit": 1, "buyPrice": 150, "sellPrice": 60, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "helmet", "acModifier": -1
+  },
+  {
+    "id": "low-boots", "name": "低筒靴", "description": "旅行者常穿的簡單皮靴。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "哥布林、狗頭人與黑騎士掉落資料收錄。", "assetKey": "item-low-boots",
+    "weight": 15, "stackLimit": 1, "buyPrice": 120, "sellPrice": 45, "allowedClasses": ["prince", "knight", "elf", "wizard"], "equipmentSlot": "boots", "acModifier": -1
+  },
+  {
+    "id": "leather-gloves", "name": "皮手套", "description": "提供基本保護的皮革手套。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "黑騎士掉落方向有同期與官方資料支持。", "assetKey": "item-leather-gloves",
+    "weight": 8, "stackLimit": 1, "buyPrice": 180, "sellPrice": 70, "allowedClasses": ["prince", "knight", "elf", "wizard"], "equipmentSlot": "gloves", "acModifier": -1
+  },
+  {
+    "id": "small-shield", "name": "小盾牌", "description": "不會妨礙行動的小型盾牌。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "同期狼人掉落資料收錄。", "assetKey": "item-small-shield",
+    "weight": 25, "stackLimit": 1, "buyPrice": 300, "sellPrice": 120, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "shield", "acModifier": -1
+  },
+  {
+    "id": "large-shield", "name": "大盾牌", "description": "以重量換取更強防禦的大盾。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "官方骷髏、狼人與克特掉落資料收錄。", "assetKey": "item-large-shield",
+    "weight": 50, "stackLimit": 1, "buyPrice": 900, "sellPrice": 350, "allowedClasses": ["prince", "knight"], "equipmentSlot": "shield", "acModifier": -2
+  },
+  {
+    "id": "cloak", "name": "斗篷", "description": "提供少量防護的旅行斗篷。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "早期裝備系統與同期物品表收錄。", "assetKey": "item-cloak",
+    "weight": 10, "stackLimit": 1, "buyPrice": 400, "sellPrice": 160, "allowedClasses": ["prince", "knight", "elf", "wizard"], "equipmentSlot": "cloak", "acModifier": -1
+  },
+  {
+    "id": "protection-cloak", "name": "保護者斗篷", "description": "比普通斗篷更堅固的防具。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "黑騎士掉落資料收錄。", "assetKey": "item-protection-cloak",
+    "weight": 10, "stackLimit": 1, "buyPrice": 1600, "sellPrice": 600, "allowedClasses": ["prince", "knight", "elf", "wizard"], "equipmentSlot": "cloak", "acModifier": -2
+  },
+  {
+    "id": "studded-leather-armor", "name": "鑲釘皮甲", "description": "以金屬鉚釘補強的皮甲。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "同期狼人掉落資料收錄。", "assetKey": "item-studded-leather-armor",
+    "weight": 45, "stackLimit": 1, "buyPrice": 1200, "sellPrice": 450, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "armor", "acModifier": -3
+  },
+  {
+    "id": "scale-mail", "name": "鱗甲", "description": "以金屬鱗片編成的中型盔甲。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "同期狼人掉落資料收錄。", "assetKey": "item-scale-mail",
+    "weight": 60, "stackLimit": 1, "buyPrice": 2200, "sellPrice": 850, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "armor", "acModifier": -4
+  },
+  {
+    "id": "chain-mail", "name": "鎖子甲", "description": "兼顧活動與防禦的鎖鏈盔甲。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "同期狼人掉落與物品資料收錄。", "assetKey": "item-chain-mail",
+    "weight": 75, "stackLimit": 1, "buyPrice": 3800, "sellPrice": 1400, "allowedClasses": ["prince", "knight", "elf"], "equipmentSlot": "armor", "acModifier": -5
+  },
+  {
+    "id": "plate-mail", "name": "板金盔甲", "description": "防禦優秀但沉重的全身甲。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年巴風特掉落資料收錄。", "assetKey": "item-plate-mail",
+    "weight": 120, "stackLimit": 1, "buyPrice": 9000, "sellPrice": 3200, "allowedClasses": ["prince", "knight"], "equipmentSlot": "armor", "acModifier": -6
+  },
+  {
+    "id": "magic-cloak", "name": "魔法斗篷", "description": "帶有魔法防護的斗篷。", "kind": "armor",
+    "sourceTier": "B", "sourceNotes": "官方地監骷髏與長者掉落資料收錄。", "assetKey": "item-magic-cloak",
+    "weight": 10, "stackLimit": 1, "buyPrice": 4200, "sellPrice": 1500, "allowedClasses": ["prince", "knight", "elf", "wizard"], "equipmentSlot": "cloak", "acModifier": -2
+  },
+  {
+    "id": "red-potion", "name": "紅色藥水", "description": "恢復少量生命。", "kind": "consumable",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年同期物品與怪物掉落資料收錄。", "assetKey": "item-red-potion",
+    "weight": 2, "stackLimit": 100, "buyPrice": 50, "sellPrice": 20, "allowedClasses": ["prince", "knight", "elf", "wizard"], "healAmount": 15
+  },
+  {
+    "id": "orange-potion", "name": "橙色藥水", "description": "恢復中量生命。", "kind": "consumable",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年同期補給資料收錄。", "assetKey": "item-orange-potion",
+    "weight": 3, "stackLimit": 100, "buyPrice": 250, "sellPrice": 100, "allowedClasses": ["prince", "knight", "elf", "wizard"], "healAmount": 35
+  },
+  {
+    "id": "clear-potion", "name": "透明藥水", "description": "恢復大量生命。", "kind": "consumable",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年同期補給資料收錄；名稱沿用早期英文 Clear Potion 慣稱。", "assetKey": "item-clear-potion",
+    "weight": 4, "stackLimit": 100, "buyPrice": 700, "sellPrice": 280, "allowedClasses": ["prince", "knight", "elf", "wizard"], "healAmount": 70
+  },
+  {
+    "id": "green-potion", "name": "綠色藥水", "description": "短時間提高行動速度。", "kind": "consumable",
+    "sourceTier": "B", "sourceNotes": "蜘蛛與巴風特掉落資料收錄。", "assetKey": "item-green-potion",
+    "weight": 2, "stackLimit": 100, "buyPrice": 150, "sellPrice": 60, "allowedClasses": ["prince", "knight", "elf", "wizard"], "speedMultiplier": 1.15
+  },
+  {
+    "id": "greater-green-potion", "name": "強化綠色藥水", "description": "較長時間提高行動速度。", "kind": "consumable",
+    "sourceTier": "B", "sourceNotes": "地監骷髏、蜘蛛與巴風特掉落資料收錄。", "assetKey": "item-greater-green-potion",
+    "weight": 2, "stackLimit": 100, "buyPrice": 450, "sellPrice": 180, "allowedClasses": ["prince", "knight", "elf", "wizard"], "speedMultiplier": 1.15
+  },
+  {
+    "id": "brave-potion", "name": "勇敢藥水", "description": "騎士飲用後提高攻擊速度。", "kind": "consumable",
+    "sourceTier": "B", "sourceNotes": "黑騎士與巴風特掉落資料收錄；效果限騎士是早期職業特色。", "assetKey": "item-brave-potion",
+    "weight": 2, "stackLimit": 100, "buyPrice": 500, "sellPrice": 200, "allowedClasses": ["knight"], "speedMultiplier": 1.25
+  },
+  {
+    "id": "wisdom-potion", "name": "慎重藥水", "description": "法師飲用後提高魔法效率。", "kind": "consumable",
+    "sourceTier": "B", "sourceNotes": "巴風特與長者掉落資料收錄。", "assetKey": "item-wisdom-potion",
+    "weight": 2, "stackLimit": 100, "buyPrice": 500, "sellPrice": 200, "allowedClasses": ["wizard"], "manaAmount": 10
+  },
+  {
+    "id": "blue-potion", "name": "藍色藥水", "description": "幫助恢復魔力。", "kind": "consumable",
+    "sourceTier": "B", "sourceNotes": "漂浮之眼、石頭高崙與巴風特掉落資料收錄。", "assetKey": "item-blue-potion",
+    "weight": 2, "stackLimit": 100, "buyPrice": 300, "sellPrice": 120, "allowedClasses": ["prince", "elf", "wizard"], "manaAmount": 15
+  },
+  {
+    "id": "antidote", "name": "解毒藥水", "description": "解除食屍鬼與蜘蛛造成的中毒。", "kind": "consumable",
+    "sourceTier": "A", "sourceNotes": "官方地監一樓說明明載食屍鬼麻痺毒需要解毒劑。", "assetKey": "item-antidote",
+    "weight": 1, "stackLimit": 100, "buyPrice": 80, "sellPrice": 30, "allowedClasses": ["prince", "knight", "elf", "wizard"]
+  },
+  {
+    "id": "meat", "name": "肉", "description": "減少飢餓並恢復少量生命。", "kind": "consumable",
+    "sourceTier": "B", "sourceNotes": "早期一般物品與商店資料收錄。", "assetKey": "item-meat",
+    "weight": 1, "stackLimit": 100, "buyPrice": 10, "sellPrice": 4, "allowedClasses": ["prince", "knight", "elf", "wizard"], "healAmount": 3
+  },
+  {
+    "id": "spellbook-lesser-heal", "name": "魔法書（初級治癒術）", "description": "記載初級治癒術的魔法書。", "kind": "spellbook",
+    "sourceTier": "B", "sourceNotes": "早期一階魔法學習物品。", "assetKey": "item-spellbook-lesser-heal",
+    "weight": 1, "stackLimit": 1, "buyPrice": 100, "sellPrice": 40, "allowedClasses": ["prince", "elf", "wizard"], "grantsAbilityId": "lesser-heal"
+  },
+  {
+    "id": "spellbook-shield", "name": "魔法書（保護罩）", "description": "記載保護罩的魔法書。", "kind": "spellbook",
+    "sourceTier": "B", "sourceNotes": "早期一階魔法學習物品。", "assetKey": "item-spellbook-shield",
+    "weight": 1, "stackLimit": 1, "buyPrice": 100, "sellPrice": 40, "allowedClasses": ["prince", "elf", "wizard"], "grantsAbilityId": "shield"
+  },
+  {
+    "id": "spellbook-energy-bolt", "name": "魔法書（光箭）", "description": "記載光箭的魔法書。", "kind": "spellbook",
+    "sourceTier": "B", "sourceNotes": "早期一階魔法學習物品。", "assetKey": "item-spellbook-energy-bolt",
+    "weight": 1, "stackLimit": 1, "buyPrice": 100, "sellPrice": 40, "allowedClasses": ["prince", "elf", "wizard"], "grantsAbilityId": "energy-bolt"
+  },
+  {
+    "id": "spellbook-cure-poison", "name": "魔法書（解毒術）", "description": "記載解毒術的魔法書。", "kind": "spellbook",
+    "sourceTier": "A", "sourceNotes": "台灣官方二階一般魔法。", "assetKey": "item-spellbook-cure-poison",
+    "weight": 1, "stackLimit": 1, "buyPrice": 400, "sellPrice": 160, "allowedClasses": ["wizard"], "grantsAbilityId": "cure-poison"
+  },
+  {
+    "id": "spellbook-holy-weapon", "name": "魔法書（神聖武器）", "description": "記載神聖武器的魔法書。", "kind": "spellbook",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年同期一階魔法學習物品。", "assetKey": "item-spellbook-holy-weapon",
+    "weight": 1, "stackLimit": 1, "buyPrice": 180, "sellPrice": 70, "allowedClasses": ["prince", "elf", "wizard"], "grantsAbilityId": "holy-weapon"
+  },
+  {
+    "id": "spellbook-turn-undead", "name": "魔法書（起死回生術）", "description": "記載起死回生術的魔法書。", "kind": "spellbook",
+    "sourceTier": "A", "sourceNotes": "台灣官方三階一般魔法。", "assetKey": "item-spellbook-turn-undead",
+    "weight": 1, "stackLimit": 1, "buyPrice": 900, "sellPrice": 360, "allowedClasses": ["wizard"], "grantsAbilityId": "turn-undead"
+  },
+  {
+    "id": "wooden-arrow", "name": "箭", "description": "一般弓使用的木箭。", "kind": "ammunition",
+    "sourceTier": "B", "sourceNotes": "早期妖精弓術與地監骷髏弓手內容所需。", "assetKey": "item-wooden-arrow",
+    "weight": 1, "stackLimit": 999, "buyPrice": 2, "sellPrice": 1, "allowedClasses": ["prince", "elf"]
+  },
+  {
+    "id": "silver-arrow", "name": "銀箭", "description": "對不死系特別有效的箭。", "kind": "ammunition",
+    "sourceTier": "B", "sourceNotes": "早期不死系狩獵常用彈藥；單機版由支線穩定供應。", "assetKey": "item-silver-arrow",
+    "weight": 1, "stackLimit": 999, "buyPrice": 5, "sellPrice": 2, "allowedClasses": ["prince", "elf"]
+  },
+  {
+    "id": "animal-hide", "name": "動物皮", "description": "可出售或交付任務的基礎材料。", "kind": "quest",
+    "sourceTier": "B", "sourceNotes": "官方妖魔與狗頭人掉落資料收錄；任務用途為單機適配。", "assetKey": "item-animal-hide",
+    "weight": 1, "stackLimit": 99, "buyPrice": 0, "sellPrice": 8, "allowedClasses": ["prince", "knight", "elf", "wizard"]
+  },
+  {
+    "id": "bone-piece", "name": "骨頭", "description": "骷髏留下的製作材料。", "kind": "quest",
+    "sourceTier": "B", "sourceNotes": "二〇〇三年材料表與官方地監掉落資料收錄。", "assetKey": "item-bone-piece",
+    "weight": 1, "stackLimit": 99, "buyPrice": 0, "sellPrice": 10, "allowedClasses": ["prince", "knight", "elf", "wizard"]
+  },
+  {
+    "id": "ghoul-tooth", "name": "食屍鬼的牙", "description": "食屍鬼留下的危險素材。", "kind": "quest",
+    "sourceTier": "B", "sourceNotes": "官方地監食屍鬼掉落資料收錄。", "assetKey": "item-ghoul-tooth",
+    "weight": 1, "stackLimit": 99, "buyPrice": 0, "sellPrice": 15, "allowedClasses": ["prince", "knight", "elf", "wizard"]
+  },
+  {
+    "id": "black-knight-pledge", "name": "黑騎士誓約書", "description": "記載黑騎士行動命令的文件。", "kind": "quest",
+    "sourceTier": "S", "sourceNotes": "二〇〇三年確有同名騎士任務物品，但移至說話之島共通主線屬單機適配。", "assetKey": "item-black-knight-pledge",
+    "weight": 1, "stackLimit": 1, "buyPrice": 0, "sellPrice": 0, "allowedClasses": ["prince", "knight", "elf", "wizard"]
+  },
+  {
+    "id": "baphomet-seal-fragment", "name": "巴風特封印碎片", "description": "封印巴風特房間所需的魔力碎片。", "kind": "quest",
+    "sourceTier": "S", "sourceNotes": "巴風特被封印於地監二樓有官方故事支持；碎片是單機關卡物品。", "assetKey": "item-baphomet-seal-fragment",
+    "weight": 1, "stackLimit": 3, "buyPrice": 0, "sellPrice": 0, "allowedClasses": ["prince", "knight", "elf", "wizard"]
+  }
+]

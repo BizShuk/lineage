@@ -1,0 +1,101 @@
+[
+  {
+    "id": "talking-island-village", "name": "說話之島村", "description": "商店、倉庫、旅館與港口集中的安全據點。",
+    "sourceTier": "A", "sourceNotes": "官方經典版確認村莊、港口、潘朵拉、吉倫之家與稻草人區；地圖尺寸為原創。", "assetKey": "map-talking-island-village",
+    "width": 64, "height": 64, "safeZone": true, "entry": { "x": 32, "y": 32 },
+    "npcIds": ["pandora", "dorin", "gereng", "balsim", "selena", "village-guard", "harbor-captain", "james", "lucas", "rabbian", "village-elder-jered"],
+    "exits": [
+      { "x": 32, "y": 62, "targetMapId": "scarecrow-field", "targetX": 48, "targetY": 2 },
+      { "x": 2, "y": 20, "targetMapId": "north-field", "targetX": 94, "targetY": 48 },
+      { "x": 62, "y": 40, "targetMapId": "coast", "targetX": 2, "targetY": 48 }
+    ],
+    "spawns": []
+  },
+  {
+    "id": "scarecrow-field", "name": "稻草人區", "description": "供一至五級冒險者熟悉操作的訓練場。",
+    "sourceTier": "S", "sourceNotes": "官方經典版確認稻草人區用途；獨立地圖與訓練用哥布林為單機適配。", "assetKey": "map-scarecrow-field",
+    "width": 96, "height": 96, "safeZone": true, "entry": { "x": 48, "y": 2 },
+    "npcIds": ["scarecrow-instructor"],
+    "exits": [{ "x": 48, "y": 2, "targetMapId": "talking-island-village", "targetX": 32, "targetY": 62 }],
+    "spawns": [{ "monsterId": "goblin", "x": 28, "y": 28, "count": 6, "respawnSeconds": 15 }]
+  },
+  {
+    "id": "north-field", "name": "北部野外", "description": "從初階妖魔一路通往高危魔像區的廣闊野外。",
+    "sourceTier": "S", "sourceNotes": "官方資料確認村北怪物逐步增強；作為獨立地圖與生成配置為單機適配。", "assetKey": "map-north-field",
+    "width": 96, "height": 96, "safeZone": false, "entry": { "x": 94, "y": 48 },
+    "npcIds": ["gunther", "atonement-priestess"],
+    "exits": [
+      { "x": 94, "y": 48, "targetMapId": "talking-island-village", "targetX": 2, "targetY": 20 },
+      { "x": 48, "y": 2, "targetMapId": "black-knight-area", "targetX": 48, "targetY": 94 }
+    ],
+    "spawns": [
+      { "monsterId": "goblin", "x": 44, "y": 28, "count": 5, "respawnSeconds": 20 },
+      { "monsterId": "orc", "x": 48, "y": 32, "count": 5, "respawnSeconds": 22 },
+      { "monsterId": "kobold", "x": 58, "y": 60, "count": 4, "respawnSeconds": 24 },
+      { "monsterId": "dwarf", "x": 40, "y": 34, "count": 4, "respawnSeconds": 30 },
+      { "monsterId": "ghoul", "x": 50, "y": 26, "count": 2, "respawnSeconds": 40 },
+      { "monsterId": "stone-golem", "x": 64, "y": 64, "count": 2, "respawnSeconds": 55 }
+    ]
+  },
+  {
+    "id": "coast", "name": "海岸", "description": "蜘蛛與漂浮之眼出沒的潮濕海岸。",
+    "sourceTier": "S", "sourceNotes": "港口與海岸環境有官方支持；獨立狩獵區和漁夫事件為單機適配。", "assetKey": "map-coast",
+    "width": 96, "height": 96, "safeZone": false, "entry": { "x": 2, "y": 48 },
+    "npcIds": ["injured-fisher"],
+    "exits": [
+      { "x": 2, "y": 48, "targetMapId": "talking-island-village", "targetX": 62, "targetY": 40 },
+      { "x": 94, "y": 70, "targetMapId": "black-knight-area", "targetX": 2, "targetY": 70 }
+    ],
+    "spawns": [
+      { "monsterId": "spider", "x": 26, "y": 46, "count": 6, "respawnSeconds": 28 },
+      { "monsterId": "floating-eye", "x": 58, "y": 66, "count": 4, "respawnSeconds": 30 },
+      { "monsterId": "werewolf", "x": 62, "y": 70, "count": 2, "respawnSeconds": 40 }
+    ]
+  },
+  {
+    "id": "black-knight-area", "name": "黑騎士區", "description": "黑騎士搜索隊與隊長克特活動的前線。",
+    "sourceTier": "S", "sourceNotes": "克特港口事件是官方歷史回憶；固定前哨地圖、瑞奇與首領觸發為單機適配。", "assetKey": "map-black-knight-area",
+    "width": 96, "height": 96, "safeZone": false, "entry": { "x": 48, "y": 94 },
+    "npcIds": ["ricky"],
+    "exits": [
+      { "x": 48, "y": 94, "targetMapId": "north-field", "targetX": 48, "targetY": 2 },
+      { "x": 2, "y": 70, "targetMapId": "coast", "targetX": 94, "targetY": 70 },
+      { "x": 80, "y": 20, "targetMapId": "talking-island-dungeon-1", "targetX": 2, "targetY": 36 }
+    ],
+    "spawns": [
+      { "monsterId": "black-knight", "x": 70, "y": 44, "count": 6, "respawnSeconds": 45 },
+      { "monsterId": "kurt", "x": 72, "y": 48, "count": 1, "respawnSeconds": 0 }
+    ]
+  },
+  {
+    "id": "talking-island-dungeon-1", "name": "說話之島地監一樓", "description": "充滿骷髏、殭屍與食屍鬼的地下迷宮。",
+    "sourceTier": "A", "sourceNotes": "官方資料確認一樓以十至十五級不死系怪物為主；尺寸與生成數量為單機適配。", "assetKey": "map-talking-island-dungeon-1",
+    "width": 72, "height": 72, "safeZone": false, "entry": { "x": 2, "y": 36 },
+    "npcIds": ["dungeon-warden"],
+    "exits": [
+      { "x": 2, "y": 36, "targetMapId": "black-knight-area", "targetX": 80, "targetY": 20 },
+      { "x": 69, "y": 60, "targetMapId": "talking-island-dungeon-2", "targetX": 2, "targetY": 60 }
+    ],
+    "spawns": [
+      { "monsterId": "zombie", "x": 8, "y": 12, "count": 6, "respawnSeconds": 28 },
+      { "monsterId": "skeleton", "x": 56, "y": 38, "count": 7, "respawnSeconds": 32 },
+      { "monsterId": "ghoul", "x": 58, "y": 40, "count": 3, "respawnSeconds": 42 },
+      { "monsterId": "floating-eye", "x": 12, "y": 16, "count": 2, "respawnSeconds": 35 }
+    ]
+  },
+  {
+    "id": "talking-island-dungeon-2", "name": "說話之島地監二樓", "description": "設有機關、海底隧道遺跡與巴風特房的深層地監。",
+    "sourceTier": "S", "sourceNotes": "二樓、海底隧道與巴風特房為官方史實；適合十二至十五級單人的配置與永久首領狀態為適配。", "assetKey": "map-talking-island-dungeon-2",
+    "width": 72, "height": 72, "safeZone": false, "entry": { "x": 2, "y": 60 },
+    "npcIds": [],
+    "exits": [{ "x": 2, "y": 60, "targetMapId": "talking-island-dungeon-1", "targetX": 69, "targetY": 60 }],
+    "spawns": [
+      { "monsterId": "skeleton", "x": 24, "y": 10, "count": 6, "respawnSeconds": 32 },
+      { "monsterId": "skeleton-archer", "x": 28, "y": 12, "count": 5, "respawnSeconds": 36 },
+      { "monsterId": "werewolf", "x": 32, "y": 14, "count": 3, "respawnSeconds": 42 },
+      { "monsterId": "spider", "x": 26, "y": 16, "count": 3, "respawnSeconds": 38 },
+      { "monsterId": "stone-golem", "x": 30, "y": 18, "count": 2, "respawnSeconds": 55 },
+      { "monsterId": "baphomet", "x": 52, "y": 52, "count": 1, "respawnSeconds": 0 }
+    ]
+  }
+]
