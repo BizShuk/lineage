@@ -95,6 +95,46 @@ describe('WorldController', () => {
       x: 2,
       y: 20,
     });
+    expect(controller.drainPersistenceEvents()).toEqual(['map-change']);
+  });
+
+  it('exposes complete authoritative save state and accepts transactional UI state', () => {
+    const save = completeSave({ slot: 1 });
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        world: {
+          player: { mapId: 'north-field', x: 2, y: 2 },
+          defeatedBosses: ['baphomet'],
+          flags: { baphometDefeated: true },
+          worldTimeMs: 1_250,
+        },
+      },
+      grids: new Map([['north-field', grid]]),
+      monsters: [],
+    });
+
+    expect(controller.snapshot.world).toEqual({
+      player: { mapId: 'north-field', x: 2, y: 2 },
+      defeatedBosses: ['baphomet'],
+      flags: { baphometDefeated: true },
+      worldTimeMs: 1_250,
+    });
+
+    controller.syncSerializableState({
+      character: { ...save.character, level: 9 },
+      inventory: { ...save.inventory, adena: 777 },
+      quests: {
+        ...save.quests,
+        completed: ['village-registration'],
+      },
+    });
+
+    expect(controller.snapshot.character.level).toBe(9);
+    expect(controller.snapshot.inventory.adena).toBe(777);
+    expect(controller.snapshot.quests.completed).toEqual(['village-registration']);
+    expect(controller.snapshot.world.flags).toEqual({ baphometDefeated: true });
   });
 
   it('approaches an attack target, emits damage, and movement cancels auto-attack', () => {
@@ -130,5 +170,83 @@ describe('WorldController', () => {
       itemId: 'wooden-club',
       quantity: 1,
     });
+  });
+
+  it('emits quest-stage persistence only when combat changes quest progress', () => {
+    const save = completeSave({ slot: 1 });
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        quests: {
+          active: {
+            'scarecrow-training': {
+              stage: 'in-progress',
+              counters: { 'in-progress:0': 1, 'in-progress:1': 3 },
+            },
+          },
+          completed: [],
+          claimedRewards: [],
+        },
+        world: {
+          player: { mapId: 'north-field', x: 2, y: 2 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([['north-field', grid]]),
+      monsters: [
+        monsterAt(
+          { x: 3, y: 2 },
+          { id: 'quest-goblin', mapId: 'north-field', hp: 1, maxHP: 1, alertRadius: 0 },
+        ),
+      ],
+      seed: 7,
+    });
+
+    controller.dispatch({ type: 'attack', targetId: 'quest-goblin' });
+    controller.update(250);
+
+    expect(controller.snapshot.quests.completed).toContain('scarecrow-training');
+    expect(controller.drainPersistenceEvents()).toContain('quest-stage');
+  });
+
+  it('emits death-respawn persistence after a lethal monster transaction', () => {
+    const save = completeSave({ slot: 1 });
+    const controller = new WorldController({
+      content,
+      save: {
+        ...save,
+        character: { ...save.character, hp: 1 },
+        world: {
+          player: { mapId: 'north-field', x: 2, y: 2 },
+          defeatedBosses: [],
+          flags: {},
+          worldTimeMs: 0,
+        },
+      },
+      grids: new Map([['north-field', grid]]),
+      monsters: [
+        monsterAt(
+          { x: 3, y: 2 },
+          {
+            id: 'lethal-goblin',
+            mapId: 'north-field',
+            alertRadius: 8,
+            attackCooldownMs: 50,
+          },
+        ),
+      ],
+      seed: 7,
+    });
+
+    for (let step = 0; step < 100; step += 1) {
+      controller.update(250);
+      if (controller.snapshot.character.hp > 1) break;
+    }
+
+    expect(controller.snapshot.character.hp).toBeGreaterThan(1);
+    expect(controller.drainPersistenceEvents()).toContain('death-respawn');
   });
 });

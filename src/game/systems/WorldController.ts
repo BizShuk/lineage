@@ -39,6 +39,7 @@ export interface WorldControllerOptions {
 
 export interface WorldSnapshot {
   readonly player: SaveGameV1['world']['player'];
+  readonly world: SaveGameV1['world'];
   readonly character: SaveGameV1['character'];
   readonly inventory: InventoryState;
   readonly quests: SaveGameV1['quests'];
@@ -47,6 +48,8 @@ export interface WorldSnapshot {
   readonly worldTimeMs: number;
   readonly autoAttackTargetId: string | null;
 }
+
+export type WorldPersistenceEvent = 'map-change' | 'quest-stage' | 'death-respawn';
 
 const distance = (
   left: Readonly<{ x: number; y: number }>,
@@ -73,6 +76,7 @@ export class WorldController {
   #monsters: MonsterState[];
   #groundLoot: GroundLoot[] = [];
   #events: DomainEvent[] = [];
+  #persistenceEvents: WorldPersistenceEvent[] = [];
   #movementPath: readonly { readonly x: number; readonly y: number }[] = [];
   #pendingExit: {
     readonly x: number;
@@ -118,18 +122,54 @@ export class WorldController {
   }
 
   get snapshot(): WorldSnapshot {
+    const player = { ...this.#player };
     return {
-      player: { ...this.#player },
+      player,
+      world: {
+        player,
+        defeatedBosses: [...this.#defeatedBosses],
+        flags: { ...this.#flags },
+        worldTimeMs: this.#worldTimeMs,
+      },
       character: { ...this.#character, attributes: { ...this.#character.attributes } },
       inventory: {
         ...this.#inventory,
         stacks: this.#inventory.stacks.map((stack) => ({ ...stack })),
       },
-      quests: this.#quests,
+      quests: {
+        active: Object.fromEntries(
+          Object.entries(this.#quests.active).map(([id, progress]) => [
+            id,
+            { ...progress, counters: { ...progress.counters } },
+          ]),
+        ),
+        completed: [...this.#quests.completed],
+        claimedRewards: [...this.#quests.claimedRewards],
+      },
       monsters: this.#monsters.map((monster) => ({ ...monster })),
       groundLoot: this.#groundLoot.map((loot) => ({ ...loot })),
       worldTimeMs: this.#worldTimeMs,
       autoAttackTargetId: this.#autoAttackTargetId,
+    };
+  }
+
+  syncSerializableState(
+    state: Pick<SaveGameV1, 'character' | 'inventory' | 'quests'>,
+  ): void {
+    this.#character = { ...state.character, attributes: { ...state.character.attributes } };
+    this.#inventory = {
+      ...state.inventory,
+      stacks: state.inventory.stacks.map((stack) => ({ ...stack })),
+    };
+    this.#quests = {
+      active: Object.fromEntries(
+        Object.entries(state.quests.active).map(([id, progress]) => [
+          id,
+          { ...progress, counters: { ...progress.counters } },
+        ]),
+      ),
+      completed: [...state.quests.completed],
+      claimedRewards: [...state.quests.claimedRewards],
     };
   }
 
@@ -179,6 +219,12 @@ export class WorldController {
   drainEvents(): DomainEvent[] {
     const events = this.#events;
     this.#events = [];
+    return events;
+  }
+
+  drainPersistenceEvents(): WorldPersistenceEvent[] {
+    const events = this.#persistenceEvents;
+    this.#persistenceEvents = [];
     return events;
   }
 
@@ -260,11 +306,14 @@ export class WorldController {
     this.#monsters = [
       ...spawnMonsters(this.#content.map(exit.targetMapId), this.#content.monsters),
     ];
-    this.#quests = advanceQuest(
+    const quests = advanceQuest(
       this.#quests,
       { type: 'area-entered', mapId: exit.targetMapId },
       this.#questCatalog,
     );
+    this.#persistenceEvents.push('map-change');
+    if (quests !== this.#quests) this.#persistenceEvents.push('quest-stage');
+    this.#quests = quests;
   }
 
   #attackMonster(monster: MonsterState): void {
@@ -322,11 +371,13 @@ export class WorldController {
     const progression = applyExperience(this.#character, definition.experience);
     this.#character = progression.character;
     this.#events.push(...progression.events);
-    this.#quests = advanceQuest(
+    const quests = advanceQuest(
       this.#quests,
       { type: 'monster-defeated', monsterId: monster.monsterId, count: 1 },
       this.#questCatalog,
     );
+    if (quests !== this.#quests) this.#persistenceEvents.push('quest-stage');
+    this.#quests = quests;
     if (monster.monsterId === 'baphomet') {
       this.#defeatedBosses = [...new Set([...this.#defeatedBosses, 'baphomet'])];
       this.#flags = { ...this.#flags, baphometDefeated: true };
@@ -387,6 +438,7 @@ export class WorldController {
     this.#autoAttackTargetId = null;
     this.#movementPath = [];
     this.#pendingExit = null;
+    this.#persistenceEvents.push('death-respawn');
   }
 
   #respawnMonsters(): void {

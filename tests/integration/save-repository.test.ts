@@ -82,6 +82,32 @@ describe('SaveRepository', () => {
     expect((await repository.restoreBackup(2)).character.level).toBe(8);
   });
 
+  it('reads backup summaries without restoring or mutating either copy', async () => {
+    const repository = new SaveRepository(databaseName('backup-summary'));
+    const previous = completeSave({
+      slot: 2,
+      level: 8,
+      updatedAt: '2026-07-17T08:00:00.000Z',
+    });
+    const current = completeSave({
+      slot: 2,
+      level: 9,
+      updatedAt: '2026-07-17T09:00:00.000Z',
+    });
+
+    expect(await repository.getBackupSummary(2)).toBeNull();
+    await repository.put(previous);
+    await repository.put(current);
+
+    expect(await repository.getBackupSummary(2)).toMatchObject({
+      slot: 2,
+      level: 8,
+      updatedAt: '2026-07-17T08:00:00.000Z',
+    });
+    expect((await repository.get(2))?.character.level).toBe(9);
+    expect((await repository.getBackupSummary(2))?.level).toBe(8);
+  });
+
   it('validates and migrates an import before forcing and resealing its target slot', async () => {
     const repository = new SaveRepository(databaseName('migration-import'));
     const source = completeSave({ slot: 1, level: 11 });

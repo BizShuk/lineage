@@ -71,6 +71,13 @@ export class SaveRepository {
     return save === undefined ? null : migrateSave(save);
   }
 
+  async getBackupSummary(slot: number): Promise<SaveSummary | null> {
+    const validSlot = requireSlot(slot);
+    const database = await this.#database;
+    const backup = await database.get('backups', validSlot);
+    return backup === undefined ? null : summaryOf(migrateSave(backup));
+  }
+
   async put(save: SaveGameV1): Promise<void> {
     const validated = migrateSave(save);
     const slot = requireSlot(validated.slot);

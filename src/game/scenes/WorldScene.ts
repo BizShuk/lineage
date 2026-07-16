@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 
+import { ErrorBoundary, type DiagnosticDownload, type RecoveryView } from '../../app/ErrorBoundary';
 import type { AudioDirector } from '../../audio/AudioDirector';
 import type { GameContent } from '../../content/catalog';
 import {
@@ -22,6 +23,8 @@ import {
   type QuestCatalog,
 } from '../../core/quests';
 import { deriveStats } from '../../core/stats';
+import { AutosaveCoordinator, type AutosaveReason } from '../../storage/AutosaveCoordinator';
+import type { SaveRepository } from '../../storage/SaveRepository';
 import { sealSaveV1, type SaveGameV1 } from '../../storage/saveSchema';
 import { WorldUi, type WorldPanelViewModels } from '../../ui/WorldUi';
 import type { HudViewModel } from '../../ui/Hud';
@@ -30,7 +33,7 @@ import type { SettingsPanelViewModel } from '../../ui/panels/SettingsPanel';
 import type { PanelActionResult } from '../../ui/panels/shared';
 import type { MonsterState } from '../../world/ai';
 import { TileGrid, type GridRectangle } from '../../world/grid';
-import { CONTENT_REGISTRY_KEY } from './BootScene';
+import { CONTENT_REGISTRY_KEY, SAVE_REPOSITORY_REGISTRY_KEY } from './BootScene';
 import { ensureAudioDirector } from './MenuScene';
 import { CombatPresenter } from '../systems/CombatPresenter';
 import { EntityRenderer, TILE_SIZE } from '../systems/EntityRenderer';
@@ -197,6 +200,13 @@ export class WorldScene extends Phaser.Scene {
   #audioDirector: AudioDirector | null = null;
   #audioRegion: string | null = null;
   #audioStatus: HTMLOutputElement | null = null;
+  #autosave: AutosaveCoordinator | null = null;
+  #repository: SaveRepository | null = null;
+  #saveControls: HTMLElement | null = null;
+  #autosaveStatus: HTMLOutputElement | null = null;
+  #recoveryOverlay: HTMLElement | null = null;
+  #capturingRuntimeError = false;
+  #failNextRenderer = false;
 
   constructor() {
     super('world');
@@ -220,6 +230,8 @@ export class WorldScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.RESUME, this.#resume);
     document.addEventListener('visibilitychange', this.#visibilityChange);
     window.addEventListener('keydown', this.#keyDown);
+    window.addEventListener('error', this.#windowError);
+    window.addEventListener('unhandledrejection', this.#unhandledRejection);
     this.game.canvas.addEventListener('wheel', this.#wheel, { passive: false });
     this.game.canvas.addEventListener('pointerdown', this.#focusCanvas);
     void this.#initialize();
@@ -227,8 +239,7 @@ export class WorldScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (this.#controller === null || this.#manualE2E) return;
-    this.#controller.update(delta);
-    this.#render();
+    this.#advanceWorld(delta);
   }
 
   async #initialize(): Promise<void> {
@@ -261,11 +272,23 @@ export class WorldScene extends Phaser.Scene {
       ...(monsters === undefined ? {} : { monsters }),
       seed: 7,
     });
+    this.#repository = this.registry.get(SAVE_REPOSITORY_REGISTRY_KEY) as SaveRepository;
+    this.#autosave = new AutosaveCoordinator(
+      {
+        put: async (nextSave) => {
+          const repository = this.#repository;
+          if (repository === null) throw new Error('找不到存檔資料庫');
+          await repository.put(nextSave);
+        },
+      },
+      () => this.#serializableSave(),
+    );
     this.#renderer = new EntityRenderer(this);
     this.#combatPresenter = new CombatPresenter(this, (id) => this.#renderer?.positionOf(id) ?? null);
     this.cameras.main.setViewport(0, 0, 512, 432);
     this.#wirePointerInput();
     this.#createWorldUi();
+    this.#createSaveControls();
     if (this.#manualE2E) this.#createE2EPanel();
     this.#render();
   }
@@ -489,11 +512,105 @@ export class WorldScene extends Phaser.Scene {
 
   #storeSave(save: SaveGameV1): void {
     this.#activeSave = save;
+    this.#controller?.syncSerializableState(save);
     this.registry.set('active-save', save);
     if (window.__lineageAudioE2E !== undefined) {
       window.__lineageAudioE2E.activeSettings = { ...save.settings };
     }
     this.#refreshHud();
+  }
+
+  #serializableSave(): SaveGameV1 {
+    const save = this.#activeSave;
+    const snapshot = this.#controller?.snapshot;
+    if (save === null || snapshot === undefined) throw new Error('世界存檔尚未準備完成');
+    return sealSaveV1({
+      ...save,
+      character: snapshot.character,
+      inventory: snapshot.inventory,
+      quests: snapshot.quests,
+      world: snapshot.world,
+      checksum: '',
+    });
+  }
+
+  #syncActiveSaveFromController(): void {
+    if (this.#activeSave === null || this.#controller === null) return;
+    const save = this.#serializableSave();
+    this.#activeSave = save;
+    this.registry.set('active-save', save);
+  }
+
+  #advanceWorld(delta: number): void {
+    const controller = this.#controller;
+    if (controller === null) return;
+    this.#autosave?.setCombatTransactionPending(true);
+    try {
+      controller.update(delta);
+      const reasons = controller.drainPersistenceEvents();
+      reasons.forEach((reason) => {
+        void this.#requestAutosave(reason);
+      });
+    } catch (error) {
+      void this.#captureRuntimeError(error);
+      return;
+    } finally {
+      this.#autosave?.setCombatTransactionPending(false);
+    }
+    this.#render();
+  }
+
+  async #requestAutosave(reason: AutosaveReason, announce = false): Promise<boolean> {
+    const autosave = this.#autosave;
+    if (autosave === null) return false;
+    const result = await autosave.request(reason);
+    if (!result.ok) {
+      if (announce && this.#autosaveStatus !== null) {
+        this.#autosaveStatus.textContent = '儲存失敗，請稍後再試。';
+      }
+      return false;
+    }
+    this.#activeSave = result.save;
+    this.registry.set('active-save', result.save);
+    if (announce && this.#autosaveStatus !== null) {
+      this.#autosaveStatus.textContent = '已儲存目前進度。';
+    }
+    return true;
+  }
+
+  #createSaveControls(): void {
+    if (this.#root === null) return;
+    const controls = document.createElement('section');
+    controls.setAttribute('aria-label', '存檔操作');
+    controls.style.cssText =
+      'position:absolute;z-index:25;right:8px;top:8px;display:flex;gap:4px;align-items:center';
+    const manual = document.createElement('button');
+    manual.type = 'button';
+    manual.dataset.testid = 'manual-save';
+    manual.textContent = '手動儲存';
+    manual.addEventListener('click', () => {
+      void this.#requestAutosave('manual', true);
+    });
+    const menu = document.createElement('button');
+    menu.type = 'button';
+    menu.dataset.testid = 'return-menu';
+    menu.textContent = '返回主選單';
+    menu.addEventListener('click', () => {
+      void this.#returnToMenu();
+    });
+    const status = document.createElement('output');
+    status.dataset.testid = 'autosave-status';
+    status.setAttribute('aria-live', 'polite');
+    controls.append(manual, menu, status);
+    this.#root.append(controls);
+    this.#saveControls = controls;
+    this.#autosaveStatus = status;
+  }
+
+  async #returnToMenu(): Promise<void> {
+    const saved = await this.#requestAutosave('return-menu', true);
+    if (!saved || !this.scene.isActive()) return;
+    this.scene.start('menu');
   }
 
   #sealedSave(patch: Partial<SaveGameV1>): SaveGameV1 {
@@ -605,6 +722,7 @@ export class WorldScene extends Phaser.Scene {
     const quests = startQuest(save.quests, questId, save.character.classId, catalog);
     if (quests === save.quests) return panelFailure('目前無法開始此任務');
     this.#storeSave(this.#sealedSave({ quests }));
+    void this.#requestAutosave('quest-stage');
     return { ok: true, viewModel: this.#panelModels().quests };
   }
 
@@ -628,7 +746,10 @@ export class WorldScene extends Phaser.Scene {
         save.character.classId,
         catalog,
       );
-      if (quests !== save.quests) this.#storeSave(this.#sealedSave({ quests }));
+      if (quests !== save.quests) {
+        this.#storeSave(this.#sealedSave({ quests }));
+        void this.#requestAutosave('quest-stage');
+      }
     }
     return { ok: true, viewModel: this.#panelModels().dialogue };
   }
@@ -786,22 +907,39 @@ export class WorldScene extends Phaser.Scene {
 
   #dispatch(command: PlayerCommand | null): void {
     if (command === null || this.#controller === null) return;
-    if (command.type === 'toggle-panel') {
-      this.#worldUi?.renderPanels(this.#panelModels());
-      this.#worldUi?.toggle(command.panel);
-    } else if (command.type === 'escape') {
-      this.#worldUi?.closeTop();
-    } else if (command.type === 'interact' && command.targetId === 'e2e-village-elder') {
-      this.#worldUi?.renderPanels(this.#panelModels());
-      this.#worldUi?.open('dialogue');
+    try {
+      if (command.type === 'toggle-panel') {
+        this.#worldUi?.renderPanels(this.#panelModels());
+        this.#worldUi?.toggle(command.panel);
+      } else if (command.type === 'escape') {
+        this.#worldUi?.closeTop();
+      } else if (command.type === 'interact' && command.targetId === 'e2e-village-elder') {
+        this.#worldUi?.renderPanels(this.#panelModels());
+        this.#worldUi?.open('dialogue');
+      }
+      this.#controller.dispatch(command);
+      if (this.#root !== null) this.#root.dataset.lastCommand = command.type;
+      this.#render();
+    } catch (error) {
+      void this.#captureRuntimeError(error);
     }
-    this.#controller.dispatch(command);
-    if (this.#root !== null) this.#root.dataset.lastCommand = command.type;
-    this.#render();
   }
 
   #render(): void {
+    try {
+      if (this.#failNextRenderer) {
+        this.#failNextRenderer = false;
+        throw new Error('E2E renderer exception');
+      }
+      this.#renderUnsafe();
+    } catch (error) {
+      void this.#captureRuntimeError(error);
+    }
+  }
+
+  #renderUnsafe(): void {
     if (this.#controller === null || this.#renderer === null) return;
+    this.#syncActiveSaveFromController();
     const snapshot = this.#controller.snapshot;
     this.#routeAudioRegion(snapshot.player.mapId);
     this.#renderer.render(snapshot);
@@ -855,7 +993,14 @@ export class WorldScene extends Phaser.Scene {
     step.dataset.testid = 'simulation-step';
     step.textContent = '步進模擬';
     step.addEventListener('click', () => {
-      this.#controller?.update(250);
+      this.#advanceWorld(250);
+    });
+    const rendererError = document.createElement('button');
+    rendererError.type = 'button';
+    rendererError.dataset.testid = 'trigger-renderer-error';
+    rendererError.textContent = '觸發繪製錯誤';
+    rendererError.addEventListener('click', () => {
+      this.#failNextRenderer = true;
       this.#render();
     });
     const fixturePanels: readonly (readonly [string, string, UiPanelId])[] = [
@@ -875,7 +1020,7 @@ export class WorldScene extends Phaser.Scene {
       });
       return button;
     });
-    panel.append(ground, step, ...fixtureButtons);
+    panel.append(ground, step, rendererError, ...fixtureButtons);
     this.#root.append(panel);
     this.#e2ePanel = panel;
   }
@@ -929,6 +1074,101 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  async #captureRuntimeError(error: unknown): Promise<void> {
+    if (this.#capturingRuntimeError) return;
+    this.#capturingRuntimeError = true;
+    const boundary = new ErrorBoundary(
+      {
+        pause: () => {
+          this.#controller?.setPaused(true);
+          this.scene.pause();
+        },
+        save: async () => {
+          if (!(await this.#requestAutosave('manual'))) {
+            throw new Error('best-effort autosave failed');
+          }
+        },
+        presentRecovery: (view) => {
+          this.#presentRecovery(view);
+        },
+        returnToMenu: () => {
+          this.#removeRecovery();
+          this.scene.resume();
+          this.scene.start('menu');
+        },
+        loadLatestSave: async () => {
+          const repository = this.#repository;
+          const slot = this.#activeSave?.slot;
+          if (repository === null || slot === undefined) return;
+          const save = await repository.get(slot);
+          if (save === null) return;
+          this.registry.set('active-save', save);
+          this.#removeRecovery();
+          this.scene.resume();
+          this.scene.restart();
+        },
+        exportDiagnostic: (download) => {
+          this.#downloadDiagnostic(download);
+        },
+      },
+      { development: window.location.hostname === 'localhost' },
+    );
+    try {
+      await boundary.capture(error, {
+        scene: 'WorldScene',
+        mapId: this.#controller?.snapshot.player.mapId ?? null,
+      });
+    } finally {
+      this.#capturingRuntimeError = false;
+    }
+  }
+
+  #presentRecovery(view: RecoveryView): void {
+    if (this.#root === null) return;
+    this.#removeRecovery();
+    const recovery = document.createElement('section');
+    recovery.className = 'scene-overlay';
+    recovery.dataset.testid = 'runtime-recovery';
+    recovery.setAttribute('role', 'alertdialog');
+    recovery.setAttribute('aria-label', view.title);
+    recovery.style.cssText = 'z-index:50;padding:20px;display:grid;gap:10px';
+    const heading = document.createElement('h2');
+    heading.textContent = view.title;
+    const message = document.createElement('p');
+    message.textContent = view.message;
+    recovery.append(heading, message);
+    view.actions.forEach((action) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.testid = `recovery-${action.id}`;
+      button.textContent = action.label;
+      button.addEventListener('click', () => {
+        void action.run();
+      });
+      recovery.append(button);
+    });
+    this.#root.append(recovery);
+    this.#recoveryOverlay = recovery;
+  }
+
+  #downloadDiagnostic(download: DiagnosticDownload): void {
+    const blob = new Blob([download.contents], { type: download.mediaType });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = download.fileName;
+    anchor.hidden = true;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  #removeRecovery(): void {
+    this.#recoveryOverlay?.remove();
+    this.#recoveryOverlay = null;
+  }
+
   #keyDown = (event: KeyboardEvent): void => {
     if (this.#controller === null) return;
     const target = event.target;
@@ -980,6 +1220,16 @@ export class WorldScene extends Phaser.Scene {
     this.#syncAudioStatus();
   };
 
+  #windowError = (event: ErrorEvent): void => {
+    event.preventDefault();
+    void this.#captureRuntimeError(event.error ?? event.message);
+  };
+
+  #unhandledRejection = (event: PromiseRejectionEvent): void => {
+    event.preventDefault();
+    void this.#captureRuntimeError(event.reason);
+  };
+
   #pause = (): void => {
     this.#controller?.setPaused(true);
     this.#audioDirector?.suspend();
@@ -1019,17 +1269,26 @@ export class WorldScene extends Phaser.Scene {
   #destroy(): void {
     document.removeEventListener('visibilitychange', this.#visibilityChange);
     window.removeEventListener('keydown', this.#keyDown);
+    window.removeEventListener('error', this.#windowError);
+    window.removeEventListener('unhandledrejection', this.#unhandledRejection);
     this.game.canvas.removeEventListener('wheel', this.#wheel);
     this.game.canvas.removeEventListener('pointerdown', this.#focusCanvas);
     this.events.off(Phaser.Scenes.Events.PAUSE, this.#pause);
     this.events.off(Phaser.Scenes.Events.RESUME, this.#resume);
     this.#renderer?.destroy();
+    this.#autosave?.dispose();
+    this.#autosave = null;
+    this.#repository = null;
     this.#worldUi?.destroy();
     this.#worldUi = null;
     this.#audioDirector?.dispose();
     this.#audioDirector = null;
     this.#audioStatus?.remove();
     this.#audioStatus = null;
+    this.#saveControls?.remove();
+    this.#saveControls = null;
+    this.#autosaveStatus = null;
+    this.#removeRecovery();
     if (window.__lineageAudioE2E !== undefined) {
       window.__lineageAudioE2E.routeRegion = null;
     }
