@@ -19,6 +19,25 @@ import {
 
 const CLASS_IDS = ['prince', 'knight', 'elf', 'wizard'] as const;
 
+const fixtureMapIds: Readonly<Record<string, string>> = {
+  village: 'talking-island-village',
+  'north-field': 'north-field',
+  'black-knight-area': 'black-knight-area',
+  'dungeon-1': 'talking-island-dungeon-1',
+  'dungeon-2': 'talking-island-dungeon-2',
+  inventory: 'talking-island-village',
+  spells: 'talking-island-village',
+  shop: 'talking-island-village',
+  settings: 'talking-island-village',
+};
+
+const e2eInitialMapId = (): string | undefined => {
+  const search = new URLSearchParams(window.location.search);
+  if (search.get('e2e') !== '1') return undefined;
+  const fixture = search.get('fixture');
+  return fixture === null ? undefined : fixtureMapIds[fixture];
+};
+
 const nameKey = (name: string): string => name.normalize('NFKC').trim().toLocaleLowerCase('zh-Hant');
 
 const visibleCharacterCount = (name: string): number => {
@@ -45,8 +64,19 @@ const createInitialSave = (
   characterState: CharacterState,
   classDefinition: ClassDefinition,
   content: GameContent,
+  initialMapId?: string,
 ): SaveGameV1 => {
-  const village = content.map('talking-island-village');
+  const initialMap = content.map(initialMapId ?? 'talking-island-village');
+  const initialPosition =
+    initialMapId === undefined
+      ? initialMap.entry
+      : {
+          x: Math.floor(initialMap.width / 2),
+          y:
+            initialMap.id === 'talking-island-village'
+              ? 30
+              : Math.floor(initialMap.height / 2),
+        };
   const stacks = classDefinition.startingItemIds.map((itemId) => ({ itemId, quantity: 1 }));
   const carriedWeight = stacks.reduce(
     (weight, stack) => weight + content.item(stack.itemId).weight * stack.quantity,
@@ -70,7 +100,7 @@ const createInitialSave = (
     equipment: {},
     quests: createQuestState(),
     world: {
-      player: { mapId: village.id, x: village.entry.x, y: village.entry.y },
+      player: { mapId: initialMap.id, x: initialPosition.x, y: initialPosition.y },
       defeatedBosses: [],
       flags: {},
       worldTimeMs: 0,
@@ -225,7 +255,13 @@ export class CharacterCreateScene extends Phaser.Scene {
         this.#showError(error, '找不到選定職業的內容');
         return;
       }
-      const save = createInitialSave(slot, createCharacter(name, classId), definition, content);
+      const save = createInitialSave(
+        slot,
+        createCharacter(name, classId),
+        definition,
+        content,
+        e2eInitialMapId(),
+      );
       await repository.put(save);
       if (!this.scene.isActive()) return;
       this.registry.set('active-save', save);

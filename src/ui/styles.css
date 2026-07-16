@@ -78,6 +78,39 @@ input {
   gap: 8px;
 }
 
+.save-slots {
+  display: grid;
+  gap: 8px;
+}
+
+.save-slot {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #5f543d;
+}
+
+.save-slot h3,
+.save-slot p {
+  margin: 4px 0;
+}
+
+.save-slot > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: end;
+}
+
+.save-slot label {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.save-slot input[type="file"] {
+  max-width: 190px;
+}
+
 .character-form {
   display: grid;
   gap: 14px;
@@ -137,6 +170,7 @@ input {
   --hud-gold: #d6ba78;
 
   position: absolute;
+  z-index: 10;
   top: 50%;
   left: 50%;
   display: grid;
@@ -145,10 +179,10 @@ input {
   width: 640px;
   height: 480px;
   overflow: hidden;
-  transform: translate(-50%, -50%) scale(var(--game-scale, 1));
+  transform: translate(-50%, -50%) scale(var(--hud-display-scale, 1));
   transform-origin: center;
   border: 1px solid var(--hud-border);
-  background: #020403;
+  background: transparent;
   image-rendering: pixelated;
   pointer-events: none;
 }
@@ -202,6 +236,18 @@ input {
   border-top: 2px ridge var(--hud-border);
   background: var(--hud-panel-deep);
   pointer-events: auto;
+}
+
+.save-controls {
+  font-size: 10px;
+}
+
+.save-controls button {
+  min-height: 22px;
+  padding: 2px 4px;
+  border: 1px solid #75613e;
+  background: #24271f;
+  color: #f2e5c6;
 }
 
 .hud-messages,
@@ -342,6 +388,6 @@ input {
 
 @media (max-width: 639px), (max-height: 479px) {
   .classic-hud {
-    --game-scale: 0.75;
+    --hud-display-scale: 0.75;
   }
 }

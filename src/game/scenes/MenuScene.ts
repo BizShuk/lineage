@@ -252,7 +252,7 @@ export class MenuScene extends Phaser.Scene {
       panel.render(model);
       panel.element.style.position = 'static';
       panel.element.style.width = '100%';
-      panel.element.style.maxHeight = '300px';
+      panel.element.style.height = '300px';
       panel.element.style.transform = 'none';
       panel.element.setAttribute('aria-modal', 'false');
       overlay.append(panel.element);

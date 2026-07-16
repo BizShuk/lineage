@@ -32,23 +32,18 @@ import type { PanelId as UiPanelId } from '../../ui/WindowManager';
 import type { SettingsPanelViewModel } from '../../ui/panels/SettingsPanel';
 import type { PanelActionResult } from '../../ui/panels/shared';
 import type { MonsterState } from '../../world/ai';
-import { TileGrid, type GridRectangle } from '../../world/grid';
+import { TileGrid } from '../../world/grid';
 import { CONTENT_REGISTRY_KEY, SAVE_REPOSITORY_REGISTRY_KEY } from './BootScene';
 import { ensureAudioDirector } from './MenuScene';
 import { CombatPresenter } from '../systems/CombatPresenter';
 import { EntityRenderer, TILE_SIZE } from '../systems/EntityRenderer';
+import { MapPresenter, type MapAsset } from '../systems/MapPresenter';
 import {
   InputController,
   type PlayerCommand,
   type PointerTarget,
 } from '../systems/InputController';
 import { WorldController, type WorldSnapshot } from '../systems/WorldController';
-
-interface MapAsset {
-  readonly width: number;
-  readonly height: number;
-  readonly collisionLayer: { readonly blockedRectangles: readonly GridRectangle[] };
-}
 
 const mapAssetNames: Readonly<Record<string, string>> = {
   'talking-island-village': 'village',
@@ -182,6 +177,8 @@ export class WorldScene extends Phaser.Scene {
   readonly #inputController = new InputController();
   #controller: WorldController | null = null;
   #renderer: EntityRenderer | null = null;
+  #mapPresenter: MapPresenter | null = null;
+  readonly #mapAssets = new Map<string, MapAsset>();
   #combatPresenter: CombatPresenter | null = null;
   #root: HTMLElement | null = null;
   #e2ePanel: HTMLElement | null = null;
@@ -221,7 +218,7 @@ export class WorldScene extends Phaser.Scene {
     this.#manualE2E = new URLSearchParams(window.location.search).get('e2e') === '1';
     this.game.canvas.tabIndex = 0;
     this.game.canvas.setAttribute('aria-label', '說話之島遊戲畫面');
-    this.add.rectangle(0, 0, 2048, 2048, 0x172019).setOrigin(0);
+    this.add.rectangle(0, 0, 2048, 2048, 0x172019).setOrigin(0).setDepth(-3_000);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.#destroy();
@@ -234,6 +231,7 @@ export class WorldScene extends Phaser.Scene {
     window.addEventListener('unhandledrejection', this.#unhandledRejection);
     this.game.canvas.addEventListener('wheel', this.#wheel, { passive: false });
     this.game.canvas.addEventListener('pointerdown', this.#focusCanvas);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.#syncHudScale);
     void this.#initialize();
   }
 
@@ -284,14 +282,21 @@ export class WorldScene extends Phaser.Scene {
       () => this.#serializableSave(),
     );
     this.#renderer = new EntityRenderer(this);
+    this.#mapPresenter = new MapPresenter(this, this.#mapAssets, (id) => content.npc(id));
     this.#combatPresenter = new CombatPresenter(this, (id) => this.#renderer?.positionOf(id) ?? null);
     this.cameras.main.setViewport(0, 0, 512, 432);
     this.#wirePointerInput();
     this.#createWorldUi();
     this.#createSaveControls();
     if (this.#manualE2E) this.#createE2EPanel();
+    this.#syncHudScale();
     this.#render();
   }
+
+  readonly #syncHudScale = (): void => {
+    const bounds = this.game.canvas.getBoundingClientRect();
+    this.#root?.style.setProperty('--hud-display-scale', String(bounds.width / 640));
+  };
 
   #createWorldUi(): void {
     if (this.#root === null || this.#controller === null) return;
@@ -581,9 +586,10 @@ export class WorldScene extends Phaser.Scene {
   #createSaveControls(): void {
     if (this.#root === null) return;
     const controls = document.createElement('section');
+    controls.className = 'save-controls';
     controls.setAttribute('aria-label', '存檔操作');
     controls.style.cssText =
-      'position:absolute;z-index:25;right:8px;top:8px;display:flex;gap:4px;align-items:center';
+      'position:absolute;z-index:25;right:8px;bottom:56px;display:grid;gap:4px;pointer-events:auto';
     const manual = document.createElement('button');
     manual.type = 'button';
     manual.dataset.testid = 'manual-save';
@@ -602,7 +608,8 @@ export class WorldScene extends Phaser.Scene {
     status.dataset.testid = 'autosave-status';
     status.setAttribute('aria-live', 'polite');
     controls.append(manual, menu, status);
-    this.#root.append(controls);
+    const hud = this.#root.querySelector<HTMLElement>('[data-testid="hud-root"]');
+    (hud ?? this.#root).append(controls);
     this.#saveControls = controls;
     this.#autosaveStatus = status;
   }
@@ -850,7 +857,6 @@ export class WorldScene extends Phaser.Scene {
     }
     this.#previewSettings(settings);
     this.#storeSave(this.#sealedSave({ settings }));
-    this.#root?.style.setProperty('--game-scale', String(settings.scale));
     return { ok: true, viewModel: this.#panelModels().settings };
   }
 
@@ -869,6 +875,7 @@ export class WorldScene extends Phaser.Scene {
       const response = await fetch(`/assets/maps/${assetName}.map.json`);
       if (!response.ok) throw new Error(`HTTP ${String(response.status)}`);
       const asset = (await response.json()) as MapAsset;
+      this.#mapAssets.set(mapId, asset);
       return TileGrid.fromBlockedRectangles(
         asset.width,
         asset.height,
@@ -916,6 +923,12 @@ export class WorldScene extends Phaser.Scene {
       } else if (command.type === 'interact' && command.targetId === 'e2e-village-elder') {
         this.#worldUi?.renderPanels(this.#panelModels());
         this.#worldUi?.open('dialogue');
+      } else if (command.type === 'interact') {
+        const panel = this.#mapPresenter?.interactionForNpc(command.targetId);
+        if (panel !== null && panel !== undefined) {
+          this.#worldUi?.renderPanels(this.#panelModels());
+          this.#worldUi?.open(panel);
+        }
       }
       this.#controller.dispatch(command);
       if (this.#root !== null) this.#root.dataset.lastCommand = command.type;
@@ -942,7 +955,9 @@ export class WorldScene extends Phaser.Scene {
     this.#syncActiveSaveFromController();
     const snapshot = this.#controller.snapshot;
     this.#routeAudioRegion(snapshot.player.mapId);
+    this.#mapPresenter?.render(snapshot.player.mapId);
     this.#renderer.render(snapshot);
+    if (this.#manualE2E) this.anims.pauseAll();
     const feedback = this.#combatPresenter?.present(this.#controller.drainEvents()) ?? [];
     if (feedback.length > 0) {
       this.#lastFeedback = [this.#lastFeedback, ...feedback].filter(Boolean).slice(-8).join(' / ');
@@ -966,14 +981,16 @@ export class WorldScene extends Phaser.Scene {
         ) <= 1,
     );
     this.#inputController.setNearestInteractable(
-      loot?.id ?? (this.#manualE2E ? 'e2e-village-elder' : null),
+      loot?.id ??
+        this.#mapPresenter?.nearestNpc(snapshot.player.x, snapshot.player.y) ??
+        (this.#manualE2E ? 'e2e-village-elder' : null),
     );
   }
 
   #createE2EPanel(): void {
     if (this.#root === null) return;
     const panel = document.createElement('section');
-    panel.style.cssText = 'position:absolute;z-index:5;left:8px;top:8px;display:flex;gap:4px;flex-wrap:wrap;max-width:620px';
+    panel.style.cssText = 'position:absolute;z-index:30;left:8px;top:8px;display:flex;gap:4px;flex-wrap:wrap;max-width:620px';
     panel.dataset.testid = 'world-state';
     const ground = document.createElement('button');
     ground.type = 'button';
@@ -1275,6 +1292,9 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.removeEventListener('pointerdown', this.#focusCanvas);
     this.events.off(Phaser.Scenes.Events.PAUSE, this.#pause);
     this.events.off(Phaser.Scenes.Events.RESUME, this.#resume);
+    this.scale.off(Phaser.Scale.Events.RESIZE, this.#syncHudScale);
+    this.#mapPresenter?.destroy();
+    this.#mapPresenter = null;
     this.#renderer?.destroy();
     this.#autosave?.dispose();
     this.#autosave = null;
