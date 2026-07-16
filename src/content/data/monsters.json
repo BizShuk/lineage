@@ -7,15 +7,15 @@
   },
   {
     "id": "orc", "name": "妖魔", "description": "在島上成群活動的低階妖魔。", "rank": "normal",
-    "sourceTier": "A", "sourceNotes": "官方說話之島野外怪物；掉落方向有官方資料，機率為單機平衡。", "spriteKey": "monster-orc",
+    "sourceTier": "A", "sourceNotes": "官方說話之島野外怪物；掉落方向有官方資料，獸皮機率為四職主線的單機平衡。", "spriteKey": "monster-orc",
     "level": 2, "hp": 18, "mp": 0, "ac": 10, "attack": 4, "experience": 10, "abilityIds": [],
-    "drops": [{ "itemId": "orc-dagger", "chance": 0.08, "min": 1, "max": 1 }, { "itemId": "orc-sword", "chance": 0.03, "min": 1, "max": 1 }, { "itemId": "animal-hide", "chance": 0.35, "min": 1, "max": 1 }]
+    "drops": [{ "itemId": "orc-dagger", "chance": 0.08, "min": 1, "max": 1 }, { "itemId": "orc-sword", "chance": 0.03, "min": 1, "max": 1 }, { "itemId": "animal-hide", "chance": 0.65, "min": 1, "max": 1 }]
   },
   {
     "id": "kobold", "name": "狗頭人", "description": "動作遲緩但會攜帶基礎補給的敵人。", "rank": "normal",
-    "sourceTier": "A", "sourceNotes": "官方說話之島野外怪物；生命與掉率為單機平衡。", "spriteKey": "monster-kobold",
+    "sourceTier": "A", "sourceNotes": "官方說話之島野外怪物；生命與獸皮掉率為四職主線的單機平衡。", "spriteKey": "monster-kobold",
     "level": 3, "hp": 22, "mp": 0, "ac": 9, "attack": 5, "experience": 14, "abilityIds": [],
-    "drops": [{ "itemId": "red-potion", "chance": 0.2, "min": 1, "max": 2 }, { "itemId": "animal-hide", "chance": 0.3, "min": 1, "max": 1 }, { "itemId": "low-boots", "chance": 0.03, "min": 1, "max": 1 }]
+    "drops": [{ "itemId": "red-potion", "chance": 0.2, "min": 1, "max": 2 }, { "itemId": "animal-hide", "chance": 0.65, "min": 1, "max": 1 }, { "itemId": "low-boots", "chance": 0.03, "min": 1, "max": 1 }]
   },
   {
     "id": "dwarf", "name": "侏儒戰士", "description": "使用侏儒工藝裝備的近戰敵人。", "rank": "normal",
@@ -31,9 +31,9 @@
   },
   {
     "id": "spider", "name": "巨大蜘蛛", "description": "快速接近並以毒牙攻擊的蜘蛛。", "rank": "normal",
-    "sourceTier": "A", "sourceNotes": "官方說話之島野外與地監二樓怪物；中毒強度與掉率為單機平衡。", "spriteKey": "monster-spider",
+    "sourceTier": "A", "sourceNotes": "官方說話之島野外與地監二樓怪物；中毒強度與獸皮掉率為四職主線的單機平衡。", "spriteKey": "monster-spider",
     "level": 6, "hp": 48, "mp": 0, "ac": 5, "attack": 8, "experience": 42, "abilityIds": [],
-    "drops": [{ "itemId": "green-potion", "chance": 0.18, "min": 1, "max": 1 }, { "itemId": "antidote", "chance": 0.14, "min": 1, "max": 1 }, { "itemId": "animal-hide", "chance": 0.2, "min": 1, "max": 1 }]
+    "drops": [{ "itemId": "green-potion", "chance": 0.18, "min": 1, "max": 1 }, { "itemId": "antidote", "chance": 0.14, "min": 1, "max": 1 }, { "itemId": "animal-hide", "chance": 0.5, "min": 1, "max": 1 }]
   },
   {
     "id": "zombie", "name": "殭屍", "description": "在地監中徘徊的不死生物。", "rank": "normal",
@@ -43,9 +43,9 @@
   },
   {
     "id": "skeleton", "name": "骷髏", "description": "以生鏽武器攻擊侵入者的不死士兵。", "rank": "normal",
-    "sourceTier": "A", "sourceNotes": "官方地監一樓與二樓怪物；裝備掉落方向有官方資料。", "spriteKey": "monster-skeleton",
+    "sourceTier": "A", "sourceNotes": "官方地監一樓與二樓怪物；裝備掉落方向有官方資料，骨頭穩定掉落為四職地監主線的單機平衡。", "spriteKey": "monster-skeleton",
     "level": 8, "hp": 70, "mp": 0, "ac": 2, "attack": 11, "experience": 72, "abilityIds": [],
-    "drops": [{ "itemId": "bone-piece", "chance": 0.55, "min": 1, "max": 2 }, { "itemId": "scimitar", "chance": 0.04, "min": 1, "max": 1 }, { "itemId": "magic-cloak", "chance": 0.01, "min": 1, "max": 1 }]
+    "drops": [{ "itemId": "bone-piece", "chance": 1, "min": 1, "max": 1 }, { "itemId": "scimitar", "chance": 0.04, "min": 1, "max": 1 }, { "itemId": "magic-cloak", "chance": 0.01, "min": 1, "max": 1 }]
   },
   {
     "id": "skeleton-archer", "name": "骷髏弓箭手", "description": "從遠處射擊的骷髏士兵。", "rank": "normal",
@@ -73,20 +73,20 @@
   },
   {
     "id": "black-knight", "name": "黑騎士", "description": "奉反王命令搜索王室血脈的精銳士兵。", "rank": "elite",
-    "sourceTier": "A", "sourceNotes": "黑騎士與克特搜索王室後裔有官方故事支持；戰鬥數值與掉率為單機平衡。", "spriteKey": "monster-black-knight",
-    "level": 11, "hp": 220, "mp": 10, "ac": -8, "attack": 20, "experience": 240, "abilityIds": [],
+    "sourceTier": "A", "sourceNotes": "黑騎士與克特搜索王室後裔有官方故事支持；等級、生命、攻防與掉率為四職五至七級主線的單機平衡。", "spriteKey": "monster-black-knight",
+    "level": 8, "hp": 90, "mp": 10, "ac": 0, "attack": 10, "experience": 240, "abilityIds": [],
     "drops": [{ "itemId": "black-knight-pledge", "chance": 0.35, "min": 1, "max": 1 }, { "itemId": "brave-potion", "chance": 0.18, "min": 1, "max": 1 }, { "itemId": "two-handed-sword", "chance": 0.015, "min": 1, "max": 1 }, { "itemId": "protection-cloak", "chance": 0.025, "min": 1, "max": 1 }]
   },
   {
     "id": "kurt", "name": "黑騎士隊長克特", "description": "率領黑騎士來到港口追捕王室後裔的隊長。", "rank": "event",
-    "sourceTier": "S", "sourceNotes": "克特港口登場是官方早期回憶；本作讓十二級左右角色單人擊退，數值與封印掉落屬適配。", "spriteKey": "monster-kurt",
-    "level": 13, "hp": 520, "mp": 60, "ac": -12, "attack": 25, "experience": 650, "abilityIds": [],
+    "sourceTier": "S", "sourceNotes": "克特港口登場是官方早期回憶；本作讓完成黑騎士波次的八至十級角色單人擊退，生命、攻防與封印掉落屬單機適配。", "spriteKey": "monster-kurt",
+    "level": 10, "hp": 200, "mp": 60, "ac": -2, "attack": 12, "experience": 650, "abilityIds": [],
     "drops": [{ "itemId": "baphomet-seal-fragment", "chance": 1, "min": 1, "max": 1 }, { "itemId": "greater-green-potion", "chance": 0.4, "min": 1, "max": 2 }, { "itemId": "large-shield", "chance": 0.12, "min": 1, "max": 1 }]
   },
   {
     "id": "baphomet", "name": "巴風特", "description": "被封印在地監二樓、能施放遠程魔法的惡魔首領。", "rank": "boss",
-    "sourceTier": "S", "sourceNotes": "地監二樓首領身分為 A、二〇〇三年同期資料記載約五十級且需多人；本數值為十二至十五級單機適配。", "spriteKey": "monster-baphomet",
-    "level": 15, "hp": 900, "mp": 250, "ac": -18, "attack": 30, "experience": 1500, "abilityIds": [],
+    "sourceTier": "S", "sourceNotes": "地監二樓首領身分為 A、二〇〇三年同期資料記載約五十級且需多人；生命與攻防改為需準備補給的十一至十五級四職單機適配。", "spriteKey": "monster-baphomet",
+    "level": 13, "hp": 320, "mp": 250, "ac": -6, "attack": 20, "experience": 1500, "abilityIds": [],
     "drops": [{ "itemId": "two-handed-sword", "chance": 0.25, "min": 1, "max": 1 }, { "itemId": "plate-mail", "chance": 0.15, "min": 1, "max": 1 }, { "itemId": "wisdom-potion", "chance": 0.6, "min": 1, "max": 2 }, { "itemId": "brave-potion", "chance": 0.6, "min": 1, "max": 2 }, { "itemId": "clear-potion", "chance": 1, "min": 2, "max": 4 }]
   }
 ]

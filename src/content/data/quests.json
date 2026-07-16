@@ -15,10 +15,10 @@
   },
   {
     "id": "field-supplies", "name": "野外物資", "description": "巡查北部野外並收集村莊需要的物資。", "kind": "main",
-    "sourceTier": "S", "sourceNotes": "怪物種類有官方支持；收集與交付流程為單機適配。", "giverNpcId": "gunther",
+    "sourceTier": "S", "sourceNotes": "怪物種類有官方支持；收集、交付與黑騎士前治療補給為四職單機流程適配。", "giverNpcId": "gunther",
     "allowedClasses": ["prince", "knight", "elf", "wizard"], "prerequisiteQuestIds": ["village-registration"],
     "objectives": [{ "type": "reach", "mapId": "north-field", "count": 1 }, { "type": "collect", "itemId": "animal-hide", "count": 4 }, { "type": "kill", "monsterId": "dwarf", "count": 3 }],
-    "rewards": { "experience": 350, "adena": 300, "itemRewards": [{ "itemId": "green-potion", "quantity": 3 }], "abilityIds": [] }
+    "rewards": { "experience": 350, "adena": 300, "itemRewards": [{ "itemId": "green-potion", "quantity": 3 }, { "itemId": "orange-potion", "quantity": 8 }], "abilityIds": [] }
   },
   {
     "id": "black-knight-assault", "name": "黑騎士來襲", "description": "協助瑞奇擊退黑騎士並阻止克特的搜索。", "kind": "main",
@@ -43,31 +43,31 @@
   },
   {
     "id": "prince-guidance", "name": "王族的責任", "description": "向甘特學習如何辨識威脅並鼓舞自己。", "kind": "class",
-    "sourceTier": "S", "sourceNotes": "早期王族十五級任務與領導定位有同期資料；島內個人技能路線為適配。", "giverNpcId": "gunther",
+    "sourceTier": "S", "sourceNotes": "早期王族十五級任務與領導定位有同期資料；島內個人技能路線、經驗與補給為四職單機平衡適配。", "giverNpcId": "gunther",
     "allowedClasses": ["prince"], "prerequisiteQuestIds": ["village-registration"],
     "objectives": [{ "type": "kill", "monsterId": "orc", "count": 5 }, { "type": "talk", "npcId": "gunther", "count": 1 }],
-    "rewards": { "experience": 300, "adena": 200, "itemRewards": [{ "itemId": "long-sword", "quantity": 1 }], "abilityIds": ["royal-rally", "royal-command"] }
+    "rewards": { "experience": 600, "adena": 200, "itemRewards": [{ "itemId": "long-sword", "quantity": 1 }, { "itemId": "red-potion", "quantity": 8 }], "abilityIds": ["royal-rally", "royal-command"] }
   },
   {
     "id": "knight-guidance", "name": "騎士的鍛鍊", "description": "接受警衛的防禦與重擊訓練。", "kind": "class",
-    "sourceTier": "S", "sourceNotes": "早期低等騎士沒有專用技能；本任務完全屬單機平衡。", "giverNpcId": "village-guard",
+    "sourceTier": "S", "sourceNotes": "早期低等騎士沒有專用技能；本任務的技能、單手武器、經驗與補給完全屬四職單機平衡。", "giverNpcId": "village-guard",
     "allowedClasses": ["knight"], "prerequisiteQuestIds": ["village-registration"],
     "objectives": [{ "type": "kill", "monsterId": "dwarf", "count": 5 }, { "type": "talk", "npcId": "village-guard", "count": 1 }],
-    "rewards": { "experience": 300, "adena": 200, "itemRewards": [{ "itemId": "large-shield", "quantity": 1 }], "abilityIds": ["guarded-stance", "power-strike"] }
+    "rewards": { "experience": 600, "adena": 200, "itemRewards": [{ "itemId": "long-sword", "quantity": 1 }, { "itemId": "large-shield", "quantity": 1 }, { "itemId": "red-potion", "quantity": 10 }], "abilityIds": ["guarded-stance", "power-strike"] }
   },
   {
     "id": "elf-guidance", "name": "海岸弓術", "description": "協助漁夫後練習遠程連射。", "kind": "class",
-    "sourceTier": "S", "sourceNotes": "早期妖精以弓為核心，但原生於妖精森林；島內路線與技能為適配。", "giverNpcId": "injured-fisher",
+    "sourceTier": "S", "sourceNotes": "早期妖精以弓為核心，但原生於妖精森林；島內路線、箭矢、經驗與補給為四職單機平衡適配。", "giverNpcId": "injured-fisher",
     "allowedClasses": ["elf"], "prerequisiteQuestIds": ["village-registration"],
     "objectives": [{ "type": "kill", "monsterId": "spider", "count": 5 }, { "type": "talk", "npcId": "injured-fisher", "count": 1 }],
-    "rewards": { "experience": 300, "adena": 200, "itemRewards": [{ "itemId": "silver-arrow", "quantity": 40 }], "abilityIds": ["rapid-shot", "nature-breath"] }
+    "rewards": { "experience": 600, "adena": 200, "itemRewards": [{ "itemId": "wooden-arrow", "quantity": 40 }, { "itemId": "silver-arrow", "quantity": 40 }, { "itemId": "protection-cloak", "quantity": 1 }, { "itemId": "blue-potion", "quantity": 4 }, { "itemId": "red-potion", "quantity": 10 }], "abilityIds": ["rapid-shot", "nature-breath"] }
   },
   {
     "id": "wizard-guidance", "name": "吉倫的課程", "description": "使用基礎魔法通過吉倫的測驗。", "kind": "class",
-    "sourceTier": "A", "sourceNotes": "吉倫教授一至三階魔法為官方資料；具體擊殺目標為單機編排。", "giverNpcId": "gereng",
+    "sourceTier": "A", "sourceNotes": "吉倫教授一至三階魔法為官方資料；具體擊殺、經驗與補給為四職單機平衡編排。", "giverNpcId": "gereng",
     "allowedClasses": ["wizard"], "prerequisiteQuestIds": ["village-registration"],
     "objectives": [{ "type": "kill", "monsterId": "zombie", "count": 4 }, { "type": "talk", "npcId": "gereng", "count": 1 }],
-    "rewards": { "experience": 300, "adena": 200, "itemRewards": [{ "itemId": "spellbook-cure-poison", "quantity": 1 }], "abilityIds": ["mana-focus", "fire-arrow"] }
+    "rewards": { "experience": 600, "adena": 200, "itemRewards": [{ "itemId": "spellbook-cure-poison", "quantity": 1 }, { "itemId": "protection-cloak", "quantity": 1 }, { "itemId": "blue-potion", "quantity": 6 }, { "itemId": "red-potion", "quantity": 12 }], "abilityIds": ["mana-focus", "fire-arrow"] }
   },
   {
     "id": "pandoras-shortage", "name": "潘朵拉的缺貨", "description": "替潘朵拉收集野外缺少的皮革。", "kind": "side",

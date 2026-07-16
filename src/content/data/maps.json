@@ -32,7 +32,7 @@
       { "monsterId": "goblin", "x": 44, "y": 28, "count": 5, "respawnSeconds": 20 },
       { "monsterId": "orc", "x": 48, "y": 32, "count": 5, "respawnSeconds": 22 },
       { "monsterId": "kobold", "x": 58, "y": 60, "count": 4, "respawnSeconds": 24 },
-      { "monsterId": "dwarf", "x": 40, "y": 34, "count": 4, "respawnSeconds": 30 },
+      { "monsterId": "dwarf", "x": 40, "y": 34, "count": 8, "respawnSeconds": 30 },
       { "monsterId": "ghoul", "x": 50, "y": 26, "count": 2, "respawnSeconds": 40 },
       { "monsterId": "stone-golem", "x": 64, "y": 64, "count": 2, "respawnSeconds": 55 }
     ]

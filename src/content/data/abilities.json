@@ -66,8 +66,8 @@
   },
   {
     "id": "fire-arrow", "name": "火箭", "description": "以火焰形成的箭攻擊單一敵人。", "kind": "attack",
-    "sourceTier": "A", "sourceNotes": "台灣官方二階一般魔法。",
-    "assetKey": "ability-fire-arrow", "allowedClasses": ["wizard"], "unlockLevel": 8, "manaCost": 6, "hpCost": 0, "cooldownMs": 850, "target": "enemy", "power": 14
+    "sourceTier": "A", "sourceNotes": "台灣官方二階一般魔法；單機一至十五級流程提前至四級，並降低耗魔供法師職業引導與事件戰使用。",
+    "assetKey": "ability-fire-arrow", "allowedClasses": ["wizard"], "unlockLevel": 4, "manaCost": 2, "hpCost": 0, "cooldownMs": 850, "target": "enemy", "power": 18
   },
   {
     "id": "stalac", "name": "地獄之牙", "description": "從敵人腳下冒出石鑽造成傷害。", "kind": "attack",
@@ -131,8 +131,8 @@
   },
   {
     "id": "rapid-shot", "name": "連射", "description": "快速射出兩支箭。", "kind": "attack",
-    "sourceTier": "S", "sourceNotes": "以早期妖精弓術定位設計的單機技能。",
-    "assetKey": "ability-rapid-shot", "allowedClasses": ["elf"], "unlockLevel": 1, "manaCost": 3, "hpCost": 0, "cooldownMs": 3000, "target": "enemy", "power": 14, "reagentItemId": "wooden-arrow"
+    "sourceTier": "S", "sourceNotes": "以早期妖精弓術定位設計，耗魔為一至十五級單機狩獵平衡。",
+    "assetKey": "ability-rapid-shot", "allowedClasses": ["elf"], "unlockLevel": 1, "manaCost": 1, "hpCost": 0, "cooldownMs": 3000, "target": "enemy", "power": 14, "reagentItemId": "wooden-arrow"
   },
   {
     "id": "nature-breath", "name": "自然呼吸", "description": "短時間持續恢復自己的生命與魔力。", "kind": "heal",

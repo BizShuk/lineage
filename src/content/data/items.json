@@ -131,8 +131,8 @@
   },
   {
     "id": "red-potion", "name": "紅色藥水", "description": "恢復少量生命。", "kind": "consumable",
-    "sourceTier": "B", "sourceNotes": "二〇〇三年同期物品與怪物掉落資料收錄。", "assetKey": "item-red-potion",
-    "weight": 2, "stackLimit": 100, "buyPrice": 50, "sellPrice": 20, "allowedClasses": ["prince", "knight", "elf", "wizard"], "healAmount": 15
+    "sourceTier": "B", "sourceNotes": "二〇〇三年同期物品與怪物掉落資料收錄；價格與治療量為四職一至十五級單機流程適配。", "assetKey": "item-red-potion",
+    "weight": 2, "stackLimit": 100, "buyPrice": 30, "sellPrice": 12, "allowedClasses": ["prince", "knight", "elf", "wizard"], "healAmount": 25
   },
   {
     "id": "orange-potion", "name": "橙色藥水", "description": "恢復中量生命。", "kind": "consumable",
