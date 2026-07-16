@@ -1,0 +1,860 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "key": "class-prince",
+      "path": "public/assets/sprites/player-prince.png",
+      "group": "player-prince",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "class-knight",
+      "path": "public/assets/sprites/player-knight.png",
+      "group": "player-knight",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "class-elf",
+      "path": "public/assets/sprites/player-elf.png",
+      "group": "player-elf",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "class-wizard",
+      "path": "public/assets/sprites/player-wizard.png",
+      "group": "player-wizard",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-goblin",
+      "path": "public/assets/sprites/monsters-surface.png",
+      "group": "monsters-surface",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-orc",
+      "path": "public/assets/sprites/monsters-surface.png",
+      "group": "monsters-surface",
+      "frame": 1,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-kobold",
+      "path": "public/assets/sprites/monsters-surface.png",
+      "group": "monsters-surface",
+      "frame": 2,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-dwarf",
+      "path": "public/assets/sprites/monsters-surface.png",
+      "group": "monsters-surface",
+      "frame": 3,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-werewolf",
+      "path": "public/assets/sprites/monsters-surface.png",
+      "group": "monsters-surface",
+      "frame": 4,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-spider",
+      "path": "public/assets/sprites/monsters-surface.png",
+      "group": "monsters-surface",
+      "frame": 5,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-zombie",
+      "path": "public/assets/sprites/monsters-undead.png",
+      "group": "monsters-undead",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-skeleton",
+      "path": "public/assets/sprites/monsters-undead.png",
+      "group": "monsters-undead",
+      "frame": 1,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-skeleton-archer",
+      "path": "public/assets/sprites/monsters-undead.png",
+      "group": "monsters-undead",
+      "frame": 2,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-ghoul",
+      "path": "public/assets/sprites/monsters-undead.png",
+      "group": "monsters-undead",
+      "frame": 3,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-stone-golem",
+      "path": "public/assets/sprites/monsters-surface.png",
+      "group": "monsters-surface",
+      "frame": 6,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-floating-eye",
+      "path": "public/assets/sprites/monsters-surface.png",
+      "group": "monsters-surface",
+      "frame": 7,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-black-knight",
+      "path": "public/assets/sprites/black-knight.png",
+      "group": "black-knight",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-kurt",
+      "path": "public/assets/sprites/black-knight.png",
+      "group": "black-knight",
+      "frame": 1,
+      "license": "project-original"
+    },
+    {
+      "key": "monster-baphomet",
+      "path": "public/assets/sprites/baphomet.png",
+      "group": "baphomet",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-pandora",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-dorin",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 1,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-gereng",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 2,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-gunther",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 3,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-balsim",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 4,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-selena",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 5,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-village-guard",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 6,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-harbor-captain",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 7,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-atonement-priestess",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 8,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-james",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 9,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-lucas",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 10,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-rabbian",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 11,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-village-elder-jered",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 12,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-ricky",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 13,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-scarecrow-instructor",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 14,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-dungeon-warden",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 15,
+      "license": "project-original"
+    },
+    {
+      "key": "npc-injured-fisher",
+      "path": "public/assets/sprites/npcs.png",
+      "group": "npcs",
+      "frame": 16,
+      "license": "project-original"
+    },
+    {
+      "key": "item-dagger",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "item-wooden-club",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 1,
+      "license": "project-original"
+    },
+    {
+      "key": "item-orc-dagger",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 2,
+      "license": "project-original"
+    },
+    {
+      "key": "item-orc-sword",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 3,
+      "license": "project-original"
+    },
+    {
+      "key": "item-dwarven-short-sword",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 4,
+      "license": "project-original"
+    },
+    {
+      "key": "item-scimitar",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 5,
+      "license": "project-original"
+    },
+    {
+      "key": "item-long-sword",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 6,
+      "license": "project-original"
+    },
+    {
+      "key": "item-mace",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 7,
+      "license": "project-original"
+    },
+    {
+      "key": "item-axe",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 8,
+      "license": "project-original"
+    },
+    {
+      "key": "item-flail",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 9,
+      "license": "project-original"
+    },
+    {
+      "key": "item-bow",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 10,
+      "license": "project-original"
+    },
+    {
+      "key": "item-two-handed-sword",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 11,
+      "license": "project-original"
+    },
+    {
+      "key": "item-mana-staff",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 12,
+      "license": "project-original"
+    },
+    {
+      "key": "item-leather-jacket",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 13,
+      "license": "project-original"
+    },
+    {
+      "key": "item-helmet",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 14,
+      "license": "project-original"
+    },
+    {
+      "key": "item-low-boots",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 15,
+      "license": "project-original"
+    },
+    {
+      "key": "item-leather-gloves",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 16,
+      "license": "project-original"
+    },
+    {
+      "key": "item-small-shield",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 17,
+      "license": "project-original"
+    },
+    {
+      "key": "item-large-shield",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 18,
+      "license": "project-original"
+    },
+    {
+      "key": "item-cloak",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 19,
+      "license": "project-original"
+    },
+    {
+      "key": "item-protection-cloak",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 20,
+      "license": "project-original"
+    },
+    {
+      "key": "item-studded-leather-armor",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 21,
+      "license": "project-original"
+    },
+    {
+      "key": "item-scale-mail",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 22,
+      "license": "project-original"
+    },
+    {
+      "key": "item-chain-mail",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 23,
+      "license": "project-original"
+    },
+    {
+      "key": "item-plate-mail",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 24,
+      "license": "project-original"
+    },
+    {
+      "key": "item-magic-cloak",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 25,
+      "license": "project-original"
+    },
+    {
+      "key": "item-red-potion",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 26,
+      "license": "project-original"
+    },
+    {
+      "key": "item-orange-potion",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 27,
+      "license": "project-original"
+    },
+    {
+      "key": "item-clear-potion",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 28,
+      "license": "project-original"
+    },
+    {
+      "key": "item-green-potion",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 29,
+      "license": "project-original"
+    },
+    {
+      "key": "item-greater-green-potion",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 30,
+      "license": "project-original"
+    },
+    {
+      "key": "item-brave-potion",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 31,
+      "license": "project-original"
+    },
+    {
+      "key": "item-wisdom-potion",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 32,
+      "license": "project-original"
+    },
+    {
+      "key": "item-blue-potion",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 33,
+      "license": "project-original"
+    },
+    {
+      "key": "item-antidote",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 34,
+      "license": "project-original"
+    },
+    {
+      "key": "item-meat",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 35,
+      "license": "project-original"
+    },
+    {
+      "key": "item-spellbook-lesser-heal",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 36,
+      "license": "project-original"
+    },
+    {
+      "key": "item-spellbook-shield",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 37,
+      "license": "project-original"
+    },
+    {
+      "key": "item-spellbook-energy-bolt",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 38,
+      "license": "project-original"
+    },
+    {
+      "key": "item-spellbook-cure-poison",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 39,
+      "license": "project-original"
+    },
+    {
+      "key": "item-spellbook-holy-weapon",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 40,
+      "license": "project-original"
+    },
+    {
+      "key": "item-spellbook-turn-undead",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 41,
+      "license": "project-original"
+    },
+    {
+      "key": "item-wooden-arrow",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 42,
+      "license": "project-original"
+    },
+    {
+      "key": "item-silver-arrow",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 43,
+      "license": "project-original"
+    },
+    {
+      "key": "item-animal-hide",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 44,
+      "license": "project-original"
+    },
+    {
+      "key": "item-bone-piece",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 45,
+      "license": "project-original"
+    },
+    {
+      "key": "item-ghoul-tooth",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 46,
+      "license": "project-original"
+    },
+    {
+      "key": "item-black-knight-pledge",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 47,
+      "license": "project-original"
+    },
+    {
+      "key": "item-baphomet-seal-fragment",
+      "path": "public/assets/sprites/items.png",
+      "group": "items",
+      "frame": 48,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-lesser-heal",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-light",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 1,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-shield",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 2,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-energy-bolt",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 3,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-teleport",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 4,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-ice-dagger",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 5,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-wind-cutter",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 6,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-holy-weapon",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 7,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-cure-poison",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 8,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-chill-touch",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 9,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-enchanted-weapon",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 10,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-detect-invisible",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 11,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-decrease-weight",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 12,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-fire-arrow",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 13,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-stalac",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 14,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-lightning",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 15,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-turn-undead",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 16,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-medium-heal",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 17,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-blind",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 18,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-blessed-armor",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 19,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-frozen-cloud",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 20,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-elemental-fall-down",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 21,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-royal-rally",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 22,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-royal-command",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 23,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-guarded-stance",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 24,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-power-strike",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 25,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-rapid-shot",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 26,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-nature-breath",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 27,
+      "license": "project-original"
+    },
+    {
+      "key": "ability-mana-focus",
+      "path": "public/assets/sprites/effects.png",
+      "group": "effects",
+      "frame": 28,
+      "license": "project-original"
+    },
+    {
+      "key": "map-talking-island-village",
+      "path": "public/assets/maps/tiles-overworld.png",
+      "group": "tiles-overworld",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "map-scarecrow-field",
+      "path": "public/assets/maps/tiles-overworld.png",
+      "group": "tiles-overworld",
+      "frame": 1,
+      "license": "project-original"
+    },
+    {
+      "key": "map-north-field",
+      "path": "public/assets/maps/tiles-overworld.png",
+      "group": "tiles-overworld",
+      "frame": 2,
+      "license": "project-original"
+    },
+    {
+      "key": "map-coast",
+      "path": "public/assets/maps/tiles-overworld.png",
+      "group": "tiles-overworld",
+      "frame": 3,
+      "license": "project-original"
+    },
+    {
+      "key": "map-black-knight-area",
+      "path": "public/assets/maps/tiles-overworld.png",
+      "group": "tiles-overworld",
+      "frame": 4,
+      "license": "project-original"
+    },
+    {
+      "key": "map-talking-island-dungeon-1",
+      "path": "public/assets/maps/tiles-dungeon.png",
+      "group": "tiles-dungeon",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
+      "key": "map-talking-island-dungeon-2",
+      "path": "public/assets/maps/tiles-dungeon.png",
+      "group": "tiles-dungeon",
+      "frame": 1,
+      "license": "project-original"
+    },
+    {
+      "key": "ui-classic-frame",
+      "path": "public/assets/ui/classic-frame.png",
+      "group": "ui",
+      "frame": 0,
+      "license": "project-original"
+    }
+  ]
+}
+
