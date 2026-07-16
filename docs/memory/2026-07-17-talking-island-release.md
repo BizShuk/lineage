@@ -4,9 +4,9 @@
 
 ## 結論
 
-說話之島單機篇章已依[設計規格](../specs/2026-07-17-talking-island-single-player-design.md)完成 release 文件初步收斂。玩家操作集中於 [README](../../README.md)，目前技術真相集中於 [CLAUDE.md](../../CLAUDE.md)，內容 ID 由 script 產生至[內容索引](../specs/generated-content-index.md)。原始[實作計畫](../../plans/2026-07-17-talking-island-implementation.md)保留為歷史交付順序，不代替目前程式碼。
+說話之島單機篇章已依[設計規格](../specs/2026-07-17-talking-island-single-player-design.md)完成 release 收斂。玩家操作集中於 [README](../../README.md)，目前技術真相集中於 [CLAUDE.md](../../CLAUDE.md)，內容 ID 由 script 產生至[內容索引](../specs/generated-content-index.md)。原始[實作計畫](../../plans/2026-07-17-talking-island-implementation.md)保留為歷史交付順序，不代替目前程式碼。
 
-本紀錄只列出建立當下已有直接證據的結果。production quest／claim／cast 的 session 串接與 browser golden path 尚在整合，`README.todo` 因此保持 active；待這些工作與 `npm run verify:release` 全部通過後，再補記最終結果並移入 Archive。
+production quest／claim／cast 已統一經 `GameSession` 公開 action；deterministic integration 與 browser golden path 都完成騎士建角、七段任務、真實戰鬥／掉落／商業、巴風特結局、手動存檔重載與結局後自由探索。最終 `npm run verify:release` 回傳所有 gate 通過，`README.todo` 已將本篇章移入 Archive。
 
 ## 交付範圍
 
@@ -39,6 +39,8 @@
 - `core` 保持純 TypeScript domain rules；Phaser、DOM 與 IndexedDB 留在 adapter／composition layer。
 - JSON 先經 Zod structure、重複 ID 與跨 catalog reference validation，再建立 deep-frozen typed catalog。
 - `WorldController` 使用 `50ms` fixed timestep，單 frame delta 最多消化 `250ms`；模擬時間不依賴 render frame rate。
+- `GameSession` 是 quest、NPC、商店、裝備、物品、技能、快捷列、設定與倉庫的 authoritative action boundary；production scene 不再維護第二套玩家狀態。
+- buff／debuff／control 依 world time 到期；area attack、cleanse、teleport、群怪單節拍攻擊上限都有 deterministic regression。
 - presentation 由 `MapPresenter`、`EntityRenderer`、`CombatPresenter`、UI panels 消費 state／events，不複製 domain rule。
 - 存檔只保存穩定 domain state；同欄覆寫前保留上一份 backup，匯入與 restore 都重新驗證。
 - autosave reason 固定為 `map-change`、`quest-stage`、`death-respawn`、`return-menu`、`manual`，戰鬥交易未完成時延後寫入。
@@ -62,6 +64,11 @@
 | 內容索引產生 | PASS | `npm run content:index` 回報產物已寫入 `docs/specs/generated-content-index.md` |
 | 統一介面 symlink | PASS | `readlink AGENTS.md` 回傳 `CLAUDE.md` |
 | generated counts | PASS | 產物列出 4／49／29／17／15／17／7，與 source JSON 相符 |
+| Lint／型別 | PASS | release gate 內 `npm run lint` 與 `npm run typecheck` exit `0` |
+| Domain／integration | PASS | Vitest `37` files、`261` tests passed |
+| Production build／PWA | PASS | Vite build 完成；Workbox precache `26` entries |
+| Browser／visual | PASS | Playwright Chromium `39` tests passed，單 worker 總計約 `4.1m` |
+| Release gate | PASS | `npm run verify:release` 回傳 `[release] PASS all gates` |
 
 `verify:release` 的 preflight 會要求既有 `dist/index.html`，所以最終 release 驗證順序是：
 
@@ -70,7 +77,7 @@ npm run build
 npm run verify:release
 ```
 
-第二個 command 會再次執行 lint、typecheck、Vitest、build 與 Playwright E2E／visual；整合者應以該次完整輸出作為最終發行證據。
+第二個 command 已在本次 closure 再次執行 lint、typecheck、Vitest、build 與 Playwright E2E／visual；上表記錄該次完整輸出。
 
 ## 已知限制與授權邊界
 

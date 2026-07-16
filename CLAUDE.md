@@ -40,7 +40,7 @@
 │   ├── storage/                    # save schema、checksum、migration、repository、autosave
 │   ├── game/
 │   │   ├── scenes/                 # Boot、Menu、CharacterCreate、World
-│   │   └── systems/                # input、world、map、entity、combat presentation adapters
+│   │   └── systems/                # GameSession action boundary、world 與 presentation adapters
 │   ├── ui/
 │   │   ├── panels/                 # inventory、character、spells、quests、map、shop、settings、save
 │   │   ├── Hud.ts
@@ -80,6 +80,7 @@ main/app/scenes/ui/audio
 - `world` 負責座標、碰撞、尋徑、AI 與地圖轉換；可使用 `core`，不得知道 DOM 或 IndexedDB。
 - `content` 先驗證 versioned JSON、唯一 ID 及所有跨資料參照，再建立 deep-frozen `GameContent`；規則不得直接讀未驗證 JSON。
 - `game/systems` 將 Phaser input、時間與 rendering 轉接到 `world`／`core`，不得另建戰鬥、任務或掉落規則。
+- `GameSession` 是玩家操作的唯一 authoritative boundary；quest、NPC、商店、裝備、物品、施法、快捷列、設定與倉庫操作都先驗證 proximity／role／target，再交由 domain controller 執行。
 - `ui` 只呈現 immutable view model 與發出 action，不得計算戰鬥、經驗、任務或商店結果。
 - `storage` 只序列化穩定 domain state，不得保存 Phaser object、DOM node 或 runtime controller。
 - repo 不得直接依賴其他應用層專案；共用能力必須下沉至框架層。
@@ -109,7 +110,10 @@ npm run content:index
 
 - `WorldController` 使用 `50ms` fixed timestep；單次 frame delta 上限為 `250ms`，避免背景分頁恢復時追趕過量更新。
 - 玩家攻擊 cooldown 與怪物 AI tick 目前都是 `500ms`，以 world time 驅動，不以畫面 frame count 驅動。
+- 同一個怪物 AI interval 最多提交一次對玩家的攻擊；其他已就緒怪物仍可追擊，但保留 cooldown，避免單機群怪在同一節拍同時造成不可反應的傷害。
 - 輸入只接受四方向單格鍵盤移動或滑鼠地面尋路；玩家一旦改變移動指令就取消 auto-attack target。
+- 玩家與怪物的 buff／debuff／control 是 runtime status，以 world time 到期；地圖轉換、死亡重生與怪物重生會清除，不寫入 `SaveGameV1`。
+- `area attack` 以目標為中心影響 Chebyshev radius `2` 內的存活敵人，但 MP、cooldown 與 reagent 只支付一次；teleport 返回目前地圖入口，light／detect 保留為可觀測的限時狀態，cure-poison 清除負面狀態。
 - `MapPresenter`、`EntityRenderer` 與 `CombatPresenter` 只讀 controller state／domain events，負責 Phaser tile、sprite、tween 與 floating text。
 - Phaser 內部 viewport 固定 `640×480`；HUD 與 DOM panels 不得改寫 domain state。
 - AC 數字越低代表防禦越強；等級範圍固定為 `1–15`。
@@ -156,12 +160,12 @@ settings { music, ambient, effects, muted, scale }
 | --- | --- |
 | `npm run lint` | 全 repo ESLint，`--max-warnings 0` |
 | `npm run typecheck` | strict TypeScript，no emit |
-| `npm test` | `src/**/*.test.ts`、`tests/unit`、`tests/content`、`tests/integration` |
+| `npm test` | `src/**/*.test.ts`、`tests/unit`、`tests/content`、`tests/integration`，含公開 action 的完整 production campaign |
 | `npm run test:e2e` | `tests/e2e/**/*.spec.ts`、`tests/visual/**/*.spec.ts`，desktop Chromium |
 | `npm run build` | typecheck 後建立 Vite production bundle 與 service worker |
 | `npm run verify` | lint -> typecheck -> test -> build -> test:e2e |
 
-Visual baselines 覆蓋主選單、角色建立、村莊、野外／地監、物品／法術／商店／設定等畫面，並檢查 `800×600`、`1280×720`、`1920×1080` 的置中與像素化呈現。E2E 只使用公開 UI 或 fixture seam，不得以 production backdoor 跳過玩家流程。
+Visual baselines 覆蓋主選單、角色建立、村莊、野外／地監、物品／法術／商店／設定等畫面，並檢查 `800×600`、`1280×720`、`1920×1080` 的置中與像素化呈現。Playwright 固定使用單一 worker，避免多個 WebGL browser context 同時耗盡本機資源。完整 campaign E2E 只透過真實 UI 操作；測試 probe 只可回傳 deep-cloned snapshot，不得提供 mutation method。
 
 每項行為變更遵循 TDD：先觀察 focused test 因預期原因失敗，再做最小實作並跑相關完整測試。修正 domain rule 時優先在 unit／integration 層建立 deterministic fixture；只有瀏覽器整合與 visual layout 放到 Playwright。
 
