@@ -801,50 +801,50 @@
     },
     {
       "key": "map-talking-island-village",
-      "path": "public/assets/maps/tiles-overworld.png",
-      "group": "tiles-overworld",
+      "path": "public/assets/maps/terrain-overworld-v2.png",
+      "group": "terrain-overworld-v2",
       "frame": 0,
       "license": "project-original"
     },
     {
       "key": "map-scarecrow-field",
-      "path": "public/assets/maps/tiles-overworld.png",
-      "group": "tiles-overworld",
+      "path": "public/assets/maps/terrain-overworld-v2.png",
+      "group": "terrain-overworld-v2",
       "frame": 1,
       "license": "project-original"
     },
     {
       "key": "map-north-field",
-      "path": "public/assets/maps/tiles-overworld.png",
-      "group": "tiles-overworld",
+      "path": "public/assets/maps/terrain-overworld-v2.png",
+      "group": "terrain-overworld-v2",
       "frame": 2,
       "license": "project-original"
     },
     {
       "key": "map-coast",
-      "path": "public/assets/maps/tiles-overworld.png",
-      "group": "tiles-overworld",
+      "path": "public/assets/maps/terrain-overworld-v2.png",
+      "group": "terrain-overworld-v2",
       "frame": 3,
       "license": "project-original"
     },
     {
       "key": "map-black-knight-area",
-      "path": "public/assets/maps/tiles-overworld.png",
-      "group": "tiles-overworld",
+      "path": "public/assets/maps/terrain-overworld-v2.png",
+      "group": "terrain-overworld-v2",
       "frame": 4,
       "license": "project-original"
     },
     {
       "key": "map-talking-island-dungeon-1",
-      "path": "public/assets/maps/tiles-dungeon.png",
-      "group": "tiles-dungeon",
+      "path": "public/assets/maps/terrain-dungeon-v2.png",
+      "group": "terrain-dungeon-v2",
       "frame": 0,
       "license": "project-original"
     },
     {
       "key": "map-talking-island-dungeon-2",
-      "path": "public/assets/maps/tiles-dungeon.png",
-      "group": "tiles-dungeon",
+      "path": "public/assets/maps/terrain-dungeon-v2.png",
+      "group": "terrain-dungeon-v2",
       "frame": 1,
       "license": "project-original"
     },
@@ -857,4 +857,3 @@
     }
   ]
 }
-

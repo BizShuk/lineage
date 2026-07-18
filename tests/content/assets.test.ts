@@ -23,8 +23,8 @@ const plannedPngPaths = [
   'public/assets/sprites/npcs.png',
   'public/assets/sprites/items.png',
   'public/assets/sprites/effects.png',
-  'public/assets/maps/tiles-overworld.png',
-  'public/assets/maps/tiles-dungeon.png',
+  'public/assets/maps/terrain-overworld-v2.png',
+  'public/assets/maps/terrain-dungeon-v2.png',
   'public/assets/ui/classic-frame.png',
 ] as const;
 
@@ -64,7 +64,7 @@ describe('asset manifest contract', () => {
     ).toBe(true);
   });
 
-  it('uses exactly the fourteen PNG paths planned for Task 13', () => {
+  it('uses exactly the fourteen planned project PNG paths', () => {
     const paths = new Set(Object.values(loadAssetManifest()).map(({ path }) => path));
     expect([...paths].sort()).toEqual([...plannedPngPaths].sort());
   });

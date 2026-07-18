@@ -16,8 +16,8 @@ const plannedPaths = new Set([
   'public/assets/sprites/npcs.png',
   'public/assets/sprites/items.png',
   'public/assets/sprites/effects.png',
-  'public/assets/maps/tiles-overworld.png',
-  'public/assets/maps/tiles-dungeon.png',
+  'public/assets/maps/terrain-overworld-v2.png',
+  'public/assets/maps/terrain-dungeon-v2.png',
   'public/assets/ui/classic-frame.png',
 ]);
 
