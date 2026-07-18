@@ -210,7 +210,7 @@ export class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const overlay = document.createElement('section');
-    overlay.className = 'scene-overlay menu-panel';
+    overlay.className = 'scene-overlay menu-panel classic-menu';
     overlay.setAttribute('aria-label', '主選單');
     parent.append(overlay);
     this.#overlay = overlay;
@@ -250,6 +250,7 @@ export class MenuScene extends Phaser.Scene {
         },
       );
       panel.render(model);
+      panel.element.classList.add('classic-save-management');
       panel.element.style.position = 'static';
       panel.element.style.width = '100%';
       panel.element.style.height = '300px';

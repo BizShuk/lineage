@@ -69,6 +69,18 @@ input {
   text-align: center;
 }
 
+.classic-menu {
+  width: min(440px, calc(100% - 32px));
+  border-color: var(--classic-gold);
+  box-shadow: 0 0 0 1px rgb(11 13 12 / 92%), 0 12px 30px #000c;
+}
+
+.classic-save-management {
+  border-color: var(--classic-bronze);
+  background: linear-gradient(180deg, rgb(34 35 31 / 92%), rgb(11 13 12 / 98%));
+  box-shadow: inset 0 0 0 1px rgb(213 181 111 / 18%);
+}
+
 .scene-overlay button {
   min-height: 38px;
   border: 1px solid var(--classic-gold);
@@ -132,6 +144,12 @@ input {
   padding: 20px;
 }
 
+.classic-character-form {
+  width: min(440px, calc(100% - 32px));
+  border-color: var(--classic-gold);
+  box-shadow: 0 0 0 1px rgb(11 13 12 / 92%), 0 12px 30px #000c;
+}
+
 .character-form > label {
   display: grid;
   gap: 6px;
@@ -152,6 +170,18 @@ input {
   border: 1px solid #5f543d;
 }
 
+.class-select {
+  gap: 6px;
+  padding: 8px;
+  border-color: var(--classic-bronze) !important;
+  background: rgb(11 13 12 / 76%);
+}
+
+.class-select legend {
+  padding: 0 5px;
+  color: var(--classic-gold);
+}
+
 .class-option {
   display: flex;
   gap: 4px;
@@ -166,10 +196,22 @@ input {
   line-height: 1.55;
 }
 
+.attribute-panel {
+  border: 1px solid var(--classic-bronze);
+  background:
+    linear-gradient(135deg, rgb(213 181 111 / 9%), transparent 35%),
+    var(--classic-stone-deep);
+  color: var(--classic-ink);
+}
+
 .form-actions {
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 10px;
+}
+
+.scene-actions button {
+  min-height: 34px;
 }
 
 .error-message,

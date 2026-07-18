@@ -140,7 +140,7 @@ export class CharacterCreateScene extends Phaser.Scene {
 
   #buildForm(content: GameContent): HTMLFormElement {
     const form = document.createElement('form');
-    form.className = 'scene-overlay character-form';
+    form.className = 'scene-overlay character-form classic-character-form';
     form.noValidate = true;
 
     const nameLabel = document.createElement('label');
@@ -154,6 +154,7 @@ export class CharacterCreateScene extends Phaser.Scene {
     form.append(nameLabel);
 
     const classGroup = document.createElement('fieldset');
+    classGroup.className = 'class-select';
     const legend = document.createElement('legend');
     legend.textContent = '選擇職業';
     classGroup.append(legend);
@@ -178,7 +179,7 @@ export class CharacterCreateScene extends Phaser.Scene {
 
     const preview = document.createElement('section');
     preview.dataset.testid = 'attribute-preview';
-    preview.className = 'attribute-preview';
+    preview.className = 'attribute-preview attribute-panel';
     form.append(preview);
     const initial = content.classes.find(({ id }) => id === 'prince');
     if (initial !== undefined) this.#renderPreview(form, initial);
@@ -189,7 +190,7 @@ export class CharacterCreateScene extends Phaser.Scene {
     form.append(error);
 
     const actions = document.createElement('div');
-    actions.className = 'form-actions';
+    actions.className = 'form-actions scene-actions';
     const back = document.createElement('button');
     back.type = 'button';
     back.textContent = '返回';

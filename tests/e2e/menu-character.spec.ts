@@ -10,7 +10,10 @@ const classes = [
 for (const [label, classId] of classes) {
   test(`creates ${label} in a separate browser context`, async ({ page }) => {
     await page.goto('/?e2e=1');
+    await expect(page.locator('.menu-panel')).toHaveClass(/classic-menu/);
+    await expect(page.getByTestId('save-panel')).toHaveClass(/classic-save-management/);
     await page.getByRole('button', { name: '開始新遊戲' }).click();
+    await expect(page.locator('.character-form')).toHaveClass(/classic-character-form/);
     await page.getByLabel('角色名稱').fill(`測試${label}`);
     await page.getByRole('radio', { name: label }).check();
 
