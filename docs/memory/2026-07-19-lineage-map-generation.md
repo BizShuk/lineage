@@ -35,5 +35,6 @@
 ## 後續風險
 
 - dungeon 紋理與 coast 紋理已通過 presented-frame gate；若要進一步提升視覺，可另開 polish slice 檢查長時間遊玩時的紋理重複度與 edge 連續性。
+- 本次 `npm run verify:release` 的完整 campaign 也已通過；沒有因地圖修正改動 campaign，先前 UI slice 的 timeout 紀錄屬於歷史證據。
 - build 的大 chunk 與 PWA deprecation warning 未影響本次 release gate。
 - `CLAUDE.md`、`README.md`、`package-lock.json`、`.agents/`、`.gitignore`、`.vscode/` 的既有工作樹變更保留，未在本次地圖修復中回復或覆寫。

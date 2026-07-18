@@ -385,7 +385,7 @@ Expected: all visual baseline tests pass.
 npx playwright test --grep-invert "seven-stage" --workers=1
 ```
 
-Expected: all non-campaign browser tests pass. The known `completeEnding` timeout remains out of scope.
+Expected: all non-campaign browser tests pass. Campaign implementation remains out of scope; the final release gate separately records whether the prior `completeEnding` timeout reproduces.
 
 - [x] **Step 6: Commit reviewed visual baselines**
 
@@ -408,11 +408,11 @@ git commit -m "test: refresh map visual baselines"
 
 - [x] **Step 1: Record the actual changed files and commands**
 
-The memory entry must record the generated atlas dimensions, the `MapPresenter` root cause and fix, the exact test commands, the non-campaign result, and the known campaign timeout boundary. It must state that online maps were references only and all committed atlas entries are `project-original`.
+The memory entry must record the generated atlas dimensions, the `MapPresenter` root cause and fix, the exact test commands, the non-campaign result, and whether the prior campaign timeout reproduces in the final gate. It must state that online maps were references only and all committed atlas entries are `project-original`.
 
 - [x] **Step 2: Update `CODEX_HANDOFF.md`**
 
-Move the phase from `design` to `asset`/`development`, list the atlas and renderer files, record actual pass/fail evidence, and set the next safest task to a separate map polish or campaign-timeout investigation. Do not claim the full `npm run verify` passed if the known campaign timeout remains.
+Move the phase from `design` to `asset`/`development`, list the atlas and renderer files, record actual pass/fail evidence, and set the next safest task to a separate map polish or regression-monitoring task. Report the final release result exactly; do not infer campaign behavior from partial gates.
 
 - [x] **Step 3: Run the final release checks**
 
@@ -437,5 +437,5 @@ git commit -m "docs: record lineage map repair evidence"
 - [x] The plan covers the spec's two atlas files, 8×8／128px cell contract, 16px runtime scale, manifest boundary, collision boundary, fallback behavior, visual checks, and handoff evidence.
 - [x] Every referenced helper name and property is defined before later tasks consume it.
 - [x] The plan does not require deleting legacy assets or changing domain rules.
-- [x] The plan keeps the known production campaign timeout outside this map slice.
+- [x] The plan keeps production campaign implementation outside this map slice.
 - [x] The plan contains no placeholder step or unbounded refactor.
