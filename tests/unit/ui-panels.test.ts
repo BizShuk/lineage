@@ -127,6 +127,11 @@ describe('HUD and panels', () => {
     );
     expect(findByTestId(hud.element, 'hud-hp').textContent).toContain('37 / 50');
     expect(findByTestId(hud.element, 'hud-mp').textContent).toContain('12 / 20');
+    expect(findByTestId(hud.element, 'hud-exp').textContent).toContain('經驗 42%');
+    expect(findByTestId(hud.element, 'hud-target').textContent).toContain('哥布林');
+    expect(findByTestId(hud.element, 'hud-stats').getAttribute('aria-label')).toBe('角色狀態');
+    expect(findByTestId(hud.element, 'hud-messages').getAttribute('aria-label')).toBe('訊息紀錄');
+    expect(findByTestId(hud.element, 'hud-quick-slots').getAttribute('aria-label')).toBe('快捷列');
     expect(findByTestId(hud.element, 'hud-stats').textContent).toContain('防禦 -3');
     expect(findByTestId(hud.element, 'hud-quick-slots').textContent).toContain('紅色藥水 ×3');
     expect(findByTestId(hud.element, 'hud-messages').textContent).toContain('取得金幣。');

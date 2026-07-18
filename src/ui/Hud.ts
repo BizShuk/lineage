@@ -34,12 +34,13 @@ const createGauge = (
   label: string,
   value: number,
   maximum: number,
+  displayValue?: string,
 ): HTMLElement => {
   const wrapper = document.createElement('div');
   wrapper.className = `hud-gauge ${testId}`;
   wrapper.setAttribute('data-testid', testId);
   const text = document.createElement('span');
-  text.textContent = `${label} ${String(value)} / ${String(maximum)}`;
+  text.textContent = `${label} ${displayValue ?? `${String(value)} / ${String(maximum)}`}`;
   const meter = document.createElement('meter');
   meter.setAttribute('aria-label', label);
   meter.setAttribute('min', '0');
@@ -53,6 +54,7 @@ export class Hud {
   readonly element: HTMLElement;
   readonly #document: Document;
   readonly #statusRail: HTMLElement;
+  readonly #target: HTMLElement;
   readonly #quickSlots: HTMLElement;
   readonly #messages: HTMLElement;
 
@@ -71,8 +73,27 @@ export class Hud {
     this.#statusRail.className = 'status-rail';
     this.#statusRail.setAttribute('data-testid', 'hud-stats');
     this.#statusRail.setAttribute('aria-label', '角色狀態');
+
     const bottom = document.createElement('footer');
     bottom.className = 'hud-bottom-bar';
+
+    const consoleRegion = document.createElement('section');
+    consoleRegion.className = 'hud-console';
+    consoleRegion.setAttribute('aria-label', '訊息紀錄');
+
+    const vitals = document.createElement('section');
+    vitals.className = 'hud-vitals';
+    vitals.setAttribute('data-testid', 'hud-vitals');
+    vitals.setAttribute('aria-label', '角色狀態');
+
+    const actions = document.createElement('section');
+    actions.className = 'hud-actions';
+    actions.setAttribute('aria-label', '目標與快捷列');
+
+    this.#target = document.createElement('p');
+    this.#target.className = 'hud-target';
+    this.#target.setAttribute('data-testid', 'hud-target');
+
     this.#messages = document.createElement('ol');
     this.#messages.className = 'hud-messages';
     this.#messages.setAttribute('data-testid', 'hud-messages');
@@ -81,8 +102,12 @@ export class Hud {
     this.#quickSlots.className = 'hud-quick-slots';
     this.#quickSlots.setAttribute('data-testid', 'hud-quick-slots');
     this.#quickSlots.setAttribute('aria-label', '快捷列');
-    bottom.append(this.#messages, this.#quickSlots);
-    this.element.append(viewport, this.#statusRail, bottom);
+
+    consoleRegion.append(this.#messages);
+    vitals.append(this.#statusRail);
+    actions.append(this.#target, this.#quickSlots);
+    bottom.append(consoleRegion, vitals, actions);
+    this.element.append(viewport, bottom);
   }
 
   render(viewModel: HudViewModel): void {
@@ -100,6 +125,14 @@ export class Hud {
       viewModel.mp,
       viewModel.maxMP,
     );
+    const experience = createGauge(
+      this.#document,
+      'hud-exp',
+      '經驗',
+      boundedPercent(viewModel.experiencePercent),
+      100,
+      `${String(boundedPercent(viewModel.experiencePercent))}%`,
+    );
     const stats = this.#document.createElement('p');
     stats.textContent = [
       `等級 ${String(viewModel.level)}`,
@@ -108,15 +141,15 @@ export class Hud {
       `負重 ${String(viewModel.weight)} / ${String(viewModel.weightLimit)}`,
       `正義 ${String(viewModel.alignment)}`,
     ].join('　');
-    const target = this.#document.createElement('p');
-    target.textContent =
+    this.#target.textContent =
       viewModel.target === null
         ? '目標：無'
         : `目標：${viewModel.target.name} ${String(boundedPercent(viewModel.target.hpPercent))}%`;
-    this.#statusRail.replaceChildren(hp, mp, stats, target);
+    this.#statusRail.replaceChildren(hp, mp, experience, stats);
 
     const quickSlots = viewModel.quickSlots.map((slot, index) => {
       const item = this.#document.createElement('li');
+      item.className = 'quick-slot';
       item.setAttribute('data-testid', `quick-slot-${String(index)}`);
       item.textContent =
         slot === null
