@@ -824,14 +824,14 @@
       "key": "map-coast",
       "path": "public/assets/maps/terrain-overworld-v2.png",
       "group": "terrain-overworld-v2",
-      "frame": 3,
+      "frame": 4,
       "license": "project-original"
     },
     {
       "key": "map-black-knight-area",
       "path": "public/assets/maps/terrain-overworld-v2.png",
       "group": "terrain-overworld-v2",
-      "frame": 4,
+      "frame": 2,
       "license": "project-original"
     },
     {
