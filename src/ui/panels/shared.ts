@@ -14,15 +14,19 @@ export const createPanelShell = (
   title: string,
 ): PanelShell => {
   const element = document.createElement('section');
-  element.className = 'game-panel';
+  element.className = 'game-panel panel-frame';
   element.tabIndex = -1;
   element.setAttribute('role', 'dialog');
   element.setAttribute('aria-modal', 'true');
   element.setAttribute('aria-label', title);
   element.setAttribute('data-testid', `${testId}-panel`);
 
+  const header = document.createElement('header');
+  header.className = 'panel-header';
   const heading = document.createElement('h2');
+  heading.className = 'panel-title';
   heading.textContent = title;
+  header.append(heading);
   const body = document.createElement('div');
   body.className = 'panel-scroll';
   body.setAttribute('data-testid', `${testId}-body`);
@@ -30,7 +34,7 @@ export const createPanelShell = (
   status.className = 'panel-status';
   status.setAttribute('aria-live', 'polite');
   status.setAttribute('data-testid', `${testId}-status`);
-  element.append(heading, body, status);
+  element.append(header, body, status);
   return { element, body, status };
 };
 
@@ -57,6 +61,7 @@ export const createActionButton = (
 ): HTMLButtonElement => {
   const button = document.createElement('button');
   button.type = 'button';
+  button.className = 'panel-action';
   button.textContent = label;
   button.setAttribute('data-testid', testId);
   button.addEventListener('click', action);

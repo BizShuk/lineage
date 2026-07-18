@@ -162,6 +162,11 @@ describe('HUD and panels', () => {
     expect(
       panels.map(({ element }) => fakeElement(element).getAttribute('aria-label')),
     ).toEqual(['角色', '物品欄', '魔法與技能', '任務', '區域地圖', '對話', '商店', '倉庫', '設定']);
+    const inventory = panels[1];
+    expect(fakeElement(inventory.element).className).toContain('panel-frame');
+    expect(fakeElement(inventory.element).children[0]?.className).toContain('panel-header');
+    expect(fakeElement(inventory.element).children[1]?.className).toContain('panel-scroll');
+    expect(fakeElement(inventory.element).children[2]?.className).toContain('panel-status');
     panels.forEach(({ element }) => {
       expect(fakeElement(element).textContent.length).toBeGreaterThan(0);
     });
