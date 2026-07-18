@@ -240,17 +240,19 @@ export class MapPresenter {
     if (entry === undefined || !this.#scene.textures.exists(entry.group)) return;
     const texture = this.#scene.textures.get(entry.group);
     const source = texture.getSourceImage() as { width: number; height: number };
-    const cellWidth = Math.floor(source.width / 8);
-    const cellHeight = Math.floor(source.height / 8);
+    const layout = terrainAtlasLayout(source.width, source.height);
+    if (layout === null) return;
+    const cellX = (entry.frame % TERRAIN_ATLAS_COLUMNS) * layout.cellWidth;
+    const cellY = Math.floor(entry.frame / TERRAIN_ATLAS_COLUMNS) * layout.cellHeight;
     const frame = `${textureKey}:map-cell`;
-    if (!texture.has(frame) && cellWidth > 0 && cellHeight > 0) {
+    if (!texture.has(frame)) {
       texture.add(
         frame,
         0,
-        (entry.frame % 8) * cellWidth,
-        Math.floor(entry.frame / 8) * cellHeight,
-        cellWidth,
-        cellHeight,
+        cellX,
+        cellY,
+        layout.cellWidth,
+        layout.cellHeight,
       );
     }
     if (!texture.has(frame)) return;
@@ -258,7 +260,8 @@ export class MapPresenter {
       .tileSprite(x, y, width, height, entry.group, frame)
       .setOrigin(0)
       .setDepth(depth + 1)
-      .setAlpha(0.88);
+      .setAlpha(0.88)
+      .setTileScale(layout.tileScaleX, layout.tileScaleY);
     this.#objects.push(tiles);
   }
 
