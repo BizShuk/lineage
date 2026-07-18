@@ -44,7 +44,7 @@
 - Produces two `1024×1024` PNGs, each divided into an exact `8×8` grid of `128×128` full-bleed cells.
 - Cell indices used by the current manifest remain stable: overworld `0–4`, dungeon `0–1`.
 
-- [ ] **Step 1: Generate the overworld atlas with the built-in image tool**
+- [x] **Step 1: Generate the overworld atlas with the built-in image tool**
 
 Use one coherent prompt with this asset contract:
 
@@ -61,7 +61,7 @@ Constraints: keep all 64 cells as clean square textures; make cells tile-friendl
 Avoid: isometric diamonds, raised platforms, perspective, props, shadows outside the tile, transparent gaps, borders, guide marks, and non-square cells.
 ```
 
-- [ ] **Step 2: Generate the dungeon atlas with the built-in image tool**
+- [x] **Step 2: Generate the dungeon atlas with the built-in image tool**
 
 Use the same contract, changing only the terrain set:
 
@@ -78,11 +78,11 @@ Constraints: keep all 64 cells as clean square textures; make cells tile-friendl
 Avoid: isometric diamonds, raised platforms, perspective, props, torches, doors, symbols, transparent gaps, borders, guide marks, and non-square cells.
 ```
 
-- [ ] **Step 3: Copy only the selected generated outputs into the workspace**
+- [x] **Step 3: Copy only the selected generated outputs into the workspace**
 
 Place the inspected final files at the two exact paths above. Do not overwrite `tiles-overworld.png` or `tiles-dungeon.png`.
 
-- [ ] **Step 4: Inspect dimensions and cell boundaries**
+- [x] **Step 4: Inspect dimensions and cell boundaries**
 
 Run:
 
@@ -94,7 +94,7 @@ Expected: both files report `PNG image data, 1024 x 1024`.
 
 Inspect both files with the image viewer. Reject and regenerate a single atlas if it has visible gutters, perspective diamonds, labels, watermarks, or cell drift. Do not continue to code integration until both images satisfy the atlas contract.
 
-- [ ] **Step 5: Commit the asset-only slice**
+- [x] **Step 5: Commit the asset-only slice**
 
 ```bash
 git add public/assets/maps/terrain-overworld-v2.png public/assets/maps/terrain-dungeon-v2.png
@@ -114,7 +114,7 @@ git commit -m "feat: add original terrain atlases"
 - `TerrainAtlasLayout` contains `cellWidth`, `cellHeight`, `tileScaleX`, and `tileScaleY`.
 - The fixed atlas layout uses `8` columns and `8` rows.
 
-- [ ] **Step 1: Write the failing layout tests**
+- [x] **Step 1: Write the failing layout tests**
 
 Add these imports and tests to `tests/unit/map-presenter.test.ts`:
 
@@ -155,7 +155,7 @@ describe('terrain atlas layout', () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and confirm the expected failure**
+- [x] **Step 2: Run the focused test and confirm the expected failure**
 
 Run:
 
@@ -165,7 +165,7 @@ npm test -- tests/unit/map-presenter.test.ts
 
 Expected: FAIL because `terrainAtlasLayout` is not exported yet.
 
-- [ ] **Step 3: Implement the smallest pure helper**
+- [x] **Step 3: Implement the smallest pure helper**
 
 Add this contract near `TILE_SIZE` in `src/game/systems/MapPresenter.ts`:
 
@@ -197,7 +197,7 @@ export const terrainAtlasLayout = (
 };
 ```
 
-- [ ] **Step 4: Run the focused test and confirm it passes**
+- [x] **Step 4: Run the focused test and confirm it passes**
 
 ```bash
 npm test -- tests/unit/map-presenter.test.ts
@@ -205,7 +205,7 @@ npm test -- tests/unit/map-presenter.test.ts
 
 Expected: all `MapPresenter contracts` and `terrain atlas layout` tests pass.
 
-- [ ] **Step 5: Commit the pure contract slice**
+- [x] **Step 5: Commit the pure contract slice**
 
 ```bash
 git add src/game/systems/MapPresenter.ts tests/unit/map-presenter.test.ts
@@ -224,7 +224,7 @@ git commit -m "test: define terrain atlas scaling contract"
 - Produces a `TileSprite` whose source cell is scaled to one `TILE_SIZE` world tile.
 - Keeps rectangle fallback and all existing terrain region ordering unchanged.
 
-- [ ] **Step 1: Replace local cell-size calculation with the tested helper**
+- [x] **Step 1: Replace local cell-size calculation with the tested helper**
 
 Replace the source/frame block in `#renderTerrain` with:
 
@@ -256,7 +256,7 @@ this.#objects.push(tiles);
 
 The constants `TERRAIN_ATLAS_COLUMNS` and `TERRAIN_ATLAS_ROWS` remain module-level so frame extraction and layout calculation cannot silently use different grids.
 
-- [ ] **Step 2: Run typecheck and the focused tests**
+- [x] **Step 2: Run typecheck and the focused tests**
 
 ```bash
 npm run typecheck
@@ -265,7 +265,7 @@ npm test -- tests/unit/map-presenter.test.ts
 
 Expected: both commands exit `0`; no Phaser type error for `setTileScale`.
 
-- [ ] **Step 3: Commit the renderer fix**
+- [x] **Step 3: Commit the renderer fix**
 
 ```bash
 git add src/game/systems/MapPresenter.ts
@@ -286,7 +286,7 @@ git commit -m "fix: scale terrain atlas tiles to the world grid"
 - Overworld entries use `path: "public/assets/maps/terrain-overworld-v2.png"` and `group: "terrain-overworld-v2"`.
 - Dungeon entries use `path: "public/assets/maps/terrain-dungeon-v2.png"` and `group: "terrain-dungeon-v2"`.
 
-- [ ] **Step 1: Update the asset-path test fixture first**
+- [x] **Step 1: Update the asset-path test fixture first**
 
 Replace the two legacy map paths in `plannedPngPaths` with:
 
@@ -297,7 +297,7 @@ Replace the two legacy map paths in `plannedPngPaths` with:
 
 Rename the test description from `uses exactly the fourteen PNG paths planned for Task 13` to `uses exactly the fourteen planned project PNG paths`.
 
-- [ ] **Step 2: Run the asset tests and confirm the expected failure**
+- [x] **Step 2: Run the asset tests and confirm the expected failure**
 
 ```bash
 npm test -- tests/content/assets.test.ts
@@ -305,7 +305,7 @@ npm test -- tests/content/assets.test.ts
 
 Expected: FAIL because the manifest still points at the legacy map paths.
 
-- [ ] **Step 3: Update the manifest allow-list and map entries**
+- [x] **Step 3: Update the manifest allow-list and map entries**
 
 In `src/content/assets.ts`, replace the two legacy paths in `plannedPaths` with the two `v2` paths. In `src/content/data/assets.json`, change only the seven map entries:
 
@@ -321,7 +321,7 @@ In `src/content/assets.ts`, replace the two legacy paths in `plannedPaths` with 
 
 Use the same overworld path/group for `map-scarecrow-field` frame `1` and `map-north-field` frame `2`. Use the coastal cell for `map-coast` frame `4`, and the soil/burnt-compatible cell for `map-black-knight-area` frame `2`; this mapping is intentionally validated by the presented-frame gate. Use the dungeon path/group for dungeon floor 1 frame `0` and floor 2 frame `1`.
 
-- [ ] **Step 4: Run the asset tests and content validation**
+- [x] **Step 4: Run the asset tests and content validation**
 
 ```bash
 npm test -- tests/content/assets.test.ts tests/content/schema.test.ts tests/content/references.test.ts
@@ -329,7 +329,7 @@ npm test -- tests/content/assets.test.ts tests/content/schema.test.ts tests/cont
 
 Expected: all asset, schema, and reference tests pass; every manifest entry remains `project-original`.
 
-- [ ] **Step 5: Commit the manifest slice**
+- [x] **Step 5: Commit the manifest slice**
 
 ```bash
 git add src/content/data/assets.json src/content/assets.ts tests/content/assets.test.ts
@@ -347,7 +347,7 @@ git commit -m "feat: wire original terrain atlases into map assets"
 - Consumes the complete atlas, renderer, and manifest slices from Tasks 1–4.
 - Produces reviewed visual baselines and evidence that world entities still align with the existing grid.
 
-- [ ] **Step 1: Run deterministic map and unit checks**
+- [x] **Step 1: Run deterministic map and unit checks**
 
 ```bash
 npm test -- tests/unit/map-presenter.test.ts tests/content/assets.test.ts tests/content/reachability.test.ts
@@ -355,7 +355,7 @@ npm test -- tests/unit/map-presenter.test.ts tests/content/assets.test.ts tests/
 
 Expected: all focused tests pass.
 
-- [ ] **Step 2: Build the production bundle**
+- [x] **Step 2: Build the production bundle**
 
 ```bash
 npm run build
@@ -363,7 +363,7 @@ npm run build
 
 Expected: Vite production build exits `0`; existing bundle-size and PWA deprecation warnings may remain documented.
 
-- [ ] **Step 3: Refresh only the affected visual baselines**
+- [x] **Step 3: Refresh only the affected visual baselines**
 
 ```bash
 npx playwright test tests/visual/visual-baselines.spec.ts --workers=1 --update-snapshots
@@ -371,7 +371,7 @@ npx playwright test tests/visual/visual-baselines.spec.ts --workers=1 --update-s
 
 Inspect the resulting `village`, `north-field`, `coast`, `black-knight-area`, `dungeon-1`, and `dungeon-2` screenshots. Accept only frames with no giant repeated diamonds, no atlas gutters, correct player/NPC/monster placement, and unchanged HUD/panel layout.
 
-- [ ] **Step 4: Re-run visual tests without snapshot updates**
+- [x] **Step 4: Re-run visual tests without snapshot updates**
 
 ```bash
 npx playwright test tests/visual/visual-baselines.spec.ts --workers=1
@@ -379,7 +379,7 @@ npx playwright test tests/visual/visual-baselines.spec.ts --workers=1
 
 Expected: all visual baseline tests pass.
 
-- [ ] **Step 5: Run the non-campaign browser gate**
+- [x] **Step 5: Run the non-campaign browser gate**
 
 ```bash
 npx playwright test --grep-invert "seven-stage" --workers=1
@@ -387,7 +387,7 @@ npx playwright test --grep-invert "seven-stage" --workers=1
 
 Expected: all non-campaign browser tests pass. The known `completeEnding` timeout remains out of scope.
 
-- [ ] **Step 6: Commit reviewed visual baselines**
+- [x] **Step 6: Commit reviewed visual baselines**
 
 ```bash
 git add tests/visual/visual-baselines.spec.ts-snapshots
@@ -406,15 +406,15 @@ git commit -m "test: refresh map visual baselines"
 - Consumes all verified implementation and visual evidence from Tasks 1–5.
 - Produces durable project-local handoff and release evidence without changing gameplay behavior.
 
-- [ ] **Step 1: Record the actual changed files and commands**
+- [x] **Step 1: Record the actual changed files and commands**
 
 The memory entry must record the generated atlas dimensions, the `MapPresenter` root cause and fix, the exact test commands, the non-campaign result, and the known campaign timeout boundary. It must state that online maps were references only and all committed atlas entries are `project-original`.
 
-- [ ] **Step 2: Update `CODEX_HANDOFF.md`**
+- [x] **Step 2: Update `CODEX_HANDOFF.md`**
 
 Move the phase from `design` to `asset`/`development`, list the atlas and renderer files, record actual pass/fail evidence, and set the next safest task to a separate map polish or campaign-timeout investigation. Do not claim the full `npm run verify` passed if the known campaign timeout remains.
 
-- [ ] **Step 3: Run the final release checks**
+- [x] **Step 3: Run the final release checks**
 
 ```bash
 git diff --check
@@ -425,7 +425,7 @@ npm run verify:release
 
 Expected: all commands exit `0`; `verify:release` confirms the manifest, required documents, content floors, and `project-original` license boundary.
 
-- [ ] **Step 4: Commit the evidence slice**
+- [x] **Step 4: Commit the evidence slice**
 
 ```bash
 git add CODEX_HANDOFF.md docs/memory/2026-07-19-lineage-map-generation.md
@@ -434,8 +434,8 @@ git commit -m "docs: record lineage map repair evidence"
 
 ## Self-review checklist
 
-- [ ] The plan covers the spec's two atlas files, 8×8／128px cell contract, 16px runtime scale, manifest boundary, collision boundary, fallback behavior, visual checks, and handoff evidence.
-- [ ] Every referenced helper name and property is defined before later tasks consume it.
-- [ ] The plan does not require deleting legacy assets or changing domain rules.
-- [ ] The plan keeps the known production campaign timeout outside this map slice.
-- [ ] The plan contains no placeholder step or unbounded refactor.
+- [x] The plan covers the spec's two atlas files, 8×8／128px cell contract, 16px runtime scale, manifest boundary, collision boundary, fallback behavior, visual checks, and handoff evidence.
+- [x] Every referenced helper name and property is defined before later tasks consume it.
+- [x] The plan does not require deleting legacy assets or changing domain rules.
+- [x] The plan keeps the known production campaign timeout outside this map slice.
+- [x] The plan contains no placeholder step or unbounded refactor.
