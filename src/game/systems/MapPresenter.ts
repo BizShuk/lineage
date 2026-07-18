@@ -6,6 +6,31 @@ import type { GridRectangle } from '../../world/grid';
 
 const ASSET_MANIFEST_REGISTRY_KEY = 'asset-manifest';
 const TILE_SIZE = 16;
+const TERRAIN_ATLAS_COLUMNS = 8;
+const TERRAIN_ATLAS_ROWS = 8;
+
+export interface TerrainAtlasLayout {
+  readonly cellWidth: number;
+  readonly cellHeight: number;
+  readonly tileScaleX: number;
+  readonly tileScaleY: number;
+}
+
+export const terrainAtlasLayout = (
+  sourceWidth: number,
+  sourceHeight: number,
+  tileSize = TILE_SIZE,
+): TerrainAtlasLayout | null => {
+  const cellWidth = Math.floor(sourceWidth / TERRAIN_ATLAS_COLUMNS);
+  const cellHeight = Math.floor(sourceHeight / TERRAIN_ATLAS_ROWS);
+  if (cellWidth <= 0 || cellHeight <= 0 || tileSize <= 0) return null;
+  return {
+    cellWidth,
+    cellHeight,
+    tileScaleX: tileSize / cellWidth,
+    tileScaleY: tileSize / cellHeight,
+  };
+};
 
 export interface TerrainRegion {
   readonly terrain: string;

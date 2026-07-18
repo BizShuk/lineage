@@ -4,6 +4,7 @@ import {
   nearestNpcId,
   normalizeMapPresentation,
   npcInteractionForRole,
+  terrainAtlasLayout,
   type MapAsset,
   type PresentedNpc,
 } from '../../src/game/systems/MapPresenter';
@@ -102,5 +103,31 @@ describe('MapPresenter contracts', () => {
 
     expect(nearestNpcId(npcs, 5, 5)).toBe('near');
     expect(nearestNpcId(npcs, 1, 1)).toBeNull();
+  });
+});
+
+describe('terrain atlas layout', () => {
+  it('maps a 1024px 8x8 atlas to 16px world tiles', () => {
+    expect(terrainAtlasLayout(1024, 1024)).toEqual({
+      cellWidth: 128,
+      cellHeight: 128,
+      tileScaleX: 0.125,
+      tileScaleY: 0.125,
+    });
+  });
+
+  it('keeps non-square source dimensions independently scaled', () => {
+    expect(terrainAtlasLayout(1536, 1024)).toEqual({
+      cellWidth: 192,
+      cellHeight: 128,
+      tileScaleX: 16 / 192,
+      tileScaleY: 0.125,
+    });
+  });
+
+  it('rejects an empty or undersized source image', () => {
+    expect(terrainAtlasLayout(0, 1024)).toBeNull();
+    expect(terrainAtlasLayout(1024, 0)).toBeNull();
+    expect(terrainAtlasLayout(7, 7)).toBeNull();
   });
 });
