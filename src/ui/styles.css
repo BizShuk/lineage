@@ -519,6 +519,83 @@ input {
   font-size: 11px;
 }
 
+.quest-list,
+.map-sheet,
+.trade-list,
+.warehouse-list {
+  border: 1px solid rgb(128 97 60 / 58%);
+  background: rgb(11 13 12 / 56%);
+}
+
+.quest-entry,
+.map-location,
+.dialogue-choice {
+  width: 100%;
+  min-height: 32px;
+  text-align: left;
+}
+
+.dialogue-box {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.dialogue-box h3 {
+  margin: 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--classic-bronze);
+  color: var(--classic-gold-bright);
+  font-size: 14px;
+}
+
+.dialogue-box p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.trade-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+  padding: 4px;
+  border-bottom: 1px solid rgb(128 97 60 / 40%);
+}
+
+.trade-row:last-child {
+  border-bottom: 0;
+}
+
+.trade-row > span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--classic-ink);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trade-row .panel-action {
+  min-height: 25px;
+  padding: 2px 5px;
+  font-size: 10px;
+}
+
+.settings-form {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.settings-form > label {
+  display: grid;
+  gap: 3px;
+  color: var(--classic-muted);
+  font-size: 12px;
+}
+
 .drop-target {
   margin-top: 8px;
   padding: 10px;

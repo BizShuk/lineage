@@ -85,6 +85,7 @@ test('uses production transactional panels for commerce, storage, dialogue, and 
   await enterWorld(page, true);
 
   await page.getByTestId('open-shop').click();
+  await expect(page.getByTestId('shop-panel').locator('.trade-list')).toBeVisible();
   await expect(page.getByTestId('shop-adena')).toContainText('500');
   await page.getByTestId('shop-buy-helmet').click();
   await expect(page.getByTestId('shop-adena')).toContainText('350');
@@ -109,6 +110,7 @@ test('uses production transactional panels for commerce, storage, dialogue, and 
   await expect(page.getByTestId('player-state')).toHaveAttribute('data-y', '38');
 
   await page.getByTestId('open-warehouse').click();
+  await expect(page.getByTestId('warehouse-panel').locator('.warehouse-list')).toBeVisible();
   await expect(page.getByTestId('warehouse-panel')).toContainText('紅色藥水 / 身上 2／倉庫 0');
   await page.getByTestId('warehouse-deposit-red-potion').click();
   await expect(page.getByTestId('warehouse-panel')).toContainText('紅色藥水 / 身上 1／倉庫 1');
@@ -117,11 +119,13 @@ test('uses production transactional panels for commerce, storage, dialogue, and 
   await page.keyboard.press('Escape');
 
   await page.getByTestId('open-dialogue').click();
+  await expect(page.getByTestId('dialogue-panel').locator('.dialogue-box')).toBeVisible();
   await expect(page.getByTestId('dialogue-panel')).toContainText('歡迎來到說話之島。');
   await page.getByTestId('dialogue-choice-continue').click();
   await expect(page.getByTestId('dialogue-panel')).toContainText('先到村莊補給，再前往訓練場。');
 
   await page.getByTestId('open-settings').click();
+  await expect(page.getByTestId('settings-panel').locator('.settings-form')).toBeVisible();
   await expect(page.getByTestId('settings-panel')).toBeVisible();
   await expect(page.getByTestId('dialogue-panel')).toBeVisible();
   await page.keyboard.press('Escape');

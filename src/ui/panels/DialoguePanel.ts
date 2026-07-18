@@ -35,6 +35,7 @@ export class DialoguePanel {
     const shell = createPanelShell(document, 'dialogue', '對話');
     this.element = shell.element;
     this.#body = shell.body;
+    this.#body.className = 'panel-scroll dialogue-box';
     this.#status = shell.status;
   }
 
@@ -59,6 +60,8 @@ export class DialoguePanel {
           this.choose(choice.id);
         },
       );
+      button.className = 'panel-action dialogue-choice';
+      button.setAttribute('data-ui-kind', 'dialogue-choice');
       button.disabled = choice.disabled ?? false;
       choices.append(button);
     });

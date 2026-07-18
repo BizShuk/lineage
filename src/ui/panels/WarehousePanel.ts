@@ -55,8 +55,10 @@ export class WarehousePanel {
     const summary = this.#document.createElement('p');
     summary.textContent = `金幣 ${String(viewModel.adena)} / 手續費 ${String(viewModel.fee)}`;
     const list = this.#document.createElement('ul');
+    list.className = 'warehouse-list';
     viewModel.items.forEach((item) => {
       const row = this.#document.createElement('li');
+      row.className = 'trade-row';
       const description = this.#document.createElement('span');
       description.textContent = `${item.name} / 身上 ${String(item.carried)}／倉庫 ${String(item.stored)}`;
       const deposit = createActionButton(

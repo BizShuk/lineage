@@ -49,18 +49,20 @@ export class MapPanel {
     const position = this.#document.createElement('p');
     position.textContent = `${viewModel.mapName} / 位置 ${String(viewModel.playerX)}, ${String(viewModel.playerY)}`;
     const list = this.#document.createElement('ul');
+    list.className = 'map-sheet';
     viewModel.locations.forEach((location) => {
       const item = this.#document.createElement('li');
-      item.append(
-        createActionButton(
-          this.#document,
-          `${location.name}（${String(location.x)}, ${String(location.y)}）`,
-          `map-location-${location.id}`,
-          () => {
-            this.selectLocation(location.id);
-          },
-        ),
+      const button = createActionButton(
+        this.#document,
+        `${location.name}（${String(location.x)}, ${String(location.y)}）`,
+        `map-location-${location.id}`,
+        () => {
+          this.selectLocation(location.id);
+        },
       );
+      button.className = 'panel-action map-location';
+      button.setAttribute('data-ui-kind', 'map-location');
+      item.append(button);
       list.append(item);
     });
     this.#body.replaceChildren(position, list);

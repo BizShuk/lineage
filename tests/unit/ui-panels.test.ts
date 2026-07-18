@@ -172,6 +172,28 @@ describe('HUD and panels', () => {
     });
   });
 
+  it('marks quest entries with the classic list contract', () => {
+    const doc = documentForTest();
+    const quest = new QuestPanel(doc, { activateQuest: () => ({ ok: false, reason: '尚未連接' }) });
+
+    quest.render({
+      quests: [
+        {
+          id: 'training',
+          name: '稻草人訓練',
+          stage: '尚未開始',
+          description: '完成訓練。',
+          completed: false,
+        },
+      ],
+    });
+
+    expect(findByTestId(quest.element, 'quest-list').className).toContain('quest-list');
+    expect(findByTestId(quest.element, 'quest-training').getAttribute('data-ui-kind')).toBe(
+      'quest-entry',
+    );
+  });
+
   it('updates shop inventory only after a successful domain result', () => {
     const item = { id: 'sword', name: '短劍', buyPrice: 80, sellPrice: 40, owned: 0 };
     const initial: ShopPanelViewModel = {

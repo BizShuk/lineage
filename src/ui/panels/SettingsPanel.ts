@@ -66,6 +66,7 @@ export class SettingsPanel {
     const shell = createPanelShell(document, 'settings', '設定');
     this.element = shell.element;
     this.#status = shell.status;
+    shell.body.className = 'panel-scroll settings-form';
 
     const music = createRange(document, '音樂音量', 'settings-music');
     const ambient = createRange(document, '環境音量', 'settings-ambient');

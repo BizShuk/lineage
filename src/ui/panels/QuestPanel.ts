@@ -45,6 +45,8 @@ export class QuestPanel {
   render(viewModel: QuestPanelViewModel): void {
     this.#state = viewModel;
     const list = this.#document.createElement('ul');
+    list.className = 'quest-list';
+    list.setAttribute('data-testid', 'quest-list');
     viewModel.quests.forEach((quest) => {
       const item = this.#document.createElement('li');
       const button = createActionButton(
@@ -55,6 +57,8 @@ export class QuestPanel {
           this.activateQuest(quest.id);
         },
       );
+      button.className = 'panel-action quest-entry';
+      button.setAttribute('data-ui-kind', 'quest-entry');
       button.setAttribute('aria-description', quest.description);
       item.append(button);
       list.append(item);

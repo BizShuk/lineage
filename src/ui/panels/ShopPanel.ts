@@ -54,8 +54,10 @@ export class ShopPanel {
       'shop-adena',
     );
     const list = this.#document.createElement('ul');
+    list.className = 'trade-list';
     viewModel.items.forEach((item) => {
       const row = this.#document.createElement('li');
+      row.className = 'trade-row';
       const description = this.#document.createElement('span');
       description.textContent = `${item.name} / 買 ${String(item.buyPrice)}／賣 ${String(item.sellPrice)}／持有 ${String(item.owned)}`;
       const buy = createActionButton(
