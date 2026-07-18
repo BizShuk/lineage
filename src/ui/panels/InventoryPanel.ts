@@ -72,6 +72,9 @@ export class InventoryPanel {
           this.handleItemKeyboard(item.id);
         },
       );
+      button.className = 'panel-action item-slot';
+      button.setAttribute('data-ui-kind', 'item-slot');
+      button.setAttribute('aria-label', `${item.name}，數量 ${String(item.quantity)}`);
       bindDragPayload(button, item.id);
       const quickSlot = createActionButton(
         this.#document,

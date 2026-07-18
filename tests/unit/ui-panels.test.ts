@@ -217,6 +217,11 @@ describe('HUD and panels', () => {
     });
     panel.render(model);
 
+    expect(findByTestId(panel.element, 'inventory-item-sword').getAttribute('data-ui-kind')).toBe(
+      'item-slot',
+    );
+    expect(findByTestId(panel.element, 'inventory-item-sword').textContent).toContain('短劍');
+
     panel.handleItemKeyboard('sword');
     panel.handleItemDrop('sword');
 

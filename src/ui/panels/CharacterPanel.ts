@@ -50,13 +50,18 @@ export class CharacterPanel {
       createTextRow(this.#document, '正義', String(viewModel.alignment)),
       createTextRow(this.#document, '經驗', `${String(viewModel.experiencePercent)}%`),
     ];
+    const summary = this.#document.createElement('div');
+    summary.className = 'character-summary';
+    summary.append(...rows);
     const equipment = this.#document.createElement('ul');
+    equipment.className = 'equipment-grid';
     equipment.setAttribute('aria-label', '裝備');
     viewModel.equipment.forEach(({ slot, label }) => {
       const item = this.#document.createElement('li');
+      item.className = 'equipment-slot';
       item.textContent = `${slot}：${label}`;
       equipment.append(item);
     });
-    this.#body.replaceChildren(...rows, equipment);
+    this.#body.replaceChildren(summary, equipment);
   }
 }

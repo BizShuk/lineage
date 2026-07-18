@@ -37,6 +37,10 @@ test('shows live HUD values and preserves S movement beside panel shortcuts', as
 
   await page.keyboard.press('KeyI');
   await expect(page.getByTestId('inventory-panel')).toBeVisible();
+  await expect(page.getByTestId('inventory-item-leather-jacket')).toHaveAttribute(
+    'data-ui-kind',
+    'item-slot',
+  );
   await page.getByTestId('inventory-quick-red-potion').click();
   await expect(page.getByTestId('hud-quick-slots')).toContainText('紅色藥水 ×3');
 
@@ -53,6 +57,10 @@ test('shows live HUD values and preserves S movement beside panel shortcuts', as
 
   await page.keyboard.press('Shift+KeyS');
   await expect(page.getByTestId('spells-panel')).toBeVisible();
+  await expect(page.getByTestId('spell-guarded-stance')).toHaveAttribute(
+    'data-ui-kind',
+    'spell-slot',
+  );
   await expect(page.getByTestId('spell-guarded-stance')).toBeDisabled();
   await page.keyboard.press('Escape');
 

@@ -53,6 +53,7 @@ export class SpellPanel {
     const mp = this.#document.createElement('p');
     mp.textContent = `目前魔力：${String(viewModel.currentMP)}`;
     const list = this.#document.createElement('ul');
+    list.className = 'spell-grid';
     viewModel.spells.forEach((spell) => {
       const item = this.#document.createElement('li');
       const button = createActionButton(
@@ -63,6 +64,9 @@ export class SpellPanel {
           this.activateSpell(spell.id);
         },
       );
+      button.className = 'panel-action spell-slot';
+      button.setAttribute('data-ui-kind', 'spell-slot');
+      button.setAttribute('aria-label', `${spell.name}，魔力 ${String(spell.manaCost)}`);
       button.disabled = !spell.available;
       bindDragPayload(button, spell.id);
       const quickSlot = createActionButton(
