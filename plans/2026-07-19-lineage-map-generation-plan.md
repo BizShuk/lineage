@@ -282,7 +282,7 @@ git commit -m "fix: scale terrain atlas tiles to the world grid"
 
 **Interfaces:**
 
-- Existing `map-*` keys and numeric frames remain unchanged.
+- Existing `map-*` keys remain unchanged; frame assignments may be remapped within the atlas when presented-frame QA shows that a terrain cell does not match the map region.
 - Overworld entries use `path: "public/assets/maps/terrain-overworld-v2.png"` and `group: "terrain-overworld-v2"`.
 - Dungeon entries use `path: "public/assets/maps/terrain-dungeon-v2.png"` and `group: "terrain-dungeon-v2"`.
 
@@ -319,7 +319,7 @@ In `src/content/assets.ts`, replace the two legacy paths in `plannedPaths` with 
 }
 ```
 
-Use the same overworld path/group for `map-scarecrow-field` frame `1`, `map-north-field` frame `2`, `map-coast` frame `3`, and `map-black-knight-area` frame `4`. Use the dungeon path/group for dungeon floor 1 frame `0` and floor 2 frame `1`.
+Use the same overworld path/group for `map-scarecrow-field` frame `1` and `map-north-field` frame `2`. Use the coastal cell for `map-coast` frame `4`, and the soil/burnt-compatible cell for `map-black-knight-area` frame `2`; this mapping is intentionally validated by the presented-frame gate. Use the dungeon path/group for dungeon floor 1 frame `0` and floor 2 frame `1`.
 
 - [ ] **Step 4: Run the asset tests and content validation**
 
