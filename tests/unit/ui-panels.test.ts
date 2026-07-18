@@ -163,6 +163,7 @@ describe('HUD and panels', () => {
       panels.map(({ element }) => fakeElement(element).getAttribute('aria-label')),
     ).toEqual(['角色', '物品欄', '魔法與技能', '任務', '區域地圖', '對話', '商店', '倉庫', '設定']);
     const inventory = panels[1];
+    if (inventory === undefined) throw new Error('物品欄 panel 未建立');
     expect(fakeElement(inventory.element).className).toContain('panel-frame');
     expect(fakeElement(inventory.element).children[0]?.className).toContain('panel-header');
     expect(fakeElement(inventory.element).children[1]?.className).toContain('panel-scroll');
