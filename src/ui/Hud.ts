@@ -28,38 +28,55 @@ export interface HudViewModel {
 
 const boundedPercent = (value: number): number => Math.min(100, Math.max(0, value));
 
-const createGauge = (
-  document: Document,
-  testId: string,
-  label: string,
-  value: number,
-  maximum: number,
-  displayValue?: string,
-): HTMLElement => {
+interface HudGauge {
+  readonly element: HTMLElement;
+  readonly text: HTMLElement;
+  readonly meter: HTMLElement;
+  readonly label: string;
+}
+
+const createGauge = (document: Document, testId: string, label: string): HudGauge => {
   const wrapper = document.createElement('div');
   wrapper.className = `hud-gauge ${testId}`;
   wrapper.setAttribute('data-testid', testId);
   const text = document.createElement('span');
-  text.textContent = `${label} ${displayValue ?? `${String(value)} / ${String(maximum)}`}`;
+  text.textContent = label;
   const meter = document.createElement('meter');
   meter.setAttribute('aria-label', label);
   meter.setAttribute('min', '0');
-  meter.setAttribute('max', String(Math.max(1, maximum)));
-  meter.setAttribute('value', String(Math.min(Math.max(0, value), Math.max(1, maximum))));
   wrapper.append(text, meter);
-  return wrapper;
+  return { element: wrapper, text, meter, label };
+};
+
+const updateGauge = (
+  gauge: HudGauge,
+  value: number,
+  maximum: number,
+  displayValue?: string,
+): void => {
+  const boundedMaximum = Math.max(1, maximum);
+  gauge.text.textContent = `${gauge.label} ${displayValue ?? `${String(value)} / ${String(maximum)}`}`;
+  gauge.meter.setAttribute('max', String(boundedMaximum));
+  gauge.meter.setAttribute(
+    'value',
+    String(Math.min(Math.max(0, value), boundedMaximum)),
+  );
 };
 
 export class Hud {
   readonly element: HTMLElement;
-  readonly #document: Document;
   readonly #statusRail: HTMLElement;
+  readonly #hpGauge: HudGauge;
+  readonly #mpGauge: HudGauge;
+  readonly #experienceGauge: HudGauge;
+  readonly #stats: HTMLElement;
   readonly #target: HTMLElement;
   readonly #quickSlots: HTMLElement;
   readonly #messages: HTMLElement;
+  readonly #quickSlotItems: readonly HTMLElement[];
+  readonly #messageItems: readonly HTMLElement[];
 
   constructor(document: Document) {
-    this.#document = document;
     this.element = document.createElement('section');
     this.element.className = 'classic-hud';
     this.element.setAttribute('data-testid', 'hud-root');
@@ -73,6 +90,17 @@ export class Hud {
     this.#statusRail.className = 'status-rail';
     this.#statusRail.setAttribute('data-testid', 'hud-stats');
     this.#statusRail.setAttribute('aria-label', '角色狀態');
+    this.#hpGauge = createGauge(document, 'hud-hp', '生命');
+    this.#mpGauge = createGauge(document, 'hud-mp', '魔力');
+    this.#experienceGauge = createGauge(document, 'hud-exp', '經驗');
+    this.#stats = document.createElement('p');
+    this.#stats.className = 'hud-stats';
+    this.#statusRail.append(
+      this.#hpGauge.element,
+      this.#mpGauge.element,
+      this.#experienceGauge.element,
+      this.#stats,
+    );
 
     const bottom = document.createElement('footer');
     bottom.className = 'hud-bottom-bar';
@@ -103,40 +131,36 @@ export class Hud {
     this.#quickSlots.setAttribute('data-testid', 'hud-quick-slots');
     this.#quickSlots.setAttribute('aria-label', '快捷列');
 
+    this.#quickSlotItems = Array.from({ length: 8 }, (_, index) => {
+      const item = document.createElement('li');
+      item.className = 'quick-slot';
+      item.setAttribute('data-testid', `quick-slot-${String(index)}`);
+      item.hidden = true;
+      return item;
+    });
+    this.#messageItems = Array.from({ length: 8 }, () => {
+      const item = document.createElement('li');
+      item.hidden = true;
+      return item;
+    });
+
     consoleRegion.append(this.#messages);
     vitals.append(this.#statusRail);
     actions.append(this.#target, this.#quickSlots);
     bottom.append(consoleRegion, vitals, actions);
     this.element.append(viewport, bottom);
+    this.#messages.append(...this.#messageItems);
+    this.#quickSlots.append(...this.#quickSlotItems);
   }
 
   render(viewModel: HudViewModel): void {
-    const hp = createGauge(
-      this.#document,
-      'hud-hp',
-      '生命',
-      viewModel.hp,
-      viewModel.maxHP,
-    );
-    const mp = createGauge(
-      this.#document,
-      'hud-mp',
-      '魔力',
-      viewModel.mp,
-      viewModel.maxMP,
-    );
-    const experience = createGauge(
-      this.#document,
-      'hud-exp',
-      '經驗',
-      boundedPercent(viewModel.experiencePercent),
-      100,
-      `${String(boundedPercent(viewModel.experiencePercent))}%`,
-    );
-    const stats = this.#document.createElement('p');
-    stats.textContent = [
+    const experiencePercent = boundedPercent(viewModel.experiencePercent);
+    updateGauge(this.#hpGauge, viewModel.hp, viewModel.maxHP);
+    updateGauge(this.#mpGauge, viewModel.mp, viewModel.maxMP);
+    updateGauge(this.#experienceGauge, experiencePercent, 100, `${String(experiencePercent)}%`);
+    this.#stats.textContent = [
       `等級 ${String(viewModel.level)}`,
-      `經驗 ${String(boundedPercent(viewModel.experiencePercent))}%`,
+      `經驗 ${String(experiencePercent)}%`,
       `防禦 ${String(viewModel.ac)}`,
       `負重 ${String(viewModel.weight)} / ${String(viewModel.weightLimit)}`,
       `正義 ${String(viewModel.alignment)}`,
@@ -145,27 +169,28 @@ export class Hud {
       viewModel.target === null
         ? '目標：無'
         : `目標：${viewModel.target.name} ${String(boundedPercent(viewModel.target.hpPercent))}%`;
-    this.#statusRail.replaceChildren(hp, mp, experience, stats);
-
-    const quickSlots = viewModel.quickSlots.map((slot, index) => {
-      const item = this.#document.createElement('li');
-      item.className = 'quick-slot';
-      item.setAttribute('data-testid', `quick-slot-${String(index)}`);
+    this.#quickSlotItems.forEach((item, index) => {
+      const slot = viewModel.quickSlots[index];
+      item.hidden = slot === undefined;
+      if (slot === undefined) {
+        item.textContent = '';
+        return;
+      }
       item.textContent =
         slot === null
           ? `${String(index + 1)}：空`
           : `${String(index + 1)}：${slot.label}${slot.quantity === undefined ? '' : ` ×${String(slot.quantity)}`}`;
-      return item;
     });
-    this.#quickSlots.replaceChildren(...quickSlots);
-
-    const messages = viewModel.messages.map((message) => {
-      const item = this.#document.createElement('li');
+    this.#messageItems.forEach((item, index) => {
+      const message = viewModel.messages[index];
+      item.hidden = message === undefined;
+      if (message === undefined) {
+        item.textContent = '';
+        return;
+      }
       item.className = `message-${message.kind}`;
       item.setAttribute('data-message-id', message.id);
       item.textContent = message.text;
-      return item;
     });
-    this.#messages.replaceChildren(...messages);
   }
 }

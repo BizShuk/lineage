@@ -6,13 +6,17 @@
 
 ## Phase
 
-`polish`／設計規格完成，等待規格審閱。
+`polish`／經典 UI 對齊已完成；保留一項與本次 UI 無關的既有 campaign E2E timeout。
 
 ## Latest completed work
 
 - 完成完整 UI 對齊設計：HUD、共用 panel、主選單、建角、素材策略、技術邊界、分階段品質閘門。
-- 決定優先重用 `public/assets/ui/classic-frame.png` 與既有 `project-original` sprites；只有確認素材缺口後才產製原創圖片／動畫。
-- 設計文件已提交：`e155617 docs: define classic lineage ui alignment`。
+- 完成 HUD 三欄底部資訊區：訊息、HP／MP／EXP／角色狀態、目標與八格快捷列。
+- 完成共用 panel 框體、標題、捲動區、狀態列、交易／倉庫／任務／地圖／對話／設定語意 class。
+- 完成物品、法術、角色裝備槽與主選單／建角 overlay 的經典 UI skin。
+- HUD render 改為重用固定 DOM 節點；顯示區保持 pointer-through，避免攔截世界 canvas 尋路。
+- 素材盤點確認 `classic-frame.png`、既有 sprites／effects 已足夠；本次沒有新增圖片或動畫。
+- 主要提交：`61c89d1`、`4560f17`、`afb3592`、`98c64cb`、`fab0911`、`138077c`、`6bd0c22`。
 
 ## Relevant files
 
@@ -27,16 +31,21 @@
 
 ## Verification
 
-- 設計文件 placeholder scan：通過
+- `npm run lint`：通過
+- `npm run typecheck`：通過
+- `npm test`：通過，37 files／263 tests
+- `npm run build`：通過；保留既有 bundle size 與 PWA `inlineDynamicImports` warnings
+- `npx playwright test --grep-invert "seven-stage" --workers=1`：通過，39 tests
+- `npx playwright test tests/visual/visual-baselines.spec.ts --workers=1`：通過，14 tests
 - `git diff --check`：通過
-- 尚未修改程式，因此尚未執行遊戲測試或視覺 baseline。
+- `npm run verify`：唯一失敗為既有七階段 campaign 在 `completeEnding` movement loop 超過 `180s`；release baseline `3e18d26` 以相同錯誤重現，未歸因於本次 UI。
 
 ## Known risks
 
-- 經典 HUD 重新編排可能需要調整現有 visual baseline 與 fixture selector，但不得破壞既有 action、focus scope、ARIA 與 canvas 尺寸契約。
-- `classic-frame.png` 的切片與不同 viewport 下的可讀性尚待實作後驗證。
+- 完整 production campaign 的長流程 timeout 尚未解決；下一輪應獨立追查 `CampaignDriver` 的 movement／clock loop，不要把 UI 變更混入修正。
+- build 保留既有大 chunk 與 PWA deprecation warning，未影響本次 UI 驗收。
 - 目前工作樹原有未追蹤 `.agents/`，不屬於本次 UI 設計提交。
 
 ## Next safest task
 
-使用者確認設計文件後，建立實作計畫，再先完成 UI token、共用框體與 HUD 的 focused slice。
+獨立診斷 campaign timeout；若需修改 world／clock，先建立 focused failing test，並維持本次 UI 的 39/39 non-campaign browser gate。

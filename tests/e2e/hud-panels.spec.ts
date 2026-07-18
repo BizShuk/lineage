@@ -79,6 +79,24 @@ test('shows live HUD values and preserves S movement beside panel shortcuts', as
   await expect(page.getByTestId('hud-quick-slots')).toContainText('紅色藥水 ×2');
 });
 
+test('keeps display-only HUD regions pass-through for world clicks', async ({ page }) => {
+  await enterWorld(page);
+
+  const hit = await page.getByTestId('hud-exp').evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const target = document.elementFromPoint(
+      bounds.left + bounds.width / 2,
+      bounds.top + bounds.height / 2,
+    );
+    return {
+      tagName: target?.tagName ?? null,
+      testId: target?.getAttribute('data-testid') ?? null,
+    };
+  });
+
+  expect(hit).toEqual({ tagName: 'CANVAS', testId: null });
+});
+
 test('uses production transactional panels for commerce, storage, dialogue, and settings', async ({
   page,
 }) => {
@@ -132,6 +150,14 @@ test('uses production transactional panels for commerce, storage, dialogue, and 
   await expect(page.getByTestId('settings-panel')).toBeHidden();
   await expect(page.getByTestId('dialogue-panel')).toBeVisible();
   await page.getByTestId('open-settings').click();
+  await expect(page.getByTestId('settings-music')).toHaveCSS(
+    'accent-color',
+    'rgb(213, 181, 111)',
+  );
+  await expect(page.getByTestId('settings-muted')).toHaveCSS(
+    'accent-color',
+    'rgb(213, 181, 111)',
+  );
   await page.getByTestId('settings-music').fill('0.2');
   await page.getByTestId('settings-ambient').fill('0.3');
   await page.getByTestId('settings-effects').fill('0.4');

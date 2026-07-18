@@ -138,6 +138,44 @@ describe('HUD and panels', () => {
     expect(model.hp).toBe(37);
   });
 
+  it('reuses live HUD nodes when the view model changes', () => {
+    const hud = new Hud(documentForTest());
+    const initial = {
+      hp: 37,
+      maxHP: 50,
+      mp: 12,
+      maxMP: 20,
+      level: 7,
+      experiencePercent: 42,
+      ac: -3,
+      weight: 48,
+      weightLimit: 100,
+      alignment: 120,
+      target: null,
+      quickSlots: [{ icon: 'red-potion', label: '紅色藥水', quantity: 3 }, null],
+      messages: [{ id: 'm1', kind: 'loot' as const, text: '取得金幣。' }],
+    } satisfies HudViewModel;
+    hud.render(initial);
+    const hp = findByTestId(hud.element, 'hud-hp');
+    const quickSlot = findByTestId(hud.element, 'quick-slot-0');
+    const message = findByTestId(hud.element, 'hud-messages').children[0];
+    if (message === undefined) throw new Error('HUD 訊息節點未建立');
+
+    hud.render({
+      ...initial,
+      hp: 25,
+      target: { name: '哥布林', hpPercent: 60 },
+      quickSlots: [{ icon: 'red-potion', label: '紅色藥水', quantity: 2 }, null],
+      messages: [{ id: 'm2', kind: 'combat', text: '造成傷害。' }],
+    });
+
+    expect(findByTestId(hud.element, 'hud-hp')).toBe(hp);
+    expect(findByTestId(hud.element, 'quick-slot-0')).toBe(quickSlot);
+    expect(findByTestId(hud.element, 'hud-messages').children[0]).toBe(message);
+    expect(findByTestId(hud.element, 'hud-hp').textContent).toContain('25 / 50');
+    expect(findByTestId(hud.element, 'hud-target').textContent).toContain('哥布林');
+  });
+
   it('creates every approved panel as a labelled, operable dialog', () => {
     const doc = documentForTest();
     const failed = { ok: false as const, reason: '尚未連接' };

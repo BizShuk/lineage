@@ -8,6 +8,10 @@
 
 **Tech Stack:** TypeScript `5.9`、Phaser `3.90`、Vite `8.1`、原生 DOM／CSS、Vitest `4.1`、Playwright `1.61` desktop Chromium。
 
+## Execution status
+
+所有 UI 對齊 tasks 已完成並更新 visual baselines。`npm run verify` 的七階段 production campaign 在本次與 release baseline `3e18d26` 均於 `completeEnding` movement loop timeout；其餘 lint、typecheck、Vitest、build、39 條 non-campaign browser tests 與 14 條 visual tests 均通過。
+
 ## Global Constraints
 
 - 內部 viewport 固定為 `640×480`，放大時必須使用像素邊緣，不使用平滑縮放。
@@ -59,7 +63,7 @@
 - Consumes: existing `HudViewModel` fields `hp`, `maxHP`, `mp`, `maxMP`, `level`, `experiencePercent`, `ac`, `weight`, `weightLimit`, `alignment`, `target`, `quickSlots`, `messages`.
 - Produces: stable DOM regions `world-viewport`, `hud-stats`, `hud-hp`, `hud-mp`, new `hud-exp`, `hud-target`, `hud-messages`, and `hud-quick-slots`; no new domain field.
 
-- [ ] **Step 1: Write the failing unit assertions for the classic regions.**
+- [x] **Step 1: Write the failing unit assertions for the classic regions.**
 
 Add these assertions after the existing HUD assertions in `tests/unit/ui-panels.test.ts`:
 
@@ -78,7 +82,7 @@ await expect(page.getByTestId('hud-exp')).toContainText('經驗 0%');
 await expect(page.getByTestId('hud-target')).toHaveText('目標：無');
 ```
 
-- [ ] **Step 2: Run the focused tests and confirm the new selectors fail.**
+- [x] **Step 2: Run the focused tests and confirm the new selectors fail.**
 
 Run:
 
@@ -89,7 +93,7 @@ npx playwright test tests/e2e/hud-panels.spec.ts -g "shows live HUD values" --wo
 
 Expected: FAIL because `hud-exp` and `hud-target` do not exist yet.
 
-- [ ] **Step 3: Implement the smallest HUD DOM change.**
+- [x] **Step 3: Implement the smallest HUD DOM change.**
 
 Keep `createGauge` as the shared meter creator. Add `readonly #target: HTMLElement;` beside the existing private HUD element fields. In `Hud` construction, keep `world-viewport`, `hud-stats`, `hud-messages`, and `hud-quick-slots`, but put them into explicit regions:
 
@@ -123,11 +127,11 @@ this.element.append(viewport, bottom);
 
 In `render`, create the experience meter with `createGauge(this.#document, 'hud-exp', '經驗', boundedPercent(viewModel.experiencePercent), 100)` and put it beside the existing HP／MP meters. Replace the current status-rail contents with HP, MP, EXP, and the stats paragraph; assign the target text to `this.#target` so the target remains in the actions region. In the quick-slot map, set each item class to `quick-slot`. Do not change the `HudViewModel` type or action behavior.
 
-- [ ] **Step 4: Run the focused tests and confirm they pass.**
+- [x] **Step 4: Run the focused tests and confirm they pass.**
 
 Run the same Vitest and Playwright commands from Step 2. Expected: PASS, with the existing movement, panel, quick-slot and HUD value assertions still passing.
 
-- [ ] **Step 5: Commit the HUD contract.**
+- [x] **Step 5: Commit the HUD contract.**
 
 ```bash
 git add src/ui/Hud.ts tests/unit/ui-panels.test.ts tests/e2e/hud-panels.spec.ts
@@ -146,7 +150,7 @@ git commit -m "feat: structure classic lineage hud regions"
 - Consumes: existing `PanelShell`, `createPanelShell`, `createTextRow`, `createActionButton`, and `PanelActionResult` contracts.
 - Produces: every panel has `.panel-header`, `.panel-scroll`, `.panel-status`, `.panel-frame`, and shared `.panel-action` class hooks while retaining existing `data-testid` values and roles.
 
-- [ ] **Step 1: Add failing shared-shell assertions.**
+- [x] **Step 1: Add failing shared-shell assertions.**
 
 Extend the panel creation test with these checks for the inventory panel:
 
@@ -158,7 +162,7 @@ expect(fakeElement(inventory.element).children[1]?.className).toContain('panel-s
 expect(fakeElement(inventory.element).children[2]?.className).toContain('panel-status');
 ```
 
-- [ ] **Step 2: Run the focused unit test and confirm it fails.**
+- [x] **Step 2: Run the focused unit test and confirm it fails.**
 
 ```bash
 npx vitest run tests/unit/ui-panels.test.ts -t "labelled, operable dialog"
@@ -166,7 +170,7 @@ npx vitest run tests/unit/ui-panels.test.ts -t "labelled, operable dialog"
 
 Expected: FAIL because the shell currently has no `panel-frame` or `panel-header` class.
 
-- [ ] **Step 3: Implement shared shell classes without changing behavior.**
+- [x] **Step 3: Implement shared shell classes without changing behavior.**
 
 Use this shape in `createPanelShell`:
 
@@ -196,7 +200,7 @@ element.append(header, body, status);
 
 Add `button.className = 'panel-action'` in `createActionButton`; do not change the callback or `data-testid`.
 
-- [ ] **Step 4: Run the focused panel tests.**
+- [x] **Step 4: Run the focused panel tests.**
 
 ```bash
 npx vitest run tests/unit/ui-panels.test.ts
@@ -204,7 +208,7 @@ npx vitest run tests/unit/ui-panels.test.ts
 
 Expected: PASS; all nine panel roles, labels, result handling, drag/drop and settings behavior remain unchanged.
 
-- [ ] **Step 5: Commit the shared panel contract.**
+- [x] **Step 5: Commit the shared panel contract.**
 
 ```bash
 git add src/ui/panels/shared.ts tests/unit/ui-panels.test.ts
@@ -224,7 +228,7 @@ git commit -m "feat: add classic panel structure hooks"
 - Consumes: the DOM class contract from Tasks 1–2, Phaser canvas `640×480`, existing `--hud-display-scale`, and `public/assets/ui/classic-frame.png`.
 - Produces: a responsive, pixelated classic HUD and shared panel skin with no domain or behavior changes.
 
-- [ ] **Step 1: Add a failing layout contract to the HUD E2E test.**
+- [x] **Step 1: Add a failing layout contract to the HUD E2E test.**
 
 After the live HUD assertions, add:
 
@@ -238,7 +242,7 @@ await expect(page.getByTestId('hud-root')).toHaveCSS('image-rendering', 'pixelat
 
 Use `page.getByTestId('hud-root').evaluate((element) => getComputedStyle(element).gridTemplateRows)` only if a browser-specific CSS assertion is needed; do not assert exact physical pixels because `--hud-display-scale` changes with viewport.
 
-- [ ] **Step 2: Run the HUD E2E test before styling.**
+- [x] **Step 2: Run the HUD E2E test before styling.**
 
 ```bash
 npx playwright test tests/e2e/hud-panels.spec.ts -g "shows live HUD values" --workers=1
@@ -246,7 +250,7 @@ npx playwright test tests/e2e/hud-panels.spec.ts -g "shows live HUD values" --wo
 
 Expected: the `hud-vitals` display assertion fails because the new region has no classic layout styling yet.
 
-- [ ] **Step 3: Replace the CSS token and layout layer.**
+- [x] **Step 3: Replace the CSS token and layout layer.**
 
 Keep the existing global reset, `#game-root`, pixel rendering, focus styles and media query behavior. Replace the generic color declarations with this token set and use it throughout `.classic-hud`, `.game-panel`, buttons and form controls:
 
@@ -278,7 +282,7 @@ Set `.classic-hud` to a fixed `640px × 480px` overlay with `grid-template-rows:
 
 Use `background-image` only for a safely cropped or non-disruptive frame texture; a full atlas must not be stretched over a panel. CSS gradients are allowed as the fallback when the atlas cannot be sliced without showing unrelated atlas elements.
 
-- [ ] **Step 4: Run the focused E2E test and the HUD visual fixture.**
+- [x] **Step 4: Run the focused E2E test and the HUD visual fixture.**
 
 ```bash
 npx playwright test tests/e2e/hud-panels.spec.ts -g "shows live HUD values" --workers=1
@@ -287,7 +291,7 @@ npx playwright test tests/visual/visual-baselines.spec.ts -g "village remains vi
 
 Expected: PASS for behavior; visual test may report an intentional screenshot mismatch and must be updated only after manual inspection at `1280×720`.
 
-- [ ] **Step 5: Commit the token and HUD skin.**
+- [x] **Step 5: Commit the token and HUD skin.**
 
 ```bash
 git add src/ui/styles.css tests/e2e/hud-panels.spec.ts
@@ -310,7 +314,7 @@ git commit -m "feat: apply classic lineage hud skin"
 - Consumes: existing item／spell／character view models and existing `activateItem`, `assignQuickSlot`, `activateSpell`, and `assignQuickSlot` actions.
 - Produces: `.item-grid`, `.item-slot`, `.spell-grid`, `.spell-slot`, `.equipment-grid`, and `.panel-row` elements with existing test ids, button semantics, quantity text and drag/drop behavior.
 
-- [ ] **Step 1: Add failing DOM class and icon fallback assertions.**
+- [x] **Step 1: Add failing DOM class and icon fallback assertions.**
 
 In `tests/unit/ui-panels.test.ts`, render a one-item inventory and assert:
 
@@ -326,7 +330,7 @@ await expect(page.getByTestId('inventory-item-leather-jacket')).toHaveAttribute(
 await expect(page.getByTestId('spell-guarded-stance')).toHaveAttribute('data-ui-kind', 'spell-slot');
 ```
 
-- [ ] **Step 2: Run the focused unit test and confirm it fails.**
+- [x] **Step 2: Run the focused unit test and confirm it fails.**
 
 ```bash
 npx vitest run tests/unit/ui-panels.test.ts -t "keyboard activation and drag/drop"
@@ -334,7 +338,7 @@ npx vitest run tests/unit/ui-panels.test.ts -t "keyboard activation and drag/dro
 
 Expected: FAIL because the buttons have no `data-ui-kind` attribute.
 
-- [ ] **Step 3: Add visual-only slot metadata and preserve action paths.**
+- [x] **Step 3: Add visual-only slot metadata and preserve action paths.**
 
 In `InventoryPanel.render`, after creating each item button, add:
 
@@ -354,7 +358,7 @@ button.setAttribute('aria-label', `${spell.name}，魔力 ${String(spell.manaCos
 
 Wrap the existing character text rows and equipment list with `.character-summary` and `.equipment-grid`; set equipment list items to `.equipment-slot`. Do not add item lookup or icon lookup to `core`, and use the current text label as the fallback when an icon is unavailable.
 
-- [ ] **Step 4: Run the focused UI and E2E tests.**
+- [x] **Step 4: Run the focused UI and E2E tests.**
 
 ```bash
 npx vitest run tests/unit/ui-panels.test.ts
@@ -363,7 +367,7 @@ npx playwright test tests/e2e/hud-panels.spec.ts -g "shows live HUD values" --wo
 
 Expected: PASS, including inventory keyboard activation, drag/drop, spell disabled state, HUD quick-slot updates and character panel text.
 
-- [ ] **Step 5: Commit the item／spell／character presentation.**
+- [x] **Step 5: Commit the item／spell／character presentation.**
 
 ```bash
 git add src/ui/panels/CharacterPanel.ts src/ui/panels/InventoryPanel.ts src/ui/panels/SpellPanel.ts src/ui/panels/shared.ts tests/unit/ui-panels.test.ts tests/e2e/hud-panels.spec.ts
@@ -391,7 +395,7 @@ git commit -m "feat: present classic item and character slots"
 - Consumes: the existing panel view models, action result flow, `WindowManager` focus scope and current test ids.
 - Produces: consistent list／detail／form classes: `.quest-list`, `.map-sheet`, `.dialogue-box`, `.trade-list`, `.warehouse-list`, `.settings-form`, `.save-slots`, with no changed action signatures.
 
-- [ ] **Step 1: Add failing class contract assertions to the existing panel E2E.**
+- [x] **Step 1: Add failing class contract assertions to the existing panel E2E.**
 
 Add these checks in `tests/e2e/hud-panels.spec.ts` after each panel is opened:
 
@@ -404,7 +408,7 @@ await expect(page.getByTestId('settings-panel').locator('.settings-form')).toBeV
 
 Add one unit assertion that a quest list button retains its existing `data-testid` and gains `data-ui-kind="quest-entry"`; add a `data-testid="quest-list"` to the list so the class can be checked without depending on text.
 
-- [ ] **Step 2: Run the commerce／dialogue／settings E2E test and confirm the new contract fails.**
+- [x] **Step 2: Run the commerce／dialogue／settings E2E test and confirm the new contract fails.**
 
 ```bash
 npx vitest run tests/unit/ui-panels.test.ts -t "labelled, operable dialog"
@@ -413,7 +417,7 @@ npx playwright test tests/e2e/hud-panels.spec.ts -g "production transactional pa
 
 Expected: FAIL only because the new `.trade-list`, `.warehouse-list`, `.dialogue-box`, `.settings-form`, or `data-ui-kind` hooks do not exist; existing purchase, sale, deposit, withdraw, dialogue and settings assertions must continue to execute.
 
-- [ ] **Step 3: Add semantic classes without changing panel actions.**
+- [x] **Step 3: Add semantic classes without changing panel actions.**
 
 Apply these exact metadata rules while keeping every existing callback:
 
@@ -441,7 +445,7 @@ Use `.map-sheet`, `.dialogue-box`, `.trade-list`, `.warehouse-list`, and `.save-
 
 Use these concrete assignments: `QuestPanel` list `className = 'quest-list'` plus `data-testid="quest-list"`; `MapPanel` list `className = 'map-sheet'`; `DialoguePanel` body `className = 'panel-scroll dialogue-box'`; `ShopPanel` list `className = 'trade-list'`; `WarehousePanel` list `className = 'warehouse-list'`; and retain the existing `save-slots` class in `SavePanel` while applying the shared frame styles.
 
-- [ ] **Step 4: Extend CSS for the classic list／form states and run focused tests.**
+- [x] **Step 4: Extend CSS for the classic list／form states and run focused tests.**
 
 Add rules for the exact classes from Step 3, using the existing token set. The list rows must keep text readable at `640×480`; the map sheet must not be a playable-map bitmap; settings and save forms must preserve visible focus outlines. Then run:
 
@@ -453,7 +457,7 @@ npx playwright test tests/e2e/save-recovery.spec.ts --workers=1
 
 Expected: PASS for domain action behavior, focus stack, save recovery and new visual class contracts.
 
-- [ ] **Step 5: Commit all secondary panel presentation changes.**
+- [x] **Step 5: Commit all secondary panel presentation changes.**
 
 ```bash
 git add src/ui/panels/QuestPanel.ts src/ui/panels/MapPanel.ts src/ui/panels/DialoguePanel.ts src/ui/panels/ShopPanel.ts src/ui/panels/WarehousePanel.ts src/ui/panels/SettingsPanel.ts src/ui/panels/SavePanel.ts src/ui/styles.css tests/unit/ui-panels.test.ts tests/e2e/hud-panels.spec.ts
@@ -475,7 +479,7 @@ git commit -m "feat: style classic quest commerce and settings panels"
 - Consumes: existing `SavePanel`, menu save actions, class radio inputs, name validation, content registry and `active-save` flow.
 - Produces: `.classic-menu`, `.classic-save-management`, `.classic-character-form`, `.class-select`, `.attribute-panel`, `.scene-actions` classes while retaining accessible labels and existing button names.
 
-- [ ] **Step 1: Add failing scene class assertions.**
+- [x] **Step 1: Add failing scene class assertions.**
 
 In `tests/e2e/menu-character.spec.ts`, add after entering each scene:
 
@@ -486,7 +490,7 @@ await expect(page.locator('.character-form')).toHaveClass(/classic-character-for
 
 The scene title `建立角色` is rendered by Phaser rather than a DOM heading, so do not add a brittle heading selector; validate the DOM form and its existing accessible controls instead.
 
-- [ ] **Step 2: Run the focused menu／character tests and confirm the new class assertions fail.**
+- [x] **Step 2: Run the focused menu／character tests and confirm the new class assertions fail.**
 
 ```bash
 npx playwright test tests/e2e/menu-character.spec.ts -g "creates 王族" --workers=1
@@ -494,11 +498,11 @@ npx playwright test tests/e2e/menu-character.spec.ts -g "creates 王族" --worke
 
 Expected: FAIL only on the new class assertions; name validation and save creation behavior must remain reachable.
 
-- [ ] **Step 3: Add scene classes and semantic grouping.**
+- [x] **Step 3: Add scene classes and semantic grouping.**
 
 In `MenuScene`, append `classic-menu` to the existing `menu-panel` class and call `panel.element.classList.add('classic-save-management')` after constructing the `SavePanel`; keep the existing save panel `aria-modal="false"` contract. In `CharacterCreateScene`, append `classic-character-form` to the existing `character-form`, add `class-select` to the fieldset, `attribute-panel` to the preview, and `scene-actions` to the action wrapper. Do not rename `角色名稱`, radio labels, `建立角色`, `返回`, `attribute-preview`, or error messages.
 
-- [ ] **Step 4: Style and verify scene overlays.**
+- [x] **Step 4: Style and verify scene overlays.**
 
 Add the classic central frame, title spacing, input inset, class selection slots, attribute parchment／stone panel, and narrow action footer. Ensure the form remains usable with keyboard focus and at `800×600`.
 
@@ -509,7 +513,7 @@ npx playwright test tests/visual/visual-baselines.spec.ts -g "menu|character-cre
 
 Expected: all character creation and validation tests pass; visual diffs are inspected before baseline update.
 
-- [ ] **Step 5: Commit scene overlay presentation.**
+- [x] **Step 5: Commit scene overlay presentation.**
 
 ```bash
 git add src/game/scenes/MenuScene.ts src/game/scenes/CharacterCreateScene.ts src/ui/styles.css tests/e2e/menu-character.spec.ts
@@ -534,7 +538,7 @@ git commit -m "feat: restyle classic menu and character creation"
 - Consumes: visual screenshots produced by Tasks 3–6 and the existing asset manifest.
 - Produces: either no new asset (when existing original art covers the UI), or a small original UI asset pack with manifest entries and deterministic import dimensions.
 
-- [ ] **Step 1: Run the asset and build checks before generating anything.**
+- [x] **Step 1: Run the asset and build checks before generating anything.**
 
 ```bash
 npx vitest run tests/content/assets.test.ts tests/unit/build-content-index.test.ts
@@ -543,7 +547,7 @@ npm run build
 
 Expected: existing assets pass and the build can load `/assets/ui/classic-frame.png`.
 
-- [ ] **Step 2: Compare each missing visual element against the asset inventory.**
+- [x] **Step 2: Compare each missing visual element against the asset inventory.**
 
 Record the result in the implementation notes using this decision table:
 
@@ -555,11 +559,11 @@ Record the result in the implementation notes using this decision table:
 | class／character visual | `sprites/player-*.png` | reuse |
 | missing decorative background or animation | none | generate an original asset only if the visual baseline has a concrete gap |
 
-- [ ] **Step 3: If and only if a concrete gap remains, generate and QA one compact asset pack.**
+- [x] **Step 3: If and only if a concrete gap remains, generate and QA one compact asset pack.**
 
 Use the image generation workflow with a prompt that specifies an original pixel-art UI atlas, fixed grid, transparent background or solid `#00FF00` chroma background as appropriate, no labels, no logo, no copied character, and no scenery mixed into UI parts. Keep the result to one coherent UI family. Inspect dimensions, transparency, edge touching and frame consistency before integration.
 
-- [ ] **Step 4: Integrate only approved original assets.**
+- [x] **Step 4: Integrate only approved original assets.**
 
 Place each asset under `public/assets/ui/`, add an `assets.json` entry such as:
 
@@ -575,7 +579,7 @@ Place each asset under `public/assets/ui/`, add an `assets.json` entry such as:
 
 Use the asset in CSS or an explicit UI adapter. Do not place asset lookup in `core`, `world`, or save data. If no gap remains, do not add a generated asset merely to increase file count.
 
-- [ ] **Step 5: Run content and production checks.**
+- [x] **Step 5: Run content and production checks.**
 
 ```bash
 npm run content:index
@@ -585,7 +589,7 @@ npm run build
 
 Expected: all asset entries use valid paths and `project-original`; generated content index changes only when the manifest actually changed.
 
-- [ ] **Step 6: Commit only if assets or manifest changed.**
+- [x] **Step 6: Commit only if assets or manifest changed.**
 
 ```bash
 git add public/assets/ui src/content/data/assets.json docs/specs/generated-content-index.md
@@ -608,7 +612,7 @@ If the audit found no gap, skip this commit and record `no new art required` in 
 - Consumes: completed UI implementation and any approved assets from Tasks 1–7.
 - Produces: reviewed screenshots, test evidence, documented risks and a clean implementation handoff.
 
-- [ ] **Step 1: Run all visual fixtures at the existing viewport and inspect each diff.**
+- [x] **Step 1: Run all visual fixtures at the existing viewport and inspect each diff.**
 
 ```bash
 npx playwright test tests/visual/visual-baselines.spec.ts --workers=1
@@ -616,7 +620,7 @@ npx playwright test tests/visual/visual-baselines.spec.ts --workers=1
 
 Expected: screenshot diffs correspond only to the approved classic UI redesign. Reject any diff that hides the player, target, panel content, focus state or action control.
 
-- [ ] **Step 2: Run the required viewport centering contract.**
+- [x] **Step 2: Run the required viewport centering contract.**
 
 ```bash
 npx playwright test tests/visual/visual-baselines.spec.ts -g "keeps the 640x480 logical canvas centered" --workers=1
@@ -624,7 +628,7 @@ npx playwright test tests/visual/visual-baselines.spec.ts -g "keeps the 640x480 
 
 Expected: all `800×600`, `1280×720`, and `1920×1080` checks pass with canvas width `640`, height `480`, pixelated rendering, and centered bounds.
 
-- [ ] **Step 3: Update baselines only after manual inspection.**
+- [x] **Step 3: Update baselines only after manual inspection.**
 
 ```bash
 npx playwright test tests/visual/visual-baselines.spec.ts --workers=1 --update-snapshots
@@ -632,7 +636,7 @@ npx playwright test tests/visual/visual-baselines.spec.ts --workers=1 --update-s
 
 Review the changed PNG list with `git status --short`; keep only the expected menu, character-create, world, and panel baseline updates.
 
-- [ ] **Step 4: Run the full verification sequence.**
+- [x] **Step 4: Run the full verification sequence.**
 
 ```bash
 npm run lint
@@ -644,11 +648,11 @@ npm run test:e2e
 
 Expected: every command exits `0`; if an unrelated pre-existing failure appears, record the exact command and failure in the handoff instead of changing core code.
 
-- [ ] **Step 5: Write the release evidence and update handoff.**
+- [x] **Step 5: Write the release evidence and update handoff.**
 
 Create `docs/memory/2026-07-19-lineage-classic-ui.md` with the actual changed file list, visual fixture names, commands and results, asset decision, and any unverified browser／image risk. Update `CODEX_HANDOFF.md` with phase status `UI alignment complete`, the final commits, test results, known risks, and the next safest task.
 
-- [ ] **Step 6: Commit the verified UI alignment.**
+- [x] **Step 6: Commit the verified UI alignment.**
 
 ```bash
 git add src tests docs/memory/2026-07-19-lineage-classic-ui.md CODEX_HANDOFF.md

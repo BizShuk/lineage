@@ -301,7 +301,6 @@ input {
   background:
     linear-gradient(180deg, rgb(34 35 31 / 98%), rgb(11 13 12 / 99%)),
     var(--classic-frame-image);
-  pointer-events: auto;
 }
 
 .hud-console,
@@ -474,6 +473,20 @@ input {
   border: 1px solid var(--classic-bronze);
   background: linear-gradient(180deg, #32291d, #1a1711);
   color: var(--classic-ink);
+}
+
+.game-panel input[type='range'],
+.game-panel input[type='checkbox'] {
+  accent-color: var(--classic-gold);
+}
+
+.game-panel input[type='range'] {
+  width: 100%;
+}
+
+.game-panel select {
+  min-height: 26px;
+  padding: 2px 5px;
 }
 
 .game-panel button {
