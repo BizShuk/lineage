@@ -21,6 +21,124 @@
       }
     ]
   },
+  "presentationLayer": {
+    "projection": "isometric-2-1",
+    "atlasKey": "map-village-isometric",
+    "groundFrames": {
+      "grass": 0,
+      "stone": 1,
+      "road": 2,
+      "crossing": 3,
+      "grassRoadTransition": 4,
+      "stoneRoadTransition": 5,
+      "grassStoneTransition": 6
+    },
+    "groundPattern": {
+      "centerX": 32,
+      "centerY": 29,
+      "plazaRadius": 5,
+      "roadHalfWidth": 1,
+      "transitionWidth": 1,
+      "roads": [
+        {
+          "axis": "difference",
+          "value": 0,
+          "minSum": 48,
+          "maxSum": 84
+        },
+        {
+          "axis": "sum",
+          "value": 60,
+          "minX": 24,
+          "maxX": 38,
+          "minY": 22,
+          "maxY": 36
+        }
+      ]
+    },
+    "props": [
+      {
+        "id": "cottage-west",
+        "frame": 8,
+        "x": 27,
+        "y": 27,
+        "scale": 0.42,
+        "anchorX": 0.5,
+        "anchorY": 0.88,
+        "depthOffset": 0
+      },
+      {
+        "id": "cottage-east",
+        "frame": 9,
+        "x": 36,
+        "y": 28,
+        "scale": 0.42,
+        "anchorX": 0.5,
+        "anchorY": 0.88,
+        "depthOffset": 0
+      },
+      {
+        "id": "tree-west",
+        "frame": 10,
+        "x": 22,
+        "y": 27,
+        "scale": 0.38,
+        "anchorX": 0.5,
+        "anchorY": 0.9,
+        "depthOffset": 0
+      },
+      {
+        "id": "fence-west",
+        "frame": 11,
+        "x": 34,
+        "y": 24,
+        "scale": 0.28,
+        "anchorX": 0.5,
+        "anchorY": 0.82,
+        "depthOffset": 0
+      },
+      {
+        "id": "village-well",
+        "frame": 12,
+        "x": 28,
+        "y": 30,
+        "scale": 0.3,
+        "anchorX": 0.5,
+        "anchorY": 0.82,
+        "depthOffset": 0
+      },
+      {
+        "id": "supply-crates",
+        "frame": 13,
+        "x": 40,
+        "y": 25,
+        "scale": 0.26,
+        "anchorX": 0.5,
+        "anchorY": 0.84,
+        "depthOffset": 0
+      },
+      {
+        "id": "village-sign",
+        "frame": 14,
+        "x": 29,
+        "y": 33,
+        "scale": 0.23,
+        "anchorX": 0.5,
+        "anchorY": 0.86,
+        "depthOffset": 0
+      },
+      {
+        "id": "village-lamp",
+        "frame": 15,
+        "x": 34,
+        "y": 29,
+        "scale": 0.23,
+        "anchorX": 0.5,
+        "anchorY": 0.9,
+        "depthOffset": 0
+      }
+    ]
+  },
   "collisionLayer": {
     "blockedRectangles": [
       {

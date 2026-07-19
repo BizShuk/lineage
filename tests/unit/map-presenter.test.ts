@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  isometricGroundFrameAt,
   nearestNpcId,
+  normalizeIsometricPresentation,
   normalizeMapPresentation,
   npcInteractionForRole,
+  requiredIsometricFrames,
+  terrainAt,
   terrainAtlasLayout,
   type MapAsset,
   type PresentedNpc,
@@ -129,5 +133,154 @@ describe('terrain atlas layout', () => {
     expect(terrainAtlasLayout(0, 1024)).toBeNull();
     expect(terrainAtlasLayout(1024, 0)).toBeNull();
     expect(terrainAtlasLayout(7, 7)).toBeNull();
+  });
+});
+
+describe('isometric village presentation', () => {
+  const validLayer = {
+    projection: 'isometric-2-1',
+    atlasKey: 'map-test-map',
+    groundFrames: {
+      grass: 0,
+      stone: 1,
+      road: 2,
+      crossing: 3,
+      grassRoadTransition: 4,
+      stoneRoadTransition: 5,
+      grassStoneTransition: 6,
+    },
+    groundPattern: {
+      centerX: 10,
+      centerY: 8,
+      plazaRadius: 3,
+      roadHalfWidth: 1,
+      transitionWidth: 1,
+      roads: [
+        {
+          axis: 'difference',
+          value: 0,
+          minSum: 8,
+          maxSum: 28,
+        },
+        {
+          axis: 'sum',
+          value: 18,
+          minX: 6,
+          maxX: 13,
+          minY: 5,
+          maxY: 12,
+        },
+      ],
+    },
+    props: [
+      {
+        id: 'cottage',
+        frame: 8,
+        x: 6,
+        y: 5,
+        scale: 0.5,
+        anchorX: 0.5,
+        anchorY: 0.88,
+        depthOffset: 0,
+      },
+    ],
+  } as const;
+
+  const isometricAsset: MapAsset = {
+    ...asset,
+    presentationLayer: validLayer,
+  };
+
+  it('normalizes all approved ground frames and in-bounds props', () => {
+    const layer = normalizeIsometricPresentation(isometricAsset);
+    expect(layer).not.toBeNull();
+    expect(layer?.atlasKey).toBe('map-test-map');
+    expect(layer?.props.map(({ id }) => id)).toEqual(['cottage']);
+    expect(requiredIsometricFrames(layer)).toEqual([0, 1, 2, 3, 4, 5, 6, 8]);
+  });
+
+  it('rejects a missing semantic ground frame and filters invalid props', () => {
+    expect(
+      normalizeIsometricPresentation({
+        ...isometricAsset,
+        presentationLayer: {
+          ...validLayer,
+          groundFrames: {
+            grass: 0,
+            stone: 1,
+            road: 2,
+            crossing: 3,
+            grassRoadTransition: 4,
+            stoneRoadTransition: 5,
+          },
+        },
+      }),
+    ).toBeNull();
+    expect(
+      normalizeIsometricPresentation({
+        ...isometricAsset,
+        presentationLayer: {
+          ...validLayer,
+          props: [
+            {
+              id: 'outside',
+              frame: 8,
+              x: 99,
+              y: 99,
+              scale: 0.5,
+              anchorX: 0.5,
+              anchorY: 0.88,
+              depthOffset: 0,
+            },
+          ],
+        },
+      })?.props,
+    ).toEqual([]);
+  });
+
+  it('reproduces the approved compact plaza, crossed roads, and transition tiles', () => {
+    const villageAsset: MapAsset = {
+      ...isometricAsset,
+      width: 64,
+      height: 64,
+      presentationLayer: {
+        ...validLayer,
+        groundPattern: {
+          centerX: 32,
+          centerY: 29,
+          plazaRadius: 5,
+          roadHalfWidth: 1,
+          transitionWidth: 1,
+          roads: [
+            { axis: 'difference', value: 0, minSum: 48, maxSum: 84 },
+            {
+              axis: 'sum',
+              value: 60,
+              minX: 24,
+              maxX: 38,
+              minY: 22,
+              maxY: 36,
+            },
+          ],
+        },
+      },
+    };
+    const layer = normalizeIsometricPresentation(villageAsset);
+    expect(layer).not.toBeNull();
+    if (layer === null) return;
+
+    expect(isometricGroundFrameAt(layer, 32, 32)).toBe(2);
+    expect(isometricGroundFrameAt(layer, 30, 30)).toBe(3);
+    expect(isometricGroundFrameAt(layer, 27, 30)).toBe(1);
+    expect(isometricGroundFrameAt(layer, 28, 30)).toBe(5);
+    expect(isometricGroundFrameAt(layer, 24, 26)).toBe(4);
+    expect(isometricGroundFrameAt(layer, 26, 29)).toBe(6);
+    expect(isometricGroundFrameAt(layer, 23, 40)).toBe(0);
+  });
+
+  it('uses the last gameplay terrain region over the default terrain', () => {
+    expect(terrainAt(asset, 2, 3)).toBe('forest');
+    expect(terrainAt(asset, 9, 3)).toBe('road');
+    expect(terrainAt(asset, 19, 15)).toBe('grass');
   });
 });
