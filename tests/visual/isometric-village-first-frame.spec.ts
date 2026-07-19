@@ -13,7 +13,7 @@ test('captures the approved isometric village through the normal game path', asy
     errors.push(error.message);
   });
 
-  await page.goto('/?e2e=1&firstFrame=1');
+  await page.goto('/?e2e=1&visual=1');
   await page.getByRole('button', { name: '開始新遊戲' }).click();
   await page.getByLabel('角色名稱').fill('視覺測試');
   await page.getByRole('radio', { name: '騎士' }).check();
@@ -24,7 +24,7 @@ test('captures the approved isometric village through the normal game path', asy
   await expect(state).toHaveAttribute('data-ready', 'true');
   await expect(state).toHaveAttribute('data-projection', 'isometric-2-1');
   await expect(state).toHaveAttribute('data-camera-viewport', '640x384');
-  await expect(root).toHaveAttribute('data-first-frame-preview', 'true');
+  await expect(page.getByTestId('monster-goblin')).toHaveCount(0);
 
   const background = await root.locator('.hud-bottom-bar').evaluate(
     (element) => getComputedStyle(element).backgroundImage,

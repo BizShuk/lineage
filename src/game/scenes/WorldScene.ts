@@ -302,9 +302,6 @@ export class WorldScene extends Phaser.Scene {
     this.#audioDirector = ensureAudioDirector(this);
     const search = new URLSearchParams(window.location.search);
     this.#manualE2E = search.get('e2e') === '1';
-    if (search.get('firstFrame') === '1') {
-      parent.dataset.firstFramePreview = 'true';
-    }
     this.#campaignE2E =
       search.get('e2e') === 'campaign' && search.get('seed') === String(CAMPAIGN_E2E_SEED);
     this.game.canvas.tabIndex = 0;
@@ -353,10 +350,10 @@ export class WorldScene extends Phaser.Scene {
     );
     if (!this.scene.isActive()) return;
 
-    const firstFrameCapture =
-      new URLSearchParams(window.location.search).get('firstFrame') === '1';
+    const visualCapture =
+      new URLSearchParams(window.location.search).get('visual') === '1';
     const monsters =
-      this.#manualE2E && !firstFrameCapture ? [createE2EMonster(save, content)] : undefined;
+      this.#manualE2E && !visualCapture ? [createE2EMonster(save, content)] : undefined;
     this.#session = new GameSession({
       content,
       save,
@@ -690,8 +687,6 @@ export class WorldScene extends Phaser.Scene {
     const controls = document.createElement('section');
     controls.className = 'save-controls';
     controls.setAttribute('aria-label', '存檔操作');
-    controls.style.cssText =
-      'position:absolute;z-index:25;right:8px;bottom:56px;display:grid;gap:4px;pointer-events:auto';
     const manual = document.createElement('button');
     manual.type = 'button';
     manual.dataset.testid = 'manual-save';
@@ -710,8 +705,10 @@ export class WorldScene extends Phaser.Scene {
     status.dataset.testid = 'autosave-status';
     status.setAttribute('aria-live', 'polite');
     controls.append(manual, menu, status);
-    const hud = this.#root.querySelector<HTMLElement>('[data-testid="hud-root"]');
-    (hud ?? this.#root).append(controls);
+    const host = this.#root.querySelector<HTMLElement>(
+      '[data-testid="hud-system-controls"]',
+    );
+    (host ?? this.#root).append(controls);
     this.#saveControls = controls;
     this.#autosaveStatus = status;
   }
@@ -1392,9 +1389,6 @@ export class WorldScene extends Phaser.Scene {
     this.events.off(Phaser.Scenes.Events.PAUSE, this.#pause);
     this.events.off(Phaser.Scenes.Events.RESUME, this.#resume);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.#syncHudScale);
-    if (this.#root !== null) {
-      delete this.#root.dataset.firstFramePreview;
-    }
     this.#mapPresenter?.destroy();
     this.#mapPresenter = null;
     this.#activeProjection = null;

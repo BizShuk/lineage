@@ -85,7 +85,7 @@ export class Hud {
     const viewport = document.createElement('div');
     viewport.className = 'world-viewport';
     viewport.setAttribute('data-testid', 'world-viewport');
-    viewport.setAttribute('aria-label', '遊戲世界 512 乘 432');
+    viewport.setAttribute('aria-label', '遊戲世界 640 乘 384');
     this.#statusRail = document.createElement('aside');
     this.#statusRail.className = 'status-rail';
     this.#statusRail.setAttribute('data-testid', 'hud-stats');
@@ -130,6 +130,13 @@ export class Hud {
     this.#quickSlots.className = 'hud-quick-slots';
     this.#quickSlots.setAttribute('data-testid', 'hud-quick-slots');
     this.#quickSlots.setAttribute('aria-label', '快捷列');
+    const actionGrid = document.createElement('div');
+    actionGrid.className = 'hud-action-grid';
+    const systemControls = document.createElement('div');
+    systemControls.className = 'hud-system-controls';
+    systemControls.setAttribute('data-testid', 'hud-system-controls');
+    systemControls.setAttribute('aria-label', '系統操作');
+    actionGrid.append(this.#quickSlots, systemControls);
 
     this.#quickSlotItems = Array.from({ length: 8 }, (_, index) => {
       const item = document.createElement('li');
@@ -146,7 +153,7 @@ export class Hud {
 
     consoleRegion.append(this.#messages);
     vitals.append(this.#statusRail);
-    actions.append(this.#target, this.#quickSlots);
+    actions.append(this.#target, actionGrid);
     bottom.append(consoleRegion, vitals, actions);
     this.element.append(viewport, bottom);
     this.#messages.append(...this.#messageItems);

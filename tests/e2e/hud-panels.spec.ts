@@ -22,6 +22,12 @@ test('shows live HUD values and preserves S movement beside panel shortcuts', as
   await expect(page.getByTestId('hud-quick-slots')).toBeVisible();
   await expect(page.getByTestId('hud-vitals')).toHaveCSS('display', 'grid');
   await expect(page.getByTestId('hud-root')).toHaveCSS('image-rendering', 'pixelated');
+  const bottomBackground = await page.locator('.hud-bottom-bar').evaluate(
+    (element) => getComputedStyle(element).backgroundImage,
+  );
+  expect(bottomBackground.startsWith('url(')).toBe(true);
+  await expect(page.getByTestId('hud-system-controls').getByTestId('manual-save')).toBeVisible();
+  await expect(page.getByTestId('hud-system-controls').getByTestId('return-menu')).toBeVisible();
   await expect(page.getByTestId('hud-stats')).toContainText('等級 1');
   await expect(page.getByTestId('hud-stats')).toContainText('經驗 0%');
   await expect(page.getByTestId('hud-stats')).toContainText('防禦 6');

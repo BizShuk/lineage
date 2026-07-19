@@ -123,7 +123,10 @@ describe('HUD and panels', () => {
 
     expect(findByTestId(hud.element, 'hud-root').getAttribute('aria-label')).toBe('遊戲狀態介面');
     expect(findByTestId(hud.element, 'world-viewport').getAttribute('aria-label')).toBe(
-      '遊戲世界 512 乘 432',
+      '遊戲世界 640 乘 384',
+    );
+    expect(findByTestId(hud.element, 'hud-system-controls').getAttribute('aria-label')).toBe(
+      '系統操作',
     );
     expect(findByTestId(hud.element, 'hud-hp').textContent).toContain('37 / 50');
     expect(findByTestId(hud.element, 'hud-mp').textContent).toContain('12 / 20');
