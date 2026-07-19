@@ -15,29 +15,73 @@ export interface PreviewFrame {
   readonly objectCount: number;
 }
 
+export interface PreviewSourceFrame {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
 export const previewGridToScreen = (x: number, y: number): PreviewPoint => ({
   x: PREVIEW_ORIGIN_X + (x - y) * 16,
   y: PREVIEW_ORIGIN_Y + (x + y) * 8,
 });
 
 export const previewTerrainFrame = (x: number, y: number): number => {
-  if (x >= 28 && x < 36) return 2;
-  if (x >= 20 && x < 44 && y >= 20 && y < 44) return 1;
+  const plazaDistance = Math.max(Math.abs(x - 32), Math.abs(y - 29));
+  const mainRoadDistance = Math.abs(x - y);
+  const branchRoadDistance = Math.abs(x + y - 60);
+  const mainRoadActive = x + y >= 48 && x + y <= 84;
+  const branchRoadActive = x >= 24 && x <= 38 && y >= 22 && y <= 36;
+
+  if (
+    mainRoadActive &&
+    branchRoadActive &&
+    mainRoadDistance <= 1 &&
+    branchRoadDistance <= 1
+  ) {
+    return 3;
+  }
+  if (
+    (mainRoadActive && mainRoadDistance <= 1) ||
+    (branchRoadActive && branchRoadDistance <= 1)
+  ) {
+    return 2;
+  }
+  if (
+    (mainRoadActive && mainRoadDistance === 2) ||
+    (branchRoadActive && branchRoadDistance === 2)
+  ) {
+    return plazaDistance <= 5 ? 5 : 4;
+  }
+  if (plazaDistance <= 5) return 1;
+  if (plazaDistance === 6) return 6;
   return 0;
+};
+
+export const previewKnightFrame = (
+  sourceWidth: number,
+  sourceHeight: number,
+): PreviewSourceFrame | null => {
+  if (sourceWidth <= 0 || sourceHeight <= 0) return null;
+  const width = Math.floor(sourceWidth / 8);
+  const height = Math.floor(sourceHeight / 6);
+  if (width <= 0 || height <= 0) return null;
+  return { x: width * 4, y: 0, width, height };
 };
 
 export const previewDepth = (x: number, y: number, offset = 0): number =>
   (x + y) * 100 + offset;
 
 const props = [
-  { frame: 8, x: 27, y: 28, scale: 0.5, anchorY: 0.88 },
-  { frame: 9, x: 37, y: 28, scale: 0.5, anchorY: 0.88 },
-  { frame: 10, x: 25, y: 26, scale: 0.4, anchorY: 0.9 },
-  { frame: 11, x: 29, y: 25, scale: 0.3, anchorY: 0.82 },
-  { frame: 12, x: 32, y: 28, scale: 0.35, anchorY: 0.82 },
-  { frame: 13, x: 36, y: 26, scale: 0.3, anchorY: 0.84 },
-  { frame: 14, x: 30, y: 30, scale: 0.28, anchorY: 0.86 },
-  { frame: 15, x: 34, y: 30, scale: 0.28, anchorY: 0.9 },
+  { frame: 8, x: 27, y: 27, scale: 0.42, anchorY: 0.88 },
+  { frame: 9, x: 36, y: 28, scale: 0.42, anchorY: 0.88 },
+  { frame: 10, x: 22, y: 27, scale: 0.38, anchorY: 0.9 },
+  { frame: 11, x: 34, y: 24, scale: 0.28, anchorY: 0.82 },
+  { frame: 12, x: 28, y: 30, scale: 0.3, anchorY: 0.82 },
+  { frame: 13, x: 40, y: 25, scale: 0.26, anchorY: 0.84 },
+  { frame: 14, x: 29, y: 33, scale: 0.23, anchorY: 0.86 },
+  { frame: 15, x: 34, y: 29, scale: 0.23, anchorY: 0.9 },
 ] as const;
 
 const actors = [
@@ -93,14 +137,16 @@ export class IsometricVillagePreview {
       this.#objects.push(image);
     }
 
+    const knightFrame = this.#knightFrame();
     for (const actor of actors) {
       const point = previewGridToScreen(actor.x, actor.y);
-      const sprite = this.#scene.add.sprite(0, 0, actor.texture, actor.frame).setOrigin(0.5, 1);
+      const frame = actor.texture === 'player-knight' ? knightFrame : actor.frame;
+      const sprite = this.#scene.add.sprite(0, 0, actor.texture, frame).setOrigin(0.5, 1);
       const width = Math.max(1, sprite.frame.realWidth);
       const height = Math.max(1, sprite.frame.realHeight);
-      sprite.setScale(Math.min(44 / width, 52 / height));
+      sprite.setScale(Math.min(52 / width, 64 / height));
       const label = this.#scene.add
-        .text(0, -sprite.displayHeight - 2, actor.name, {
+        .text(0, -sprite.displayHeight - 4, actor.name, {
           color: '#ffe8b0',
           fontSize: '9px',
           stroke: '#17120d',
@@ -118,6 +164,19 @@ export class IsometricVillagePreview {
       objectCount: this.#objects.length,
     };
     return this.#frame;
+  }
+
+  #knightFrame(): string {
+    const frameName = 'isometric-village-preview:player-knight';
+    const texture = this.#scene.textures.get('player-knight');
+    if (!texture.has(frameName)) {
+      const source = texture.getSourceImage() as { width: number; height: number };
+      const frame = previewKnightFrame(source.width, source.height);
+      if (frame !== null) {
+        texture.add(frameName, 0, frame.x, frame.y, frame.width, frame.height);
+      }
+    }
+    return texture.has(frameName) ? frameName : 'class-knight:frame:0';
   }
 
   destroy(): void {
