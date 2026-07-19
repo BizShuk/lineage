@@ -5,6 +5,7 @@ import {
   fitSpriteFrame,
   isometricVillageAtlasFrame,
   npcAtlasFrame,
+  rowMonsterAtlasFrame,
 } from '../../src/game/systems/SpriteAtlas';
 
 describe('NPC sprite atlas layout', () => {
@@ -84,5 +85,30 @@ describe('isometric village atlas layout', () => {
       height: 170,
     });
     expect(classIsometricIdleFrame(0, 1024)).toBeNull();
+  });
+});
+
+describe('row-based monster atlas layout', () => {
+  it('cuts complete five-pose rows instead of quadrant fragments', () => {
+    expect(rowMonsterAtlasFrame(1536, 1024, 0, 0)).toEqual({
+      x: 0,
+      y: 0,
+      width: 307,
+      height: 170,
+    });
+    expect(rowMonsterAtlasFrame(1536, 1024, 3, 4)).toEqual({
+      x: 1228,
+      y: 510,
+      width: 307,
+      height: 170,
+    });
+  });
+
+  it('rejects rows and poses outside the generated sheet', () => {
+    expect(rowMonsterAtlasFrame(0, 1024, 0, 0)).toBeNull();
+    expect(rowMonsterAtlasFrame(1536, 0, 0, 0)).toBeNull();
+    expect(rowMonsterAtlasFrame(1536, 1024, -1, 0)).toBeNull();
+    expect(rowMonsterAtlasFrame(1536, 1024, 6, 0)).toBeNull();
+    expect(rowMonsterAtlasFrame(1536, 1024, 0, 5)).toBeNull();
   });
 });

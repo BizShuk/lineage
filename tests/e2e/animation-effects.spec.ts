@@ -78,6 +78,16 @@ test('Baphomet death reaches its registered final real frame', async ({ page }) 
   );
 });
 
+test('plays complete row-based goblin poses instead of atlas fragments', async ({ page }) => {
+  const preview = page.getByTestId('animation-preview-state');
+  for (const state of ['idle', 'attack', 'death'] as const) {
+    const key = `monster-goblin:${state}:s`;
+    await page.getByTestId(`play-${key}`).click();
+    await expect(preview).toHaveAttribute('data-cycle-complete', 'true');
+    await expect(preview).toHaveAttribute('data-current-frame', /monster-goblin:frame:[0-4]/);
+  }
+});
+
 test('plays every registered combat effect to completion', async ({ page }) => {
   const preview = page.getByTestId('animation-preview-state');
   for (const effect of effects) {

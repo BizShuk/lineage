@@ -12,6 +12,7 @@ import {
   classIsometricIdleFrame,
   isometricVillageAtlasFrame,
   npcAtlasFrame,
+  rowMonsterAtlasFrame,
 } from '../systems/SpriteAtlas';
 
 export const CONTENT_REGISTRY_KEY = 'game-content';
@@ -68,6 +69,20 @@ const pathToUrl = (path: string): string => path.replace(/^public/, '');
 
 const isDetailedEntity = (entry: AssetEntry): boolean =>
   entry.key.startsWith('class-') || entry.key === 'monster-baphomet';
+
+const isRowMonster = (entry: AssetEntry): boolean =>
+  entry.group === 'monsters-surface' || entry.group === 'monsters-undead';
+
+const rowMonsterPoseIndexes: Readonly<
+  Record<EntityAnimationState, readonly number[]>
+> = {
+  idle: [0, 1],
+  walk: [0, 1],
+  attack: [1, 2],
+  hit: [3],
+  cast: [2],
+  death: [4],
+};
 
 export class BootScene extends Phaser.Scene {
   #content: GameContent | null = null;
@@ -180,6 +195,21 @@ export class BootScene extends Phaser.Scene {
       }).filter((name): name is string => name !== null);
     }
 
+    if (isRowMonster(entry)) {
+      return Array.from({ length: 5 }, (_, index) => {
+        const frame = rowMonsterAtlasFrame(
+          source.width,
+          source.height,
+          entry.frame,
+          index,
+        );
+        if (frame === null) return null;
+        const name = `${entry.key}:frame:${String(index)}`;
+        this.#addFrame(texture, name, frame.x, frame.y, frame.width, frame.height);
+        return name;
+      }).filter((name): name is string => name !== null);
+    }
+
     if (entry.key.startsWith('npc-')) {
       return Array.from({ length: 4 }, (_, index) => {
         const frame = npcAtlasFrame(source.width, source.height, entry.frame, index);
@@ -256,14 +286,20 @@ export class BootScene extends Phaser.Scene {
       for (const [stateIndex, state] of ENTITY_ANIMATION_STATES.entries()) {
         const key = entityAnimationKey(entry.key, state, direction);
         if (this.anims.exists(key)) continue;
-        const count = frameCounts[state];
-        const detailedStart = directionIndex * 24 + stateOffsets[state];
-        const start = isDetailedEntity(entry)
-          ? detailedStart
-          : (directionIndex + stateIndex) % physicalFrames.length;
-        const frameNames = Array.from({ length: count }, (_, index) =>
-          physicalFrames[(start + index) % physicalFrames.length],
-        ).filter((name): name is string => name !== undefined);
+        const frameNames = isRowMonster(entry)
+          ? rowMonsterPoseIndexes[state]
+              .map((index) => physicalFrames[index])
+              .filter((name): name is string => name !== undefined)
+          : (() => {
+              const count = frameCounts[state];
+              const detailedStart = directionIndex * 24 + stateOffsets[state];
+              const start = isDetailedEntity(entry)
+                ? detailedStart
+                : (directionIndex + stateIndex) % physicalFrames.length;
+              return Array.from({ length: count }, (_, index) =>
+                physicalFrames[(start + index) % physicalFrames.length],
+              ).filter((name): name is string => name !== undefined);
+            })();
         if (frameNames.length === 0) continue;
         this.anims.create({
           key,
@@ -314,6 +350,9 @@ export class BootScene extends Phaser.Scene {
         ),
       ),
       entityAnimationKey('monster-baphomet', 'death', 's'),
+      ...(['idle', 'attack', 'death'] as const).map((state) =>
+        entityAnimationKey('monster-goblin', state, 's'),
+      ),
       ...EFFECT_ANIMATIONS.map((effect) => `effect:${effect}`),
     ];
     const firstAnimation = this.anims.get(keys[0] ?? '');

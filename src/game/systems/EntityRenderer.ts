@@ -153,10 +153,20 @@ export class EntityRenderer {
       ) {
         const sprite = this.#scene.add.sprite(0, 0, entry.group, firstFrame);
         if (projection.mode === 'isometric-2-1') {
-          const fit = fitSpriteFrame(sprite.frame.realWidth, sprite.frame.realHeight, 44, 52);
+          const maximumWidth = view.kind === 'monster' ? 96 : 44;
+          const fit = fitSpriteFrame(
+            sprite.frame.realWidth,
+            sprite.frame.realHeight,
+            maximumWidth,
+            52,
+          );
           if (fit !== null) sprite.setDisplaySize(fit.width, fit.height);
           sprite.setOrigin(0.5, 1);
           labelY = -sprite.displayHeight - 2;
+        } else if (view.kind === 'monster') {
+          const fit = fitSpriteFrame(sprite.frame.realWidth, sprite.frame.realHeight, 66, 36);
+          if (fit !== null) sprite.setDisplaySize(fit.width, fit.height);
+          labelY = -sprite.displayHeight / 2 - 2;
         } else {
           sprite.setDisplaySize(28, 36);
         }

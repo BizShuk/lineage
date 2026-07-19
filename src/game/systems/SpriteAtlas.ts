@@ -14,6 +14,8 @@ const ISOMETRIC_VILLAGE_ROWS = 4;
 const CLASS_POSE_COLUMNS = 8;
 const CLASS_POSE_ROWS = 6;
 const CLASS_FRONT_POSE_COLUMN = 4;
+const ROW_MONSTER_POSE_COLUMNS = 5;
+const ROW_MONSTER_ENTRY_ROWS = 6;
 
 export interface SpriteDisplaySize {
   readonly width: number;
@@ -102,6 +104,32 @@ export const classIsometricIdleFrame = (
   return {
     x: CLASS_FRONT_POSE_COLUMN * width,
     y: 0,
+    width,
+    height,
+  };
+};
+
+export const rowMonsterAtlasFrame = (
+  sourceWidth: number,
+  sourceHeight: number,
+  entryIndex: number,
+  poseIndex: number,
+): SpriteAtlasFrame | null => {
+  const width = Math.floor(sourceWidth / ROW_MONSTER_POSE_COLUMNS);
+  const height = Math.floor(sourceHeight / ROW_MONSTER_ENTRY_ROWS);
+  if (
+    width <= 0 ||
+    height <= 0 ||
+    entryIndex < 0 ||
+    entryIndex >= ROW_MONSTER_ENTRY_ROWS ||
+    poseIndex < 0 ||
+    poseIndex >= ROW_MONSTER_POSE_COLUMNS
+  ) {
+    return null;
+  }
+  return {
+    x: poseIndex * width,
+    y: entryIndex * height,
     width,
     height,
   };
