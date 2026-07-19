@@ -23,7 +23,11 @@ import type { SettingsPanelViewModel } from '../../ui/panels/SettingsPanel';
 import type { PanelActionResult } from '../../ui/panels/shared';
 import type { MonsterState } from '../../world/ai';
 import { TileGrid } from '../../world/grid';
-import { CONTENT_REGISTRY_KEY, SAVE_REPOSITORY_REGISTRY_KEY } from './BootScene';
+import {
+  ASSET_LOAD_FAILURES_REGISTRY_KEY,
+  CONTENT_REGISTRY_KEY,
+  SAVE_REPOSITORY_REGISTRY_KEY,
+} from './BootScene';
 import { ensureAudioDirector } from './MenuScene';
 import { CombatPresenter } from '../systems/CombatPresenter';
 import { EntityRenderer, TILE_SIZE } from '../systems/EntityRenderer';
@@ -39,6 +43,7 @@ import {
   type PlayerCommand,
   type PointerTarget,
 } from '../systems/InputController';
+import { IsometricVillagePreview } from '../systems/IsometricVillagePreview';
 import type { WorldSnapshot } from '../systems/WorldController';
 
 const CAMPAIGN_E2E_SEED = 20_260_717;
@@ -281,6 +286,8 @@ export class WorldScene extends Phaser.Scene {
   #recoveryOverlay: HTMLElement | null = null;
   #capturingRuntimeError = false;
   #failNextRenderer = false;
+  #firstFramePreviewEnabled = false;
+  #firstFramePreview: IsometricVillagePreview | null = null;
 
   constructor() {
     super('world');
@@ -294,6 +301,15 @@ export class WorldScene extends Phaser.Scene {
     this.#audioDirector = ensureAudioDirector(this);
     const search = new URLSearchParams(window.location.search);
     this.#manualE2E = search.get('e2e') === '1';
+    this.#firstFramePreviewEnabled = search.get('firstFrame') === '1';
+    if (this.#firstFramePreviewEnabled) {
+      const failures = this.registry.get(
+        ASSET_LOAD_FAILURES_REGISTRY_KEY,
+      ) as readonly string[] | undefined;
+      parent.dataset.firstFramePreview = 'true';
+      parent.dataset.firstFrameCamera = '640x384';
+      parent.dataset.firstFrameAssetFailures = String(failures?.length ?? 0);
+    }
     this.#campaignE2E =
       search.get('e2e') === 'campaign' && search.get('seed') === String(CAMPAIGN_E2E_SEED);
     this.game.canvas.tabIndex = 0;
@@ -373,7 +389,12 @@ export class WorldScene extends Phaser.Scene {
     this.#renderer = new EntityRenderer(this);
     this.#mapPresenter = new MapPresenter(this, this.#mapAssets, (id) => content.npc(id));
     this.#combatPresenter = new CombatPresenter(this, (id) => this.#renderer?.positionOf(id) ?? null);
-    this.cameras.main.setViewport(0, 0, 512, 432);
+    this.cameras.main.setViewport(
+      0,
+      0,
+      this.#firstFramePreviewEnabled ? 640 : 512,
+      this.#firstFramePreviewEnabled ? 384 : 432,
+    );
     this.#wirePointerInput();
     this.#createWorldUi();
     this.#createSaveControls();
@@ -1012,6 +1033,15 @@ export class WorldScene extends Phaser.Scene {
     if (this.#session === null || this.#renderer === null) return;
     this.#syncActiveSaveFromSession();
     const snapshot = this.#session.snapshot;
+    if (this.#firstFramePreviewEnabled) {
+      this.#firstFramePreview ??= new IsometricVillagePreview(this);
+      const preview = this.#firstFramePreview.render();
+      this.cameras.main.centerOn(preview.player.x, preview.player.y);
+      this.#syncInputContext(snapshot);
+      this.#renderE2EState(snapshot);
+      this.#worldUi?.renderHud(this.#hudViewModel(snapshot));
+      return;
+    }
     this.#routeAudioRegion(snapshot.player.mapId);
     this.#mapPresenter?.render(snapshot.player.mapId);
     this.#renderer.render(snapshot);
@@ -1363,6 +1393,13 @@ export class WorldScene extends Phaser.Scene {
     this.events.off(Phaser.Scenes.Events.PAUSE, this.#pause);
     this.events.off(Phaser.Scenes.Events.RESUME, this.#resume);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.#syncHudScale);
+    this.#firstFramePreview?.destroy();
+    this.#firstFramePreview = null;
+    if (this.#root !== null) {
+      delete this.#root.dataset.firstFramePreview;
+      delete this.#root.dataset.firstFrameCamera;
+      delete this.#root.dataset.firstFrameAssetFailures;
+    }
     this.#mapPresenter?.destroy();
     this.#mapPresenter = null;
     this.#renderer?.destroy();

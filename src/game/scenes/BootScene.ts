@@ -108,6 +108,12 @@ export class BootScene extends Phaser.Scene {
     for (const [group, path] of pathsByGroup) {
       this.load.image(group, pathToUrl(path));
     }
+    if (search.get('firstFrame') === '1') {
+      this.load.image(
+        'isometric-village-preview',
+        '/assets/maps/isometric-village-v1.png',
+      );
+    }
   }
 
   create(): void {
@@ -128,6 +134,22 @@ export class BootScene extends Phaser.Scene {
     }
 
     this.#registerFramesAndAnimations(this.#manifest);
+    if (new URLSearchParams(window.location.search).get('firstFrame') === '1') {
+      const texture = this.textures.get('isometric-village-preview');
+      const source = texture.getSourceImage() as { width: number; height: number };
+      const cellWidth = Math.floor(source.width / 4);
+      const cellHeight = Math.floor(source.height / 4);
+      for (let index = 0; index < 16; index += 1) {
+        this.#addFrame(
+          texture,
+          `isometric-village-preview:frame:${String(index)}`,
+          (index % 4) * cellWidth,
+          Math.floor(index / 4) * cellHeight,
+          cellWidth,
+          cellHeight,
+        );
+      }
+    }
     const search = new URLSearchParams(window.location.search);
     if (search.get('e2e') === '1' && search.get('animationTest') === '1' && parent !== null) {
       this.#createAnimationDiagnostics(parent);
