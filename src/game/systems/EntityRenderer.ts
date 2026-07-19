@@ -6,6 +6,8 @@ import {
   entityAnimationKey,
   type EntityAnimationState,
 } from '../scenes/BootScene';
+import { fitSpriteFrame } from './SpriteAtlas';
+import type { ProjectionMode, WorldProjection } from './WorldProjection';
 import type { WorldSnapshot } from './WorldController';
 
 export const TILE_SIZE = 16;
@@ -53,8 +55,10 @@ export class EntityRenderer {
   readonly #manifest: AssetManifest;
   readonly #entities = new Map<string, Phaser.GameObjects.Container>();
   readonly #sprites = new Map<string, Phaser.GameObjects.Sprite>();
+  readonly #labels = new Map<string, Phaser.GameObjects.Text>();
   readonly #positions = new Map<string, Readonly<{ x: number; y: number }>>();
   readonly #directions = new Map<string, Direction>();
+  #projectionMode: ProjectionMode | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.#scene = scene;
@@ -63,7 +67,11 @@ export class EntityRenderer {
       loadAssetManifest();
   }
 
-  render(snapshot: WorldSnapshot): void {
+  render(snapshot: WorldSnapshot, projection: WorldProjection): void {
+    if (this.#projectionMode !== projection.mode) {
+      this.#clearEntities();
+      this.#projectionMode = projection.mode;
+    }
     const views: RenderEntity[] = [
       {
         id: snapshot.character.id,
@@ -101,11 +109,12 @@ export class EntityRenderer {
         object.destroy(true);
         this.#entities.delete(id);
         this.#sprites.delete(id);
+        this.#labels.delete(id);
         this.#positions.delete(id);
         this.#directions.delete(id);
       }
     }
-    for (const view of views) this.#renderEntity(view);
+    for (const view of views) this.#renderEntity(view, projection);
   }
 
   positionOf(id: string): Readonly<{ x: number; y: number }> | null {
@@ -114,25 +123,43 @@ export class EntityRenderer {
   }
 
   destroy(): void {
+    this.#clearEntities();
+    this.#projectionMode = null;
+  }
+
+  #clearEntities(): void {
     for (const entity of this.#entities.values()) entity.destroy(true);
     this.#entities.clear();
     this.#sprites.clear();
+    this.#labels.clear();
     this.#positions.clear();
     this.#directions.clear();
   }
 
-  #renderEntity(view: RenderEntity): void {
+  #renderEntity(view: RenderEntity, projection: WorldProjection): void {
     let container = this.#entities.get(view.id);
     if (container === undefined) {
       const entry = this.#manifest[view.textureKey];
-      const firstFrame = `${view.textureKey}:frame:0`;
+      const firstFrame =
+        projection.mode === 'isometric-2-1' && view.kind === 'player'
+          ? `${view.textureKey}:isometric-idle`
+          : `${view.textureKey}:frame:0`;
       let visual: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle;
+      let labelY = -11;
       if (
         entry !== undefined &&
         this.#scene.textures.exists(entry.group) &&
         this.#scene.textures.get(entry.group).has(firstFrame)
       ) {
-        const sprite = this.#scene.add.sprite(0, 0, entry.group, firstFrame).setDisplaySize(28, 36);
+        const sprite = this.#scene.add.sprite(0, 0, entry.group, firstFrame);
+        if (projection.mode === 'isometric-2-1') {
+          const fit = fitSpriteFrame(sprite.frame.realWidth, sprite.frame.realHeight, 44, 52);
+          if (fit !== null) sprite.setDisplaySize(fit.width, fit.height);
+          sprite.setOrigin(0.5, 1);
+          labelY = -sprite.displayHeight - 2;
+        } else {
+          sprite.setDisplaySize(28, 36);
+        }
         this.#sprites.set(view.id, sprite);
         visual = sprite;
       } else {
@@ -141,8 +168,14 @@ export class EntityRenderer {
           .setStrokeStyle(1, 0x080b0a);
       }
       const label = this.#scene.add
-        .text(0, -11, view.label, { color: '#f1e7ca', fontSize: '8px' })
+        .text(0, labelY, view.label, {
+          color: '#f1e7ca',
+          fontSize: '8px',
+          stroke: '#17120d',
+          strokeThickness: projection.mode === 'isometric-2-1' ? 2 : 0,
+        })
         .setOrigin(0.5, 1);
+      this.#labels.set(view.id, label);
       container = this.#scene.add.container(0, 0, [visual, label]);
       container.setSize(TILE_SIZE, TILE_SIZE).setInteractive();
       container.setData('target-kind', view.kind);
@@ -160,7 +193,9 @@ export class EntityRenderer {
         ? 'walk'
         : view.state;
     const sprite = this.#sprites.get(view.id);
-    if (sprite !== undefined && inferredState !== undefined) {
+    const usesCompleteIsometricPose =
+      projection.mode === 'isometric-2-1' && view.kind === 'player';
+    if (sprite !== undefined && inferredState !== undefined && !usesCompleteIsometricPose) {
       const key = entityAnimationKey(view.textureKey, inferredState, direction);
       if (
         this.#scene.anims.exists(key) &&
@@ -172,8 +207,9 @@ export class EntityRenderer {
     }
     this.#positions.set(view.id, { x: view.x, y: view.y });
     this.#directions.set(view.id, direction);
+    const point = projection.gridToScreen(view);
     container
-      .setPosition(view.x * TILE_SIZE + TILE_SIZE / 2, view.y * TILE_SIZE + TILE_SIZE / 2)
-      .setDepth(view.y * TILE_SIZE + (view.kind === 'loot' ? -1 : 0));
+      .setPosition(point.x, point.y)
+      .setDepth(projection.depthFor(view, view.kind === 'loot' ? -1 : 20));
   }
 }

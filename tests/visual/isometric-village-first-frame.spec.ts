@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test';
 
 test.use({ viewport: { width: 1280, height: 720 } });
 
-test('captures the isometric village first-frame candidate', async ({ page }, testInfo) => {
+test('captures the approved isometric village through the normal game path', async ({
+  page,
+}, testInfo) => {
   const errors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text());
@@ -18,10 +20,11 @@ test('captures the isometric village first-frame candidate', async ({ page }, te
   await page.getByRole('button', { name: '建立角色' }).click();
 
   const root = page.getByTestId('game-root');
-  await expect(page.getByTestId('world-state')).toHaveAttribute('data-ready', 'true');
+  const state = page.getByTestId('world-state');
+  await expect(state).toHaveAttribute('data-ready', 'true');
+  await expect(state).toHaveAttribute('data-projection', 'isometric-2-1');
+  await expect(state).toHaveAttribute('data-camera-viewport', '640x384');
   await expect(root).toHaveAttribute('data-first-frame-preview', 'true');
-  await expect(root).toHaveAttribute('data-first-frame-camera', '640x384');
-  await expect(root).toHaveAttribute('data-first-frame-asset-failures', '0');
 
   const background = await root.locator('.hud-bottom-bar').evaluate(
     (element) => getComputedStyle(element).backgroundImage,

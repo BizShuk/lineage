@@ -24,13 +24,12 @@ import type { PanelActionResult } from '../../ui/panels/shared';
 import type { MonsterState } from '../../world/ai';
 import { TileGrid } from '../../world/grid';
 import {
-  ASSET_LOAD_FAILURES_REGISTRY_KEY,
   CONTENT_REGISTRY_KEY,
   SAVE_REPOSITORY_REGISTRY_KEY,
 } from './BootScene';
 import { ensureAudioDirector } from './MenuScene';
 import { CombatPresenter } from '../systems/CombatPresenter';
-import { EntityRenderer, TILE_SIZE } from '../systems/EntityRenderer';
+import { EntityRenderer } from '../systems/EntityRenderer';
 import {
   GameSession,
   type GameSessionSnapshot,
@@ -43,7 +42,10 @@ import {
   type PlayerCommand,
   type PointerTarget,
 } from '../systems/InputController';
-import { IsometricVillagePreview } from '../systems/IsometricVillagePreview';
+import {
+  createOrthogonalProjection,
+  type WorldProjection,
+} from '../systems/WorldProjection';
 import type { WorldSnapshot } from '../systems/WorldController';
 
 const CAMPAIGN_E2E_SEED = 20_260_717;
@@ -286,8 +288,7 @@ export class WorldScene extends Phaser.Scene {
   #recoveryOverlay: HTMLElement | null = null;
   #capturingRuntimeError = false;
   #failNextRenderer = false;
-  #firstFramePreviewEnabled = false;
-  #firstFramePreview: IsometricVillagePreview | null = null;
+  #activeProjection: WorldProjection | null = null;
 
   constructor() {
     super('world');
@@ -301,20 +302,14 @@ export class WorldScene extends Phaser.Scene {
     this.#audioDirector = ensureAudioDirector(this);
     const search = new URLSearchParams(window.location.search);
     this.#manualE2E = search.get('e2e') === '1';
-    this.#firstFramePreviewEnabled = search.get('firstFrame') === '1';
-    if (this.#firstFramePreviewEnabled) {
-      const failures = this.registry.get(
-        ASSET_LOAD_FAILURES_REGISTRY_KEY,
-      ) as readonly string[] | undefined;
+    if (search.get('firstFrame') === '1') {
       parent.dataset.firstFramePreview = 'true';
-      parent.dataset.firstFrameCamera = '640x384';
-      parent.dataset.firstFrameAssetFailures = String(failures?.length ?? 0);
     }
     this.#campaignE2E =
       search.get('e2e') === 'campaign' && search.get('seed') === String(CAMPAIGN_E2E_SEED);
     this.game.canvas.tabIndex = 0;
     this.game.canvas.setAttribute('aria-label', '說話之島遊戲畫面');
-    this.add.rectangle(0, 0, 2048, 2048, 0x172019).setOrigin(0).setDepth(-3_000);
+    this.add.rectangle(0, 0, 4096, 2048, 0x172019).setOrigin(0).setDepth(-3_000);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.#destroy();
@@ -358,7 +353,10 @@ export class WorldScene extends Phaser.Scene {
     );
     if (!this.scene.isActive()) return;
 
-    const monsters = this.#manualE2E ? [createE2EMonster(save, content)] : undefined;
+    const firstFrameCapture =
+      new URLSearchParams(window.location.search).get('firstFrame') === '1';
+    const monsters =
+      this.#manualE2E && !firstFrameCapture ? [createE2EMonster(save, content)] : undefined;
     this.#session = new GameSession({
       content,
       save,
@@ -389,12 +387,7 @@ export class WorldScene extends Phaser.Scene {
     this.#renderer = new EntityRenderer(this);
     this.#mapPresenter = new MapPresenter(this, this.#mapAssets, (id) => content.npc(id));
     this.#combatPresenter = new CombatPresenter(this, (id) => this.#renderer?.positionOf(id) ?? null);
-    this.cameras.main.setViewport(
-      0,
-      0,
-      this.#firstFramePreviewEnabled ? 640 : 512,
-      this.#firstFramePreviewEnabled ? 384 : 432,
-    );
+    this.cameras.main.setViewport(0, 0, 640, 384);
     this.#wirePointerInput();
     this.#createWorldUi();
     this.#createSaveControls();
@@ -955,10 +948,15 @@ export class WorldScene extends Phaser.Scene {
     );
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.input.hitTestPointer(pointer).length > 0) return;
+      const point = this.#activeProjection?.screenToGrid({
+        x: pointer.worldX,
+        y: pointer.worldY,
+      });
+      if (point === null || point === undefined) return;
       this.#issue({
         targetKind: 'ground',
-        tileX: Math.floor(pointer.worldX / TILE_SIZE),
-        tileY: Math.floor(pointer.worldY / TILE_SIZE),
+        tileX: point.x,
+        tileY: point.y,
       });
     });
   }
@@ -1033,27 +1031,26 @@ export class WorldScene extends Phaser.Scene {
     if (this.#session === null || this.#renderer === null) return;
     this.#syncActiveSaveFromSession();
     const snapshot = this.#session.snapshot;
-    if (this.#firstFramePreviewEnabled) {
-      this.#firstFramePreview ??= new IsometricVillagePreview(this);
-      const preview = this.#firstFramePreview.render();
-      this.cameras.main.centerOn(preview.player.x, preview.player.y);
-      this.#syncInputContext(snapshot);
-      this.#renderE2EState(snapshot);
-      this.#worldUi?.renderHud(this.#hudViewModel(snapshot));
-      return;
-    }
     this.#routeAudioRegion(snapshot.player.mapId);
     this.#mapPresenter?.render(snapshot.player.mapId);
-    this.#renderer.render(snapshot);
+    const mapDefinition = this.#content?.map(snapshot.player.mapId);
+    const fallback =
+      mapDefinition === undefined
+        ? null
+        : createOrthogonalProjection(mapDefinition.width, mapDefinition.height);
+    const projection = this.#mapPresenter?.projection ?? fallback;
+    if (projection === null) throw new Error('找不到可用的世界投影');
+    this.#activeProjection = projection;
+    this.#renderer.render(snapshot, projection);
     if (this.#manualE2E) this.anims.pauseAll();
     const feedback = this.#combatPresenter?.present(this.#session.drainEvents()) ?? [];
     if (feedback.length > 0) {
       this.#lastFeedback = [this.#lastFeedback, ...feedback].filter(Boolean).slice(-8).join(' / ');
     }
-    this.cameras.main.centerOn(
-      snapshot.player.x * TILE_SIZE + TILE_SIZE / 2,
-      snapshot.player.y * TILE_SIZE + TILE_SIZE / 2,
-    );
+    const bounds = projection.bounds;
+    this.cameras.main.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
+    const playerPoint = projection.gridToScreen(snapshot.player);
+    this.cameras.main.centerOn(playerPoint.x, playerPoint.y);
     this.#syncInputContext(snapshot);
     this.#renderE2EState(snapshot);
     this.#worldUi?.renderHud(this.#hudViewModel(snapshot));
@@ -1145,6 +1142,8 @@ export class WorldScene extends Phaser.Scene {
   #renderE2EState(snapshot: WorldSnapshot): void {
     const panel = this.#e2ePanel;
     if (panel === null) return;
+    panel.dataset.projection = this.#activeProjection?.mode ?? '';
+    panel.dataset.cameraViewport = `${String(this.cameras.main.width)}x${String(this.cameras.main.height)}`;
     panel.dataset.ready = 'true';
     panel.dataset.autoAttack = snapshot.autoAttackTargetId ?? '';
     for (const element of panel.querySelectorAll('[data-ephemeral="true"]')) element.remove();
@@ -1393,15 +1392,12 @@ export class WorldScene extends Phaser.Scene {
     this.events.off(Phaser.Scenes.Events.PAUSE, this.#pause);
     this.events.off(Phaser.Scenes.Events.RESUME, this.#resume);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.#syncHudScale);
-    this.#firstFramePreview?.destroy();
-    this.#firstFramePreview = null;
     if (this.#root !== null) {
       delete this.#root.dataset.firstFramePreview;
-      delete this.#root.dataset.firstFrameCamera;
-      delete this.#root.dataset.firstFrameAssetFailures;
     }
     this.#mapPresenter?.destroy();
     this.#mapPresenter = null;
+    this.#activeProjection = null;
     this.#renderer?.destroy();
     this.#autosave?.dispose();
     this.#autosave = null;
