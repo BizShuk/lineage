@@ -8,6 +8,7 @@ import {
 import type { GameContent } from '../../content/catalog';
 import { loadBundledContent, loadContent } from '../../content/loadContent';
 import { SaveRepository } from '../../storage/SaveRepository';
+import { npcAtlasFrame } from '../systems/SpriteAtlas';
 
 export const CONTENT_REGISTRY_KEY = 'game-content';
 export const ASSET_MANIFEST_REGISTRY_KEY = 'asset-manifest';
@@ -164,6 +165,16 @@ export class BootScene extends Phaser.Scene {
     const texture = this.textures.get(entry.group);
     const source = texture.getSourceImage() as { width: number; height: number };
     if (source.width <= 0 || source.height <= 0) return [];
+
+    if (entry.key.startsWith('npc-')) {
+      return Array.from({ length: 4 }, (_, index) => {
+        const frame = npcAtlasFrame(source.width, source.height, entry.frame, index);
+        if (frame === null) return null;
+        const name = `${entry.key}:frame:${String(index)}`;
+        this.#addFrame(texture, name, frame.x, frame.y, frame.width, frame.height);
+        return name;
+      }).filter((name): name is string => name !== null);
+    }
 
     if (isDetailedEntity(entry)) {
       const columns = 16;
