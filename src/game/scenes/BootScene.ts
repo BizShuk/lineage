@@ -8,7 +8,11 @@ import {
 import type { GameContent } from '../../content/catalog';
 import { loadBundledContent, loadContent } from '../../content/loadContent';
 import { SaveRepository } from '../../storage/SaveRepository';
-import { npcAtlasFrame } from '../systems/SpriteAtlas';
+import {
+  classIsometricIdleFrame,
+  isometricVillageAtlasFrame,
+  npcAtlasFrame,
+} from '../systems/SpriteAtlas';
 
 export const CONTENT_REGISTRY_KEY = 'game-content';
 export const ASSET_MANIFEST_REGISTRY_KEY = 'asset-manifest';
@@ -108,12 +112,6 @@ export class BootScene extends Phaser.Scene {
     for (const [group, path] of pathsByGroup) {
       this.load.image(group, pathToUrl(path));
     }
-    if (search.get('firstFrame') === '1') {
-      this.load.image(
-        'isometric-village-preview',
-        '/assets/maps/isometric-village-v1.png',
-      );
-    }
   }
 
   create(): void {
@@ -134,22 +132,6 @@ export class BootScene extends Phaser.Scene {
     }
 
     this.#registerFramesAndAnimations(this.#manifest);
-    if (new URLSearchParams(window.location.search).get('firstFrame') === '1') {
-      const texture = this.textures.get('isometric-village-preview');
-      const source = texture.getSourceImage() as { width: number; height: number };
-      const cellWidth = Math.floor(source.width / 4);
-      const cellHeight = Math.floor(source.height / 4);
-      for (let index = 0; index < 16; index += 1) {
-        this.#addFrame(
-          texture,
-          `isometric-village-preview:frame:${String(index)}`,
-          (index % 4) * cellWidth,
-          Math.floor(index / 4) * cellHeight,
-          cellWidth,
-          cellHeight,
-        );
-      }
-    }
     const search = new URLSearchParams(window.location.search);
     if (search.get('e2e') === '1' && search.get('animationTest') === '1' && parent !== null) {
       this.#createAnimationDiagnostics(parent);
@@ -188,6 +170,16 @@ export class BootScene extends Phaser.Scene {
     const source = texture.getSourceImage() as { width: number; height: number };
     if (source.width <= 0 || source.height <= 0) return [];
 
+    if (entry.key === 'map-village-isometric') {
+      return Array.from({ length: 16 }, (_, index) => {
+        const frame = isometricVillageAtlasFrame(source.width, source.height, index);
+        if (frame === null) return null;
+        const name = `${entry.key}:frame:${String(index)}`;
+        this.#addFrame(texture, name, frame.x, frame.y, frame.width, frame.height);
+        return name;
+      }).filter((name): name is string => name !== null);
+    }
+
     if (entry.key.startsWith('npc-')) {
       return Array.from({ length: 4 }, (_, index) => {
         const frame = npcAtlasFrame(source.width, source.height, entry.frame, index);
@@ -196,6 +188,20 @@ export class BootScene extends Phaser.Scene {
         this.#addFrame(texture, name, frame.x, frame.y, frame.width, frame.height);
         return name;
       }).filter((name): name is string => name !== null);
+    }
+
+    if (entry.key.startsWith('class-')) {
+      const frame = classIsometricIdleFrame(source.width, source.height);
+      if (frame !== null) {
+        this.#addFrame(
+          texture,
+          `${entry.key}:isometric-idle`,
+          frame.x,
+          frame.y,
+          frame.width,
+          frame.height,
+        );
+      }
     }
 
     if (isDetailedEntity(entry)) {

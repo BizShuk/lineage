@@ -849,6 +849,13 @@
       "license": "project-original"
     },
     {
+      "key": "map-village-isometric",
+      "path": "public/assets/maps/isometric-village-v1.png",
+      "group": "isometric-village-v1",
+      "frame": 0,
+      "license": "project-original"
+    },
+    {
       "key": "ui-classic-frame",
       "path": "public/assets/ui/classic-frame.png",
       "group": "ui",

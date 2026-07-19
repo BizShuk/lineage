@@ -25,6 +25,7 @@ const plannedPngPaths = [
   'public/assets/sprites/effects.png',
   'public/assets/maps/terrain-overworld-v2.png',
   'public/assets/maps/terrain-dungeon-v2.png',
+  'public/assets/maps/isometric-village-v1.png',
   'public/assets/ui/classic-frame.png',
 ] as const;
 
@@ -64,7 +65,20 @@ describe('asset manifest contract', () => {
     ).toBe(true);
   });
 
-  it('uses exactly the fourteen planned project PNG paths', () => {
+  it('keeps the orthogonal fallback and registers the approved isometric village atlas', () => {
+    expect(loadAssetManifest()['map-talking-island-village']).toMatchObject({
+      path: 'public/assets/maps/terrain-overworld-v2.png',
+      group: 'terrain-overworld-v2',
+    });
+    expect(loadAssetManifest()['map-village-isometric']).toMatchObject({
+      path: 'public/assets/maps/isometric-village-v1.png',
+      group: 'isometric-village-v1',
+      frame: 0,
+      license: 'project-original',
+    });
+  });
+
+  it('uses exactly the fifteen planned project PNG paths', () => {
     const paths = new Set(Object.values(loadAssetManifest()).map(({ path }) => path));
     expect([...paths].sort()).toEqual([...plannedPngPaths].sort());
   });

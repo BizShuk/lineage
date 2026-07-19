@@ -18,6 +18,7 @@ const plannedPaths = new Set([
   'public/assets/sprites/effects.png',
   'public/assets/maps/terrain-overworld-v2.png',
   'public/assets/maps/terrain-dungeon-v2.png',
+  'public/assets/maps/isometric-village-v1.png',
   'public/assets/ui/classic-frame.png',
 ]);
 
@@ -97,7 +98,11 @@ export const loadAssetManifest = (
     throw new AssetManifestError(`資產 manifest 缺少必要 key：${missing.join(', ')}`);
   }
 
-  const allowedKeys = new Set([...required, 'ui-classic-frame']);
+  const allowedKeys = new Set([
+    ...required,
+    'ui-classic-frame',
+    'map-village-isometric',
+  ]);
   const unknown = Object.keys(manifest).filter((key) => !allowedKeys.has(key));
   if (unknown.length > 0) {
     throw new AssetManifestError(`資產 manifest 含有未知 key：${unknown.join(', ')}`);

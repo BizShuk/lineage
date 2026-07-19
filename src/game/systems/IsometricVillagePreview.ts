@@ -1,9 +1,13 @@
 import type Phaser from 'phaser';
 
-const PREVIEW_ATLAS = 'isometric-village-preview';
+import { classIsometricIdleFrame } from './SpriteAtlas';
+
+const PREVIEW_ATLAS = 'isometric-village-v1';
 const PREVIEW_ORIGIN_X = 1_024;
 const PREVIEW_ORIGIN_Y = 64;
 const PREVIEW_TILE_SCALE = 0.25;
+const previewFrame = (index: number): string =>
+  `map-village-isometric:frame:${String(index)}`;
 
 export interface PreviewPoint {
   readonly x: number;
@@ -62,13 +66,7 @@ export const previewTerrainFrame = (x: number, y: number): number => {
 export const previewKnightFrame = (
   sourceWidth: number,
   sourceHeight: number,
-): PreviewSourceFrame | null => {
-  if (sourceWidth <= 0 || sourceHeight <= 0) return null;
-  const width = Math.floor(sourceWidth / 8);
-  const height = Math.floor(sourceHeight / 6);
-  if (width <= 0 || height <= 0) return null;
-  return { x: width * 4, y: 0, width, height };
-};
+): PreviewSourceFrame | null => classIsometricIdleFrame(sourceWidth, sourceHeight);
 
 export const previewDepth = (x: number, y: number, offset = 0): number =>
   (x + y) * 100 + offset;
@@ -112,7 +110,7 @@ export class IsometricVillagePreview {
     for (let y = 18; y <= 46; y += 1) {
       for (let x = 18; x <= 46; x += 1) {
         const point = previewGridToScreen(x, y);
-        const frame = `${PREVIEW_ATLAS}:frame:${String(previewTerrainFrame(x, y))}`;
+        const frame = previewFrame(previewTerrainFrame(x, y));
         const tile = this.#scene.add
           .image(point.x, point.y, PREVIEW_ATLAS, frame)
           .setOrigin(0.5)
@@ -129,7 +127,7 @@ export class IsometricVillagePreview {
           point.x,
           point.y,
           PREVIEW_ATLAS,
-          `${PREVIEW_ATLAS}:frame:${String(prop.frame)}`,
+          previewFrame(prop.frame),
         )
         .setOrigin(0.5, prop.anchorY)
         .setScale(prop.scale)
@@ -137,10 +135,10 @@ export class IsometricVillagePreview {
       this.#objects.push(image);
     }
 
-    const knightFrame = this.#knightFrame();
     for (const actor of actors) {
       const point = previewGridToScreen(actor.x, actor.y);
-      const frame = actor.texture === 'player-knight' ? knightFrame : actor.frame;
+      const frame =
+        actor.texture === 'player-knight' ? 'class-knight:isometric-idle' : actor.frame;
       const sprite = this.#scene.add.sprite(0, 0, actor.texture, frame).setOrigin(0.5, 1);
       const width = Math.max(1, sprite.frame.realWidth);
       const height = Math.max(1, sprite.frame.realHeight);
@@ -164,19 +162,6 @@ export class IsometricVillagePreview {
       objectCount: this.#objects.length,
     };
     return this.#frame;
-  }
-
-  #knightFrame(): string {
-    const frameName = 'isometric-village-preview:player-knight';
-    const texture = this.#scene.textures.get('player-knight');
-    if (!texture.has(frameName)) {
-      const source = texture.getSourceImage() as { width: number; height: number };
-      const frame = previewKnightFrame(source.width, source.height);
-      if (frame !== null) {
-        texture.add(frameName, 0, frame.x, frame.y, frame.width, frame.height);
-      }
-    }
-    return texture.has(frameName) ? frameName : 'class-knight:frame:0';
   }
 
   destroy(): void {

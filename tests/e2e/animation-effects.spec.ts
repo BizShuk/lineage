@@ -14,6 +14,7 @@ const pngPaths = [
   '/assets/sprites/effects.png',
   '/assets/maps/tiles-overworld.png',
   '/assets/maps/tiles-dungeon.png',
+  '/assets/maps/isometric-village-v1.png',
   '/assets/ui/classic-frame.png',
 ] as const;
 
@@ -45,7 +46,7 @@ test('loads every planned PNG with nonzero natural dimensions', async ({ page })
     ),
   pngPaths);
 
-  expect(dimensions).toHaveLength(14);
+  expect(dimensions).toHaveLength(15);
   expect(dimensions.every(({ width, height }) => width > 0 && height > 0)).toBe(true);
   await expect(page.getByTestId('asset-load-failures')).toHaveText('0');
 });
