@@ -4,7 +4,7 @@ test.use({ viewport: { width: 1280, height: 720 } });
 
 test('captures the approved isometric village through the normal game path', async ({
   page,
-}, testInfo) => {
+}) => {
   const errors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text());
@@ -80,11 +80,8 @@ test('captures the approved isometric village through the normal game path', asy
       }),
   );
 
-  const screenshotPath = testInfo.outputPath('isometric-village-first-frame.png');
-  await root.screenshot({ path: screenshotPath, animations: 'disabled' });
-  await testInfo.attach('isometric-village-first-frame', {
-    path: screenshotPath,
-    contentType: 'image/png',
+  await expect(root).toHaveScreenshot('isometric-village-first-frame.png', {
+    animations: 'disabled',
   });
   expect(errors).toEqual([]);
 });
