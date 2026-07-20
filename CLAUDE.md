@@ -23,6 +23,8 @@
 
 ```text
 .
+├── .vscode/
+│   └── tasks.json                 # VS Code 開發、建置、production preview 與驗證 tasks
 ├── public/
 │   ├── assets/                     # project-original map data and raster assets
 │   └── manifest.webmanifest        # zh-Hant standalone manifest
@@ -115,7 +117,12 @@ npm run content:index
 - 玩家與怪物的 buff／debuff／control 是 runtime status，以 world time 到期；地圖轉換、死亡重生與怪物重生會清除，不寫入 `SaveGameV1`。
 - `area attack` 以目標為中心影響 Chebyshev radius `2` 內的存活敵人，但 MP、cooldown 與 reagent 只支付一次；teleport 返回目前地圖入口，light／detect 保留為可觀測的限時狀態，cure-poison 清除負面狀態。
 - `MapPresenter`、`EntityRenderer` 與 `CombatPresenter` 只讀 controller state／domain events，負責 Phaser tile、sprite、tween 與 floating text。
-- Phaser 內部 viewport 固定 `640×480`；HUD 與 DOM panels 不得改寫 domain state。
+- 新角色從 `scarecrow-field` 入口開始；首個 `640×384` world frame 只放一隻可辨識、可點擊的訓練哥布林，其餘哥布林分散在既有 spawn zones。
+- 四職玩家 atlas 固定按 `8` 方向 × `6` 狀態切出完整 pose；怪物與掉落物的可點區使用實際 sprite frame，不使用 `16×16` feet-only container。
+- 村莊 presentation 使用 shared `WorldProjection` 的 `2:1` 等角模式；邏輯 grid、碰撞、尋路與 domain 座標保持正交整數。其他六張地圖仍使用 orthogonal projection。
+- Phaser 世界 camera viewport 是 `640×384`，底部 DOM HUD 是 `640×96`；兩者合計仍為 `640×480` logical viewport。
+- 村莊 atlas、presentation data 或必要 frame 無效時，terrain、entity、camera 與 pointer 以同一決策 atomic fallback 至 orthogonal presenter。
+- HUD 與 DOM panels 不得改寫 domain state。
 - AC 數字越低代表防禦越強；等級範圍固定為 `1–15`。
 
 ## 存檔 schema 與寫入流程

@@ -17,7 +17,11 @@
     "width": 96, "height": 96, "safeZone": true, "entry": { "x": 48, "y": 2 },
     "npcIds": ["scarecrow-instructor"],
     "exits": [{ "x": 48, "y": 2, "targetMapId": "talking-island-village", "targetX": 32, "targetY": 62 }],
-    "spawns": [{ "monsterId": "goblin", "x": 28, "y": 28, "count": 6, "respawnSeconds": 15 }]
+    "spawns": [
+      { "monsterId": "goblin", "x": 38, "y": 20, "count": 1, "respawnSeconds": 15 },
+      { "monsterId": "goblin", "x": 28, "y": 28, "count": 3, "respawnSeconds": 15 },
+      { "monsterId": "goblin", "x": 62, "y": 30, "count": 2, "respawnSeconds": 15 }
+    ]
   },
   {
     "id": "north-field", "name": "北部野外", "description": "從初階妖魔一路通往高危魔像區的廣闊野外。",

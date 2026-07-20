@@ -58,7 +58,7 @@ const createInitialSave = (content: GameContent, classId: CharacterClass): SaveG
     (total, stack) => total + content.item(stack.itemId).weight * stack.quantity,
     0,
   );
-  const entry = content.map('talking-island-village').entry;
+  const entry = content.map('scarecrow-field').entry;
   return sealSaveV1({
     schemaVersion: 1,
     gameVersion: GAME_VERSION,
@@ -75,7 +75,7 @@ const createInitialSave = (content: GameContent, classId: CharacterClass): SaveG
     equipment: {},
     quests: createQuestState(),
     world: {
-      player: { mapId: 'talking-island-village', ...entry },
+      player: { mapId: 'scarecrow-field', ...entry },
       defeatedBosses: [],
       flags: {},
       worldTimeMs: 0,

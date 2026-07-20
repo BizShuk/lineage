@@ -21,6 +21,7 @@ const CLASS_IDS = ['prince', 'knight', 'elf', 'wizard'] as const;
 
 const fixtureMapIds: Readonly<Record<string, string>> = {
   village: 'talking-island-village',
+  'village-first-frame': 'talking-island-village',
   'north-field': 'north-field',
   'black-knight-area': 'black-knight-area',
   'dungeon-1': 'talking-island-dungeon-1',
@@ -37,6 +38,9 @@ const e2eInitialMapId = (): string | undefined => {
   const fixture = search.get('fixture');
   return fixture === null ? undefined : fixtureMapIds[fixture];
 };
+
+const useFixtureMapEntry = (): boolean =>
+  new URLSearchParams(window.location.search).get('fixture') === 'village-first-frame';
 
 const nameKey = (name: string): string => name.normalize('NFKC').trim().toLocaleLowerCase('zh-Hant');
 
@@ -65,10 +69,11 @@ const createInitialSave = (
   classDefinition: ClassDefinition,
   content: GameContent,
   initialMapId?: string,
+  fixtureUsesEntry = false,
 ): SaveGameV1 => {
-  const initialMap = content.map(initialMapId ?? 'talking-island-village');
+  const initialMap = content.map(initialMapId ?? 'scarecrow-field');
   const initialPosition =
-    initialMapId === undefined
+    initialMapId === undefined || fixtureUsesEntry
       ? initialMap.entry
       : {
           x: Math.floor(initialMap.width / 2),
@@ -262,6 +267,7 @@ export class CharacterCreateScene extends Phaser.Scene {
         definition,
         content,
         e2eInitialMapId(),
+        useFixtureMapEntry(),
       );
       await repository.put(save);
       if (!this.scene.isActive()) return;

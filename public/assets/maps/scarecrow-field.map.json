@@ -102,6 +102,16 @@
   ],
   "monsterSpawnZones": [
     {
+      "id": "entry-goblin-training",
+      "monsterIds": [
+        "goblin"
+      ],
+      "x": 36,
+      "y": 16,
+      "width": 16,
+      "height": 8
+    },
+    {
       "id": "west-scarecrows",
       "monsterIds": [
         "goblin"

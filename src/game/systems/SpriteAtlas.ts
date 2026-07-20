@@ -97,13 +97,30 @@ export const fitSpriteFrame = (
 export const classIsometricIdleFrame = (
   sourceWidth: number,
   sourceHeight: number,
+): SpriteAtlasFrame | null =>
+  classAtlasFrame(sourceWidth, sourceHeight, CLASS_FRONT_POSE_COLUMN, 0);
+
+export const classAtlasFrame = (
+  sourceWidth: number,
+  sourceHeight: number,
+  directionIndex: number,
+  stateIndex: number,
 ): SpriteAtlasFrame | null => {
   const width = Math.floor(sourceWidth / CLASS_POSE_COLUMNS);
   const height = Math.floor(sourceHeight / CLASS_POSE_ROWS);
-  if (width <= 0 || height <= 0) return null;
+  if (
+    width <= 0 ||
+    height <= 0 ||
+    directionIndex < 0 ||
+    directionIndex >= CLASS_POSE_COLUMNS ||
+    stateIndex < 0 ||
+    stateIndex >= CLASS_POSE_ROWS
+  ) {
+    return null;
+  }
   return {
-    x: CLASS_FRONT_POSE_COLUMN * width,
-    y: 0,
+    x: directionIndex * width,
+    y: stateIndex * height,
     width,
     height,
   };

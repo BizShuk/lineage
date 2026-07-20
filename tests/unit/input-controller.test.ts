@@ -50,6 +50,17 @@ describe('InputController', () => {
     });
   });
 
+  it('locks the nearest living enemy when Space is pressed without a current target', () => {
+    const input = new InputController();
+    input.setNearestEnemy('nearest-goblin');
+
+    expect(input.keyDown('Space', { x: 4, y: 5 })).toEqual({
+      type: 'attack',
+      targetId: 'nearest-goblin',
+    });
+    expect(input.currentAutoAttackTarget()).toBe('nearest-goblin');
+  });
+
   it.each([
     ['KeyI', 'inventory'],
     ['KeyC', 'character'],

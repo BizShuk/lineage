@@ -146,7 +146,9 @@ test('uses production transactional panels for commerce, storage, dialogue, and 
   await expect(page.getByTestId('dialogue-panel').locator('.dialogue-box')).toBeVisible();
   await expect(page.getByTestId('dialogue-panel')).toContainText('歡迎來到說話之島。');
   await page.getByTestId('dialogue-choice-continue').click();
-  await expect(page.getByTestId('dialogue-panel')).toContainText('先到村莊補給，再前往訓練場。');
+  await expect(page.getByTestId('dialogue-panel')).toContainText(
+    '完成訓練後先在村莊補給，再前往野外。',
+  );
 
   await page.getByTestId('open-settings').click();
   await expect(page.getByTestId('settings-panel').locator('.settings-form')).toBeVisible();

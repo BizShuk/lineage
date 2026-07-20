@@ -1,0 +1,3 @@
+# Keep the project task definition visible to Git when user-level ignores hide editor settings.
+!.vscode/
+!.vscode/tasks.json

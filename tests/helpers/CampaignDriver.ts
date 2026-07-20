@@ -3,6 +3,10 @@ import { readFileSync } from 'node:fs';
 
 import { deriveStats } from '../../src/core/stats';
 import type { GameSessionSnapshot } from '../../src/game/systems/GameSession';
+import {
+  createIsometricProjection,
+  createOrthogonalProjection,
+} from '../../src/game/systems/WorldProjection';
 import { TileGrid, type GridPoint, type GridRectangle } from '../../src/world/grid';
 import { findPath } from '../../src/world/pathfinding';
 
@@ -344,7 +348,6 @@ export class CampaignDriver {
       const startingSnapshot = await this.snapshot();
       const startingExperience = startingSnapshot.character.experience;
       const startingQuestProgress = questProgressScore(startingSnapshot);
-      await this.#moveAdjacent(target);
       let current = (await this.snapshot()).monsters.find(({ id }) => id === target.id);
       if (current === undefined) throw new Error(`missing target ${target.id}`);
       await this.#selectTarget(target.id);
@@ -534,11 +537,58 @@ export class CampaignDriver {
     const snapshot = await this.snapshot();
     const asset = assets.get(snapshot.player.mapId);
     if (asset === undefined) throw new Error(`missing map asset ${snapshot.player.mapId}`);
-    const scrollX = snapshot.player.x * 16 + 8 - 256;
-    const scrollY = snapshot.player.y * 16 + 8 - 216;
-    const logicalX = target.x * 16 + 8 - scrollX;
-    const logicalY = target.y * 16 + 8 - scrollY;
-    if (logicalX < 0 || logicalX >= 512 || logicalY < 0 || logicalY >= 432) {
+    const projection =
+      snapshot.player.mapId === 'talking-island-village'
+        ? createIsometricProjection(asset.width, asset.height, 128)
+        : createOrthogonalProjection(asset.width, asset.height);
+    if (projection === null) throw new Error(`missing projection for ${snapshot.player.mapId}`);
+    const playerPoint = projection.gridToScreen(snapshot.player);
+    const targetPoint = projection.gridToScreen(target);
+    const pointerOffsets = [
+      { x: 0, y: 0 },
+      { x: -6, y: 0 },
+      { x: 6, y: 0 },
+      { x: 0, y: -3 },
+      { x: 0, y: 3 },
+      { x: -6, y: -3 },
+      { x: 6, y: -3 },
+      { x: -6, y: 3 },
+      { x: 6, y: 3 },
+    ];
+    const pointerPoint =
+      pointerOffsets
+        .map((offset) => ({ x: targetPoint.x + offset.x, y: targetPoint.y + offset.y }))
+        .find((point) => {
+          const resolved = projection.screenToGrid(point);
+          if (resolved?.x !== target.x || resolved.y !== target.y) return false;
+          return !npcDefinitions
+            .filter(({ mapId }) => mapId === snapshot.player.mapId)
+            .some((npc) => {
+              const npcPoint = projection.gridToScreen(npc);
+              const halfWidth = projection.mode === 'isometric-2-1' ? 16 : 8;
+              return (
+                Math.abs(point.x - npcPoint.x) <= halfWidth &&
+                Math.abs(point.y - npcPoint.y) <= 18
+              );
+            });
+        }) ?? targetPoint;
+    const scrollX = Math.max(
+      projection.bounds.x,
+      Math.min(
+        playerPoint.x - 640 / 2,
+        projection.bounds.x + projection.bounds.width - 640,
+      ),
+    );
+    const scrollY = Math.max(
+      projection.bounds.y,
+      Math.min(
+        playerPoint.y - 384 / 2,
+        projection.bounds.y + projection.bounds.height - 384,
+      ),
+    );
+    const logicalX = pointerPoint.x - scrollX;
+    const logicalY = pointerPoint.y - scrollY;
+    if (logicalX < 0 || logicalX >= 640 || logicalY < 0 || logicalY >= 384) {
       throw new Error(`tile ${String(target.x)},${String(target.y)} is outside the camera`);
     }
     const canvas = this.#page.locator('canvas');

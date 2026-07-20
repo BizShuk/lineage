@@ -1,8 +1,10 @@
 import type Phaser from 'phaser';
 
 import { loadAssetManifest, type AssetManifest } from '../../content/assets';
+import type { GameContent } from '../../content/catalog';
 import {
   ASSET_MANIFEST_REGISTRY_KEY,
+  CONTENT_REGISTRY_KEY,
   entityAnimationKey,
   type EntityAnimationState,
 } from '../scenes/BootScene';
@@ -11,6 +13,13 @@ import type { ProjectionMode, WorldProjection } from './WorldProjection';
 import type { WorldSnapshot } from './WorldController';
 
 export const TILE_SIZE = 16;
+
+export const entityDisplayLabel = (
+  content: GameContent,
+  kind: 'monster' | 'loot',
+  contentId: string,
+): string =>
+  kind === 'monster' ? content.monster(contentId).name : content.item(contentId).name;
 
 interface RenderEntity {
   readonly id: string;
@@ -53,6 +62,7 @@ const directionFromDelta = (dx: number, dy: number, fallback: Direction): Direct
 export class EntityRenderer {
   readonly #scene: Phaser.Scene;
   readonly #manifest: AssetManifest;
+  readonly #content: GameContent;
   readonly #entities = new Map<string, Phaser.GameObjects.Container>();
   readonly #sprites = new Map<string, Phaser.GameObjects.Sprite>();
   readonly #labels = new Map<string, Phaser.GameObjects.Text>();
@@ -62,6 +72,7 @@ export class EntityRenderer {
 
   constructor(scene: Phaser.Scene) {
     this.#scene = scene;
+    this.#content = scene.registry.get(CONTENT_REGISTRY_KEY) as GameContent;
     this.#manifest =
       (scene.registry.get(ASSET_MANIFEST_REGISTRY_KEY) as AssetManifest | undefined) ??
       loadAssetManifest();
@@ -90,7 +101,7 @@ export class EntityRenderer {
         y: monster.y,
         textureKey: `monster-${monster.monsterId}`,
         color: monster.rank === 'boss' ? 0x9f3b55 : 0x8a563b,
-        label: monster.monsterId,
+        label: entityDisplayLabel(this.#content, 'monster', monster.monsterId),
         state: monsterAnimationState(monster.aiState),
       })),
       ...snapshot.groundLoot.map((loot): RenderEntity => ({
@@ -100,7 +111,7 @@ export class EntityRenderer {
         y: loot.y,
         textureKey: `item-${loot.itemId}`,
         color: 0xd9bd69,
-        label: loot.itemId,
+        label: entityDisplayLabel(this.#content, 'loot', loot.itemId),
       })),
     ];
     const liveIds = new Set(views.map(({ id }) => id));
@@ -168,7 +179,9 @@ export class EntityRenderer {
           if (fit !== null) sprite.setDisplaySize(fit.width, fit.height);
           labelY = -sprite.displayHeight / 2 - 2;
         } else {
-          sprite.setDisplaySize(28, 36);
+          const fit = fitSpriteFrame(sprite.frame.realWidth, sprite.frame.realHeight, 44, 52);
+          if (fit !== null) sprite.setDisplaySize(fit.width, fit.height);
+          labelY = -sprite.displayHeight / 2 - 2;
         }
         this.#sprites.set(view.id, sprite);
         visual = sprite;
@@ -186,10 +199,13 @@ export class EntityRenderer {
         })
         .setOrigin(0.5, 1);
       this.#labels.set(view.id, label);
+      if (view.kind !== 'player') {
+        visual.setInteractive();
+        visual.setData('target-kind', view.kind);
+        visual.setData('target-id', view.id);
+      }
       container = this.#scene.add.container(0, 0, [visual, label]);
-      container.setSize(TILE_SIZE, TILE_SIZE).setInteractive();
-      container.setData('target-kind', view.kind);
-      container.setData('target-id', view.id);
+      container.setSize(TILE_SIZE, TILE_SIZE);
       this.#entities.set(view.id, container);
     }
     const previous = this.#positions.get(view.id) ?? { x: view.x, y: view.y };

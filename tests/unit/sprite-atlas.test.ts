@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  classAtlasFrame,
   classIsometricIdleFrame,
   fitSpriteFrame,
   isometricVillageAtlasFrame,
@@ -85,6 +86,23 @@ describe('isometric village atlas layout', () => {
       height: 170,
     });
     expect(classIsometricIdleFrame(0, 1024)).toBeNull();
+  });
+
+  it('cuts complete class poses by direction and animation state', () => {
+    expect(classAtlasFrame(1536, 1024, 4, 2)).toEqual({
+      x: 768,
+      y: 340,
+      width: 192,
+      height: 170,
+    });
+    expect(classAtlasFrame(1536, 1024, 7, 5)).toEqual({
+      x: 1344,
+      y: 850,
+      width: 192,
+      height: 170,
+    });
+    expect(classAtlasFrame(1536, 1024, 8, 0)).toBeNull();
+    expect(classAtlasFrame(1536, 1024, 0, 6)).toBeNull();
   });
 });
 

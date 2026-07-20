@@ -1,0 +1,22 @@
+- main [ref=e2]:
+  - generic [ref=e51]:
+    - generic [ref=e52]:
+      - text: 角色名稱
+      - textbox "角色名稱" [ref=e53]
+    - group "選擇職業" [ref=e54]:
+      - generic [ref=e56]:
+        - radio "王族" [checked] [ref=e57]
+        - text: 王族
+      - generic [ref=e58]:
+        - radio "騎士" [ref=e59]
+        - text: 騎士
+      - generic [ref=e60]:
+        - radio "妖精" [ref=e61]
+        - text: 妖精
+      - generic [ref=e62]:
+        - radio "法師" [ref=e63]
+        - text: 法師
+    - generic [ref=e64]: 以均衡近戰與魅力帶領冒險的王室後裔。 力量 13 / 敏捷 10 / 體質 10 智力 10 / 精神 11 / 魅力 13
+    - generic [ref=e65]:
+      - button "返回" [ref=e66] [cursor=pointer]
+      - button "建立角色" [ref=e67] [cursor=pointer]

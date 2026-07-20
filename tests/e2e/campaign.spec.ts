@@ -46,7 +46,9 @@ test('exposes only a read-only campaign snapshot after real character creation',
 test('drives a knight through the seven-stage production campaign and restores the save', async ({
   page,
 }) => {
-  test.setTimeout(180_000);
+  // The complete 3–5 hour simulated campaign uses only production UI input and
+  // performs real projected movement across all seven maps.
+  test.setTimeout(300_000);
   const campaign = new CampaignDriver(page);
 
   await campaign.startKnight();

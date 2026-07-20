@@ -51,6 +51,7 @@ const quickSlotIndex = (code: string): number | null => {
 
 export class InputController {
   #autoAttackTargetId: string | null = null;
+  #nearestEnemyId: string | null = null;
   #nearestInteractableId: string | null = null;
 
   pointerDown(target: PointerTarget): PlayerCommand {
@@ -81,8 +82,11 @@ export class InputController {
       this.#autoAttackTargetId = null;
       return { type: 'move', x: position.x + direction.x, y: position.y + direction.y };
     }
-    if (code === 'Space' && this.#autoAttackTargetId !== null) {
-      return { type: 'attack', targetId: this.#autoAttackTargetId };
+    if (code === 'Space') {
+      const targetId = this.#autoAttackTargetId ?? this.#nearestEnemyId;
+      if (targetId === null) return null;
+      this.#autoAttackTargetId = targetId;
+      return { type: 'attack', targetId };
     }
     if (code === 'KeyE' && this.#nearestInteractableId !== null) {
       return { type: 'interact', targetId: this.#nearestInteractableId };
@@ -104,6 +108,10 @@ export class InputController {
 
   setNearestInteractable(targetId: string | null): void {
     this.#nearestInteractableId = targetId;
+  }
+
+  setNearestEnemy(targetId: string | null): void {
+    this.#nearestEnemyId = targetId;
   }
 
   setAutoAttackTarget(targetId: string | null): void {

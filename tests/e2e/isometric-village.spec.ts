@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('uses the isometric projection for camera and real ground clicks', async ({ page }) => {
-  await page.goto('/?e2e=1');
+  await page.goto('/?e2e=1&fixture=village');
   await page.getByRole('button', { name: '開始新遊戲' }).click();
   await page.getByLabel('角色名稱').fill('投影測試');
   await page.getByRole('radio', { name: '騎士' }).check();
@@ -12,7 +12,7 @@ test('uses the isometric projection for camera and real ground clicks', async ({
   await expect(state).toHaveAttribute('data-projection', 'isometric-2-1');
   await expect(state).toHaveAttribute('data-camera-viewport', '640x384');
   await expect(page.getByTestId('player-state')).toHaveAttribute('data-x', '32');
-  await expect(page.getByTestId('player-state')).toHaveAttribute('data-y', '32');
+  await expect(page.getByTestId('player-state')).toHaveAttribute('data-y', '30');
 
   const canvas = page.locator('canvas');
   const box = await canvas.boundingBox();
@@ -26,6 +26,6 @@ test('uses the isometric projection for camera and real ground clicks', async ({
     },
   });
   await page.getByTestId('simulation-step').click();
-  await expect(page.getByTestId('player-state')).toHaveAttribute('data-x', '33');
-  await expect(page.getByTestId('player-state')).toHaveAttribute('data-y', '32');
+  await expect(page.getByTestId('player-state')).toHaveAttribute('data-x', '34');
+  await expect(page.getByTestId('player-state')).toHaveAttribute('data-y', '30');
 });

@@ -9,6 +9,7 @@ import type { GameContent } from '../../content/catalog';
 import { loadBundledContent, loadContent } from '../../content/loadContent';
 import { SaveRepository } from '../../storage/SaveRepository';
 import {
+  classAtlasFrame,
   classIsometricIdleFrame,
   isometricVillageAtlasFrame,
   npcAtlasFrame,
@@ -232,6 +233,27 @@ export class BootScene extends Phaser.Scene {
           frame.height,
         );
       }
+      return Array.from({ length: ENTITY_DIRECTIONS.length * ENTITY_ANIMATION_STATES.length }, (_, index) => {
+        const directionIndex = index % ENTITY_DIRECTIONS.length;
+        const stateIndex = Math.floor(index / ENTITY_DIRECTIONS.length);
+        const classFrame = classAtlasFrame(
+          source.width,
+          source.height,
+          directionIndex,
+          stateIndex,
+        );
+        if (classFrame === null) return null;
+        const name = `${entry.key}:frame:${String(index)}`;
+        this.#addFrame(
+          texture,
+          name,
+          classFrame.x,
+          classFrame.y,
+          classFrame.width,
+          classFrame.height,
+        );
+        return name;
+      }).filter((name): name is string => name !== null);
     }
 
     if (isDetailedEntity(entry)) {
@@ -290,6 +312,10 @@ export class BootScene extends Phaser.Scene {
           ? rowMonsterPoseIndexes[state]
               .map((index) => physicalFrames[index])
               .filter((name): name is string => name !== undefined)
+          : entry.key.startsWith('class-')
+            ? [physicalFrames[stateIndex * ENTITY_DIRECTIONS.length + directionIndex]].filter(
+                (name): name is string => name !== undefined,
+              )
           : (() => {
               const count = frameCounts[state];
               const detailedStart = directionIndex * 24 + stateOffsets[state];

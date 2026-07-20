@@ -87,7 +87,7 @@ const dialogueNodes: Readonly<Record<string, DialogueNode>> = {
   },
   guide: {
     id: 'guide',
-    text: '先到村莊補給，再前往訓練場。',
+    text: '完成訓練後先在村莊補給，再前往野外。',
     choices: [{ id: 'back', text: '我明白了。', nextNodeId: 'welcome' }],
   },
 };
@@ -1055,6 +1055,14 @@ export class WorldScene extends Phaser.Scene {
 
   #syncInputContext(snapshot: WorldSnapshot): void {
     this.#inputController.setAutoAttackTarget(snapshot.autoAttackTargetId);
+    const nearestEnemy = snapshot.monsters
+      .filter((candidate) => candidate.mapId === snapshot.player.mapId && candidate.hp > 0)
+      .sort(
+        (left, right) =>
+          Math.hypot(left.x - snapshot.player.x, left.y - snapshot.player.y) -
+          Math.hypot(right.x - snapshot.player.x, right.y - snapshot.player.y),
+      )[0];
+    this.#inputController.setNearestEnemy(nearestEnemy?.id ?? null);
     const loot = snapshot.groundLoot.find(
       (candidate) =>
         Math.max(

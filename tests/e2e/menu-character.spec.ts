@@ -55,7 +55,7 @@ for (const [label, classId] of classes) {
       gameVersion: '0.1.0',
       slot: 1,
       character: { name: `測試${label}`, classId },
-      world: { player: { mapId: 'talking-island-village' } },
+      world: { player: { mapId: 'scarecrow-field', x: 48, y: 2 } },
     });
     expect(stored.checksum).toEqual(expect.any(String));
   });

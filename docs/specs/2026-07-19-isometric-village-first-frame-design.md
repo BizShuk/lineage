@@ -184,7 +184,7 @@ HudViewModel
 
 - Browser viewport：`1280×720`。
 - Phaser logical viewport：`640×480`。
-- Scene：新角色進入 `talking-island-village` 的 deterministic fixture。
+- Scene：測試 fixture 強制新角色進入 `talking-island-village`；不改變正常新遊戲從訓練區開始的流程。
 - Camera：玩家腳底置中於 world viewport。
 - UI scale：`1`，browser zoom `100%`。
 

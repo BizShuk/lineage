@@ -53,6 +53,14 @@ test('loads every planned PNG with nonzero natural dimensions', async ({ page })
 
 test('plays all six states for every player class', async ({ page }) => {
   const preview = page.getByTestId('animation-preview-state');
+  const expectedCompleteFrame = {
+    idle: 4,
+    walk: 12,
+    attack: 20,
+    hit: 28,
+    cast: 36,
+    death: 44,
+  } as const;
   for (const classKey of classes) {
     for (const state of states) {
       const animationKey = `${classKey}:${state}:s`;
@@ -60,6 +68,10 @@ test('plays all six states for every player class', async ({ page }) => {
       await expect(preview).toHaveAttribute('data-animation', animationKey);
       await expect(preview).toHaveAttribute('data-cycle-complete', 'true');
       expect(Number(await preview.getAttribute('data-frame-count'))).toBeGreaterThan(0);
+      await expect(preview).toHaveAttribute(
+        'data-current-frame',
+        `${classKey}:frame:${String(expectedCompleteFrame[state])}`,
+      );
     }
   }
 });

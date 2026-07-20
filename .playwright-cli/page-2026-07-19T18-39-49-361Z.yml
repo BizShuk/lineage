@@ -1,0 +1,36 @@
+- main [ref=e2]:
+  - generic "說話之島遊戲畫面" [ref=e68]
+  - region "遊戲狀態介面":
+    - generic "遊戲世界 640 乘 384"
+    - generic:
+      - region "訊息紀錄":
+        - list "訊息紀錄"
+      - region "角色狀態":
+        - complementary "角色狀態":
+          - generic:
+            - generic: 生命 42 / 42
+            - meter "生命"
+          - generic:
+            - generic: 魔力 19 / 19
+            - meter "魔力"
+          - generic:
+            - generic: 經驗 0%
+            - meter "經驗"
+          - paragraph: 等級 1 經驗 0% 防禦 6 負重 42 / 330 正義 0
+      - region "目標與快捷列":
+        - paragraph: 目標：無
+        - generic:
+          - list "快捷列":
+            - listitem: 1：空
+            - listitem: 2：空
+            - listitem: 3：空
+            - listitem: 4：空
+            - listitem: 5：空
+            - listitem: 6：空
+            - listitem: 7：空
+            - listitem: 8：空
+          - generic "系統操作":
+            - region "存檔操作" [ref=e69]:
+              - button "手動儲存" [ref=e70]
+              - button "返回主選單" [ref=e71]
+              - status [ref=e72]

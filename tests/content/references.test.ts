@@ -3,6 +3,38 @@ import { describe, expect, it } from 'vitest';
 import { loadBundledContent } from '../../src/content/loadContent';
 
 describe('bundled content references', () => {
+  it('places the first training goblins inside the initial world viewport', () => {
+    const content = loadBundledContent();
+    const training = content.map('scarecrow-field');
+    const goblins = training.spawns.find(({ monsterId }) => monsterId === 'goblin');
+
+    expect(goblins, 'scarecrow-field goblin spawn').toBeDefined();
+    if (goblins === undefined) return;
+
+    const viewportWidthInTiles = 640 / 16;
+    const worldViewportHeightInTiles = 384 / 16;
+    expect(Math.abs(goblins.x - training.entry.x)).toBeLessThan(viewportWidthInTiles / 2);
+    expect(goblins.y).toBeGreaterThan(training.entry.y);
+    expect(goblins.y).toBeLessThan(training.entry.y + worldViewportHeightInTiles);
+    expect(goblins.count, 'only one readable first-frame training target').toBe(1);
+  });
+
+  it('keeps the trainer route outside the first goblin patrol and alert envelope', () => {
+    const content = loadBundledContent();
+    const training = content.map('scarecrow-field');
+    const goblin = training.spawns.find(({ monsterId }) => monsterId === 'goblin');
+    const instructor = content.npc('scarecrow-instructor');
+
+    expect(goblin, 'scarecrow-field goblin spawn').toBeDefined();
+    if (goblin === undefined) return;
+
+    const chebyshevDistance = Math.max(
+      Math.abs(goblin.x - instructor.x),
+      Math.abs(goblin.y - instructor.y),
+    );
+    expect(chebyshevDistance, 'patrol radius 3 plus alert radius 5').toBeGreaterThan(8);
+  });
+
   it('has no duplicate IDs in any catalog', () => {
     const content = loadBundledContent();
 

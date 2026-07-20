@@ -13,7 +13,7 @@ test('captures the approved isometric village through the normal game path', asy
     errors.push(error.message);
   });
 
-  await page.goto('/?e2e=1&visual=1');
+  await page.goto('/?e2e=1&visual=1&fixture=village-first-frame');
   await page.getByRole('button', { name: '開始新遊戲' }).click();
   await page.getByLabel('角色名稱').fill('視覺測試');
   await page.getByRole('radio', { name: '騎士' }).check();

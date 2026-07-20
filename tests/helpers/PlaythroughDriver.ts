@@ -206,9 +206,9 @@ export class PlaythroughDriver {
     this.#abilityIds.push(...classDefinition.abilityIds.filter((id) =>
       this.#content.ability(id).unlockLevel <= 1,
     ));
-    const start = this.#content.map('talking-island-village').entry;
+    const start = this.#content.map('scarecrow-field').entry;
     this.#world = {
-      player: { mapId: 'talking-island-village', x: start.x, y: start.y },
+      player: { mapId: 'scarecrow-field', x: start.x, y: start.y },
       defeatedBosses: [],
       flags: {},
       worldTimeMs: 0,
