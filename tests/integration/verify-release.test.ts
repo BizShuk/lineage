@@ -2,7 +2,6 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
-  symlinkSync,
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
@@ -56,12 +55,11 @@ const definitions = (
 
 const createValidRoot = (): string => {
   const root = mkdtempSync(join(tmpdir(), 'lineage-release-'));
-  write(root, 'CLAUDE.md', '# Technical context\n');
+  write(root, 'AGENTS.md', '# Technical context\n');
   write(root, 'README.md', '# Project\n');
   write(root, 'README.todo', '# TODO\n');
   write(root, 'docs/memory/README.md', '# Memory\n');
   write(root, 'dist/index.html', '<!doctype html>');
-  symlinkSync('CLAUDE.md', join(root, 'AGENTS.md'));
 
   const content = {
     classes: definitions('class', 4),
@@ -142,10 +140,9 @@ describe('release verifier', () => {
 
   it.each([
     {
-      name: 'AGENTS symlink',
+      name: 'AGENTS.md',
       breakRoot: (root: string): void => {
         unlinkSync(join(root, 'AGENTS.md'));
-        write(root, 'AGENTS.md', 'CLAUDE.md');
       },
       failure: 'AGENTS.md',
     },

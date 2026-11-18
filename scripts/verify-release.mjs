@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readFileSync, readlinkSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
@@ -14,7 +14,7 @@ const releaseCommands = [
 
 const requiredPaths = [
   { path: 'README.md', kind: 'file' },
-  { path: 'CLAUDE.md', kind: 'file' },
+  { path: 'AGENTS.md', kind: 'file' },
   { path: 'README.todo', kind: 'file' },
   { path: 'docs/memory', kind: 'directory' },
 ];
@@ -31,17 +31,6 @@ const readJsonArray = (root, path) => {
   const value = JSON.parse(readFileSync(absolutePath, 'utf8'));
   if (!Array.isArray(value)) throw new Error(`${path} 必須是 JSON array`);
   return value;
-};
-
-const checkAgentsSymlink = (root) => {
-  const path = join(root, 'AGENTS.md');
-  if (!existsSync(path) || !lstatSync(path).isSymbolicLink()) {
-    throw new Error('AGENTS.md 必須是指向 CLAUDE.md 的 symlink');
-  }
-  const target = readlinkSync(path);
-  if (target !== 'CLAUDE.md') {
-    throw new Error(`AGENTS.md symlink target 應為 CLAUDE.md，目前為 ${target}`);
-  }
 };
 
 const checkRequiredPaths = (root) => {
@@ -130,7 +119,6 @@ const checkBuiltEntrypoint = (root) => {
 };
 
 const preflightGates = [
-  { gate: 'AGENTS.md', check: checkAgentsSymlink },
   { gate: 'required-paths', check: checkRequiredPaths },
   { gate: 'content-counts', check: checkContentCounts },
   { gate: 'asset-licenses', check: checkAssetLicenses },
